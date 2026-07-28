@@ -16,6 +16,14 @@
 # Dependencies
 node_modules/
 
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Local runtime
+.env.local
+.env.*.local
+
 # Agent runtime directories
 /agents/TODO/*.md
 .pi/HANDOFFS/

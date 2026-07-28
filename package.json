@@ -1,0 +1,32 @@
+{
+  "name": "llm-native-vue-bun-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch server/index.ts",
+    "dev:web": "bunx vite --host 0.0.0.0",
+    "build": "bunx vite build",
+    "start": "bun server/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
+    "@tailwindcss/vite": "latest",
+    "@vitejs/plugin-vue": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "lucide-vue-next": "latest",
+    "openai": "latest",
+    "reka-ui": "latest",
+    "tailwind-merge": "latest",
+    "tailwindcss": "^4.0.0",
+    "vite": "latest",
+    "vue": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "shadcn-vue": "latest",
+    "typescript": "latest",
+    "vue-tsc": "latest"
+  }
+}
