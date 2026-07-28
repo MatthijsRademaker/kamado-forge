@@ -1,0 +1,12 @@
+{
+  "name": "swarm-pi",
+  "private": true,
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": ["./skills"],
+    "prompts": ["./prompts"]
+  }
+}

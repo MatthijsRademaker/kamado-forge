@@ -1,0 +1,30 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+*.log
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+
+# Agent runtime directories
+/agents/TODO/*.md
+.pi/HANDOFFS/
+
+# Swarm refinement-room runtime artifacts (ledgers, pi-sessions, runtime definitions)
+/.devagent/refinement-room/
+
+# Manual prototype ledgers
+/.devagent/room-runs/
+
+# Cache directories
+/.cache/
