@@ -1,0 +1,84 @@
+specification {
+  element person {
+    style {
+      shape person
+      color indigo
+    }
+  }
+
+  element softwareSystem {
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+
+  element container {
+    style {
+      shape rectangle
+      color blue
+    }
+  }
+
+  element component {
+    style {
+      shape rectangle
+      color sky
+    }
+  }
+
+  element database {
+    style {
+      shape cylinder
+      color green
+    }
+  }
+
+  element externalSystem {
+    style {
+      shape rectangle
+      color amber
+    }
+  }
+
+  deploymentNode device {
+    style {
+      shape browser
+      color indigo
+    }
+  }
+
+  deploymentNode runtime {
+    style {
+      shape rectangle
+      color blue
+    }
+  }
+
+  deploymentNode datastore {
+    style {
+      shape cylinder
+      color green
+    }
+  }
+
+  tag current {
+    color #16a34a
+  }
+
+  tag planned {
+    color #d97706
+  }
+
+  relationship sync {
+    title 'synchronous call'
+  }
+
+  relationship persist {
+    title 'persists'
+  }
+
+  relationship llm {
+    title 'LLM request'
+  }
+}

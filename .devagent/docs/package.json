@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "codegen": "npx likec4 gen webcomponent -o docs/public/likec4-webcomponent.js ../architecture",
+    "codegen": "npx likec4 gen webcomponent --no-use-dot -o docs/public/likec4-webcomponent.js ../architecture",
     "build": "bun run codegen && rspress build",
     "dev": "rspress dev",
     "preview": "rspress preview"

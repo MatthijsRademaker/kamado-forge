@@ -16,8 +16,5 @@ verification_add_env CI=1
 verification_run_container "$BUN_IMAGE" sh -c '
   set -euo pipefail
   bun install --frozen-lockfile
-  bun run format:check
-  bun run lint
-  bun run typecheck
-  bun run deadcode
+  bun run build
 '

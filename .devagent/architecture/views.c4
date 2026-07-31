@@ -1,0 +1,66 @@
+views {
+  view system-context {
+    title 'System context'
+    description 'The kamado learner uses one personal SPA; future coaching calls leave the app only through the backend LLM boundary.'
+    include learner
+    include kamadoCoach
+    include llmProvider
+    include learner -> kamadoCoach.frontend
+    include kamadoCoach.backend.coachApi -> llmProvider
+    autoLayout LeftRight
+  }
+
+  view containers of kamadoCoach {
+    title 'Containers and ownership boundaries'
+    description 'The product is a Vue SPA, Bun API, and local SQLite store. The API owns persistence and future LLM access.'
+    include *
+    include learner -> kamadoCoach.frontend
+    include kamadoCoach.frontend -> kamadoCoach.backend
+    include kamadoCoach.backend -> kamadoCoach.sqlite
+    include kamadoCoach.backend.coachApi -> llmProvider
+    autoLayout LeftRight
+  }
+
+  view frontend-map of kamadoCoach.frontend {
+    title 'Frontend navigation map'
+    description 'The shell should grow into five product areas from the vision: Today, Plan, Coach, Learn, and Logbook.'
+    include *
+    include -> kamadoCoach.frontend.*
+    autoLayout TopBottom
+  }
+
+  view backend-map of kamadoCoach.backend {
+    title 'Backend service map'
+    description 'The Bun API should keep domain endpoints separate from the future LLM and memory boundary.'
+    include *
+    include kamadoCoach.sqlite
+    include llmProvider
+    include kamadoCoach.backend.* -> kamadoCoach.sqlite
+    include kamadoCoach.backend.* -> llmProvider
+    include kamadoCoach.backend.* -> kamadoCoach.backend.memoryService
+    autoLayout LeftRight
+  }
+
+  dynamic view cook-session-loop {
+    title 'Cook session product loop'
+    description 'The strategic loop that future features should preserve: plan, cook, ask, log, and learn from memory.'
+    learner -> kamadoCoach.frontend.planner 'plans a cooking day'
+    kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'saves plan and targets'
+    learner -> kamadoCoach.frontend.today 'follows live outdoor guidance'
+    kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'records progress and timing changes'
+    learner -> kamadoCoach.frontend.coach 'asks context-aware question'
+    kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends active session context'
+    kamadoCoach.backend.coachApi -> kamadoCoach.backend.memoryService 'adds preferences and prior lessons'
+    kamadoCoach.backend.coachApi -> llmProvider 'requests coaching answer'
+    learner -> kamadoCoach.frontend.logbook 'logs outcome and lessons'
+    kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'persists actuals and notes'
+    kamadoCoach.backend.logbookApi -> kamadoCoach.backend.memoryService 'updates durable learning memory'
+  }
+
+  deployment view local-development {
+    title 'Local development topology'
+    description 'Current developer topology: Vite serves the SPA, proxies `/api` to Bun, and Bun opens a local SQLite file.'
+    include localDev.**
+    autoLayout LeftRight
+  }
+}

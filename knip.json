@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["package.json", "tests/**/*.test.ts"],
+      "project": ["tests/**/*.ts"]
+    },
+    "backend": {
+      "project": ["src/**/*.ts"]
+    },
+    "frontend": {
+      "entry": ["src/main.ts"],
+      "project": ["src/**/*.{ts,vue}"]
+    }
+  },
+  "ignore": ["frontend/src/lib/utils.ts"],
+  "ignoreDependencies": [
+    "class-variance-authority",
+    "clsx",
+    "lucide-vue-next",
+    "reka-ui",
+    "shadcn-vue",
+    "tailwind-merge",
+    "tailwindcss"
+  ]
+}

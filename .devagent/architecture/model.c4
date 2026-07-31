@@ -1,0 +1,105 @@
+model {
+  learner = person 'Kamado learner' {
+    description '''
+      The single project owner using the SPA outdoors and at planning time.
+    '''
+  }
+
+  llmProvider = externalSystem 'LLM provider' {
+    description '''
+      Planned external model provider used for context-aware coaching answers.
+    '''
+  }
+
+  kamadoCoach = softwareSystem 'Kamado BBQ Coach' {
+    description '''
+      Single-user web application for planning kamado cooks, receiving live guidance,
+      asking context-aware questions, and recording lessons learned.
+    '''
+
+    frontend = container 'Vue SPA' {
+      description '''
+        Vite-powered Vue 3 application. Currently renders the scaffold shell; planned
+        navigation areas are Today, Plan, Coach, Learn, and Logbook.
+      '''
+
+      appShell = component 'Application shell' {
+        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`.'
+      }
+
+      today = component 'Today live mode' {
+        description 'Planned outdoor-friendly active cook screen with current step, targets, and next actions.'
+      }
+
+      planner = component 'Session planner' {
+        description 'Planned timeline builder for multi-phase kamado cooking days.'
+      }
+
+      coach = component 'Coach chat' {
+        description 'Planned chat interface that sends active-session and memory context with user questions.'
+      }
+
+      learn = component 'Learning library' {
+        description 'Planned kamado-first guide and book-style learning area.'
+      }
+
+      logbook = component 'Logbook' {
+        description 'Planned cook history, notes, outcomes, and lessons learned interface.'
+      }
+    }
+
+    backend = container 'Bun API' {
+      description '''
+        Bun TypeScript HTTP API. Currently exposes `/api/health`, initializes SQLite,
+        applies CORS when configured, and owns future domain and LLM boundaries.
+      '''
+
+      healthApi = component 'Health API' {
+        description 'Current `/api/health` endpoint used to verify the backend and database path.'
+      }
+
+      sessionApi = component 'Session API' {
+        description 'Planned endpoints for cook plans, live sessions, current step state, and timeline adjustments.'
+      }
+
+      coachApi = component 'Coach API' {
+        description 'Planned endpoint boundary for LLM-assisted questions with session and memory context.'
+      }
+
+      learningApi = component 'Learning API' {
+        description 'Planned endpoints for curated kamado learning content and generated explanations.'
+      }
+
+      logbookApi = component 'Logbook API' {
+        description 'Planned endpoints for cook logs, results, notes, and lessons learned.'
+      }
+
+      memoryService = component 'Memory service' {
+        description 'Planned service that summarizes preferences, skill level, recurring issues, and useful lessons.'
+      }
+    }
+
+    sqlite = database 'SQLite database' {
+      description '''
+        Local SQLite persistence configured by `DATABASE_PATH`. Currently contains `app_metadata`;
+        planned tables should keep sessions, logs, learning content, and memory in one personal store.
+      '''
+    }
+  }
+
+  learner -> kamadoCoach.frontend 'plans cooks, follows guidance, asks questions, and reviews logs'
+  kamadoCoach.frontend -[sync]-> kamadoCoach.backend 'calls JSON API via `/api/*`'
+  kamadoCoach.backend -[persist]-> kamadoCoach.sqlite 'stores application data'
+  kamadoCoach.backend.coachApi -[llm]-> llmProvider 'requests context-aware coaching answers'
+
+  kamadoCoach.frontend.appShell -> kamadoCoach.backend.healthApi 'checks scaffold API health'
+  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'loads active cook and records progress'
+  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'creates and adjusts cooking-day timeline'
+  kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
+  kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
+  kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'
+
+  kamadoCoach.backend.sessionApi -> kamadoCoach.backend.memoryService 'reads preferences and prior lessons'
+  kamadoCoach.backend.coachApi -> kamadoCoach.backend.memoryService 'builds prompt context'
+  kamadoCoach.backend.logbookApi -> kamadoCoach.backend.memoryService 'feeds new lessons after each cook'
+}
