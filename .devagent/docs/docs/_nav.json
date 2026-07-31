@@ -12,5 +12,11 @@
       { "text": "Architecture Diagrams", "link": "/architecture" },
       { "text": "Tech Stack", "link": "/tech-stack" }
     ]
+  },
+  {
+    "text": "Development",
+    "items": [
+      { "text": "Compose Development", "link": "/compose-development" }
+    ]
   }
 ]

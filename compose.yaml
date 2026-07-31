@@ -1,0 +1,79 @@
+name: kamado
+
+services:
+  dependencies:
+    image: oven/bun:1.2.23-alpine
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+      - bun-cache:/root/.bun/install/cache
+    command: bun install --frozen-lockfile
+
+  backend:
+    image: oven/bun:1.2.23-alpine
+    working_dir: /workspace
+    depends_on:
+      dependencies:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_PATH: /data/app.sqlite
+      PORT: "3000"
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+      - development-data:/data
+    ports:
+      - "3000:3000"
+    command: bun run dev:backend
+    healthcheck:
+      test: >-
+        bun -e 'fetch("http://127.0.0.1:3000/api/health").then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))'
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  frontend:
+    image: oven/bun:1.2.23-alpine
+    working_dir: /workspace
+    depends_on:
+      dependencies:
+        condition: service_completed_successfully
+    environment:
+      API_PROXY_TARGET: http://backend:3000
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+    ports:
+      - "5173:5173"
+    command: bun run dev:frontend
+    healthcheck:
+      test: >-
+        bun -e 'fetch("http://127.0.0.1:5173/").then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))'
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.55.0-noble
+    profiles:
+      - e2e
+    working_dir: /workspace
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_BASE_URL: http://frontend:5173
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+    command: ./node_modules/.bin/playwright test
+
+volumes:
+  bun-cache:
+  dependencies:
+  development-data:
