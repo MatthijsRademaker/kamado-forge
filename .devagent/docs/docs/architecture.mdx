@@ -2,16 +2,60 @@ import ClientOnly from '../theme/ClientOnly';
 
 # Architecture Diagrams
 
-This page is populated during the Architecture & Documentation onboarding step.
+The LikeC4 model in `.devagent/architecture/` is the source of truth for product architecture. These diagrams document the current scaffold and the intended boundaries for the kamado BBQ coach so future agents can add features without flattening the product into a generic recipe app.
 
-{/* ARCH-DOCS-AGENT: Replace placeholder content in this file with prose and
-actual <likec4-view> embeds whose view-id values match files in
-.devagent/architecture/views/. Remove this comment after updating the page. */}
+The key separation: the **Vue SPA** owns the user experience, the **Bun API** owns domain and LLM boundaries, and **SQLite** owns durable personal memory. The frontend should not call an LLM provider directly because coaching quality depends on active-session context, cook history, preferences, and prompt hygiene owned by the backend.
+
+## System context
+
+Shows the one-user product boundary and the planned external LLM provider relationship.
 
 <ClientOnly>
-
-{/* Add <likec4-view view-id="YOUR_VIEW_ID" ... /> embeds here after generating
-the LikeC4 model for this project. Keep this block empty until valid view IDs
-exist so the docs page does not render broken diagrams. */}
-
+  <likec4-view view-id="system-context" />
 </ClientOnly>
+
+## Containers and ownership boundaries
+
+Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. The API remains the only persistence and LLM boundary.
+
+<ClientOnly>
+  <likec4-view view-id="containers" />
+</ClientOnly>
+
+## Frontend navigation map
+
+Shows the intended product navigation from `vision.md`: Today, Plan, Coach, Learn, and Logbook. Only the application shell exists today; the other areas are planned guardrails.
+
+<ClientOnly>
+  <likec4-view view-id="frontend-map" />
+</ClientOnly>
+
+## Backend service map
+
+Shows the planned backend slices. Keep future endpoints cohesive: session planning/live state, coach/LLM orchestration, learning content, cook logs, and memory service.
+
+<ClientOnly>
+  <likec4-view view-id="backend-map" />
+</ClientOnly>
+
+## Cook session product loop
+
+Shows the strategic loop every feature should reinforce: plan, cook, ask, log, and update memory for the next cook.
+
+<ClientOnly>
+  <likec4-view view-id="cook-session-loop" />
+</ClientOnly>
+
+## Local development topology
+
+Shows the current developer runtime: browser, Vite dev server, Bun API process, and SQLite file.
+
+<ClientOnly>
+  <likec4-view view-id="local-development" />
+</ClientOnly>
+
+## Related pages
+
+- [Vision & Goals](./vision.md) — product strategy, scope, and anti-goals.
+- [Product Guardrails](./product-guardrails.md) — written rules derived from the vision and architecture.
+- [Tech Stack](./tech-stack.md) — repository layout and current tooling.

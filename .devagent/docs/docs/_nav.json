@@ -2,13 +2,15 @@
   {
     "text": "Vision & Strategy",
     "items": [
-      { "text": "Vision & Goals", "link": "/vision" }
+      { "text": "Vision & Goals", "link": "/vision" },
+      { "text": "Product Guardrails", "link": "/product-guardrails" }
     ]
   },
   {
-    "text": "Documentation",
+    "text": "Architecture",
     "items": [
-      { "text": "Architecture", "link": "/architecture" }
+      { "text": "Architecture Diagrams", "link": "/architecture" },
+      { "text": "Tech Stack", "link": "/tech-stack" }
     ]
   }
 ]
