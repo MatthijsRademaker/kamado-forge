@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync, readdirSync } from "node:fs";
 
 function readFrontendPackage(): { dependencies: Record<string, string> } {
   try {
@@ -13,6 +14,17 @@ function readFrontendPackage(): { dependencies: Record<string, string> } {
 
 const frontendPackage = readFrontendPackage();
 const styleSheet = readFileSync("frontend/src/style.css", "utf8");
+
+function buildFrontendCss(): string {
+  execFileSync("bun", ["run", "--cwd", "frontend", "build"], { stdio: "pipe" });
+
+  const cssFile = readdirSync("frontend/dist/assets").find((fileName) => fileName.endsWith(".css"));
+  if (!cssFile) {
+    throw new Error("Frontend build did not produce a CSS asset.");
+  }
+
+  return readFileSync(`frontend/dist/assets/${cssFile}`, "utf8");
+}
 
 describe("Kamado Forge design foundation", () => {
   test("declares package-managed local fonts", () => {
@@ -70,14 +82,20 @@ describe("Kamado Forge design foundation", () => {
       "--shadow-inset:",
       "--shadow-outline:",
       "--ease-forge: cubic-bezier(0.4, 0, 0.2, 1);",
-      "--duration-fast: 150ms;",
-      "--duration-normal: 300ms;",
-      "--duration-slow: 500ms;",
+      "--transition-duration-fast: 150ms;",
+      "--transition-duration-normal: 300ms;",
+      "--transition-duration-slow: 500ms;",
     ];
 
     for (const token of requiredTokens) {
       expect(styleSheet).toContain(token);
     }
+  });
+
+  test("generates a duration-fast utility from its motion token", () => {
+    const builtCss = buildFrontendCss();
+
+    expect(builtCss).toMatch(/\.duration-fast\{[^}]*transition-duration:var\(--transition-duration-fast\)/);
   });
 
   test("encodes role-specific type and spacing scales", () => {

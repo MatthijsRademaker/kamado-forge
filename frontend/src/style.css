@@ -3,6 +3,8 @@
 @import "@fontsource/inter/400.css";
 @import "tailwindcss";
 
+@source inline("duration-fast duration-normal duration-slow");
+
 @theme {
   --font-display: "Anton", Impact, sans-serif;
   --font-heading: "Bebas Neue", "Arial Narrow", sans-serif;
@@ -90,9 +92,9 @@
   --shadow-outline: 0 0 0 1px rgb(245 245 245 / 0.16);
 
   --ease-forge: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-fast: 150ms;
-  --duration-normal: 300ms;
-  --duration-slow: 500ms;
+  --transition-duration-fast: 150ms;
+  --transition-duration-normal: 300ms;
+  --transition-duration-slow: 500ms;
 }
 
 body {
