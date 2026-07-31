@@ -19,12 +19,13 @@ model {
 
     frontend = container 'Vue SPA' {
       description '''
-        Vite-powered Vue 3 application. Currently renders the scaffold shell; planned
-        navigation areas are Today, Plan, Coach, Learn, and Logbook.
+        Vite-powered Vue 3 application. Currently mounts the route-thin primitive
+        showcase at `/` and `/showcase`; planned navigation areas are Today, Plan,
+        Coach, Learn, and Logbook.
       '''
 
       appShell = component 'Application shell' {
-        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`.'
+        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`; currently renders the route-thin primitive showcase.'
       }
 
       today = component 'Today live mode' {

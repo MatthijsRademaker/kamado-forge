@@ -21,6 +21,7 @@ dist/
 *.tsbuildinfo
 frontend/dist/
 backend/dist/
+test-results/
 
 # Local runtime
 .env.local

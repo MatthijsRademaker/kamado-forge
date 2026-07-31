@@ -25,7 +25,7 @@ scripts/              Verification guardrail entrypoints
 | API access | Vite dev proxy forwards `/api` to `http://localhost:3000` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The only mounted application code today is `frontend/src/main.ts` and `frontend/src/App.vue`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`, which currently exposes the route-thin primitive showcase at `/` and `/showcase`. Reusable registry primitives live under `frontend/src/components/ui`; Kamado-specific state/readout compositions and the showcase composition live under `frontend/src/components/`.
 
 ## Backend
 

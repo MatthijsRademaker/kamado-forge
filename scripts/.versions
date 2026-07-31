@@ -4,6 +4,7 @@ GOLANGCI_LINT_IMAGE=golangci/golangci-lint:v2.12.2-alpine
 NODE_IMAGE=node:22-alpine
 NODE24_IMAGE=node:24-alpine
 BUN_IMAGE=oven/bun:1.2.23-alpine
+PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.55.0-noble
 BUF_IMAGE=bufbuild/buf:1.56.0
 PYTHON_IMAGE=python:3.12-slim
 EVAL_IMAGE=dev-swarm-evaluation:local
