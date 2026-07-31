@@ -1,0 +1,23 @@
+deployment {
+  localDev = runtime 'Local developer machine' {
+    browser = device 'Browser' {
+      spa = instanceOf kamadoCoach.frontend
+    }
+
+    vite = runtime 'Vite dev server' {
+      frontendRuntime = instanceOf kamadoCoach.frontend
+    }
+
+    bun = runtime 'Bun API process' {
+      apiRuntime = instanceOf kamadoCoach.backend
+    }
+
+    data = datastore 'SQLite data directory' {
+      sqliteFile = instanceOf kamadoCoach.sqlite
+    }
+  }
+
+  localDev.browser.spa -> localDev.vite.frontendRuntime 'loads SPA assets'
+  localDev.vite.frontendRuntime -> localDev.bun.apiRuntime 'proxies `/api/*` to port 3000'
+  localDev.bun.apiRuntime -> localDev.data.sqliteFile 'opens `DATABASE_PATH`'
+}
