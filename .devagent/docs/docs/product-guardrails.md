@@ -29,9 +29,9 @@ Future frontend work should converge on five areas:
 
 Current code is a scaffold:
 
-- `frontend/src/App.vue` renders a stack summary card.
+- `frontend/src/App.vue` mounts the reusable primitive showcase at `/` and `/showcase`; generic primitives live under `frontend/src/components/ui` and Kamado-specific state/readout compositions live under `frontend/src/components/`.
 - `backend/src/index.ts` exposes `/api/health`, initializes SQLite, and configures CORS.
-- `.devagent/architecture/` now contains the source-of-truth LikeC4 model for intended product boundaries.
+- `.devagent/architecture/` contains the source-of-truth LikeC4 model for intended product boundaries.
 
 Planned product features are modeled as guardrails in the architecture diagrams, but their APIs, schema, UI routes, and LLM integration are not implemented yet.
 
