@@ -5,10 +5,6 @@ model: openai-codex/gpt-5.6-terra
 thinking: high
 modelEasy: openai-codex/gpt-5.6-luna
 thinkingEasy: high
-modelModerate: openai-codex/gpt-5.6-terra
-thinkingModerate: high
-modelComplex: openai-codex/gpt-5.6-sol
-thinkingComplex: high
 tools:
     dev: []
 skills: spec-discipline

@@ -1,8 +1,8 @@
 ---
 name: swarm-reviewer
 description: Quality and correctness specialist
-model: deepseek/deepseek-v4-flash
-thinking: high
+model: openai-codex/gpt-5.6-luna
+thinking: max
 tools:
     refinement: [validate_room_phase_result, submit_room_phase_result]
     review: [report_review_outcome]

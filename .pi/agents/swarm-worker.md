@@ -1,12 +1,12 @@
 ---
 name: swarm-worker
 description: Generalist software engineer
-model: deepseek/deepseek-v4-pro
-thinking: high
-modelEasy: deepseek/deepseek-v4-flash
-modelModerate: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-5.6-luna
+thinking: max
+modelModerate: openai-codex/gpt-5.6-terra
+thinkingComplex: xhigh
 modelComplex: openai-codex/gpt-5.6-sol
-thinkingComplex: max
+thinkingComplex: high
 tools:
     dev: [run_development_verification, report_work_outcome]
 skills: tdd, github-cli, gitlab-cli, swarm-board, openspec-apply-change, openspec-archive-change, read-project-docs, docs-writer, system-coherence, spec-discipline, swarm-extension-expert

@@ -1,11 +1,11 @@
 ---
 name: swarm-spec-writer
 description: Task specification and formulation specialist
-model: deepseek/deepseek-v4-flash
-thinking: high
+model: openai-codex/gpt-5.6-luna
+thinking: max
 modelModerate: openai-codex/gpt-5.6-terra
 modelComplex: openai-codex/gpt-5.6-sol
-thinkingComplex: max
+thinkingComplex: high
 tools:
     refinement: [report_refinement_outcome, validate_room_phase_result, submit_room_phase_result]
 skills: swarm-board, read-project-docs, spec-discipline
