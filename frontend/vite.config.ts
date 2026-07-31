@@ -4,6 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import { defineConfig } from "vite";
 
+export function resolveApiProxyTarget(environment: Record<string, string | undefined>): string {
+  return environment.API_PROXY_TARGET ?? "http://localhost:3000";
+}
+
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
   resolve: {
@@ -12,8 +16,9 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: ["frontend"],
     proxy: {
-      "/api": "http://localhost:3000",
+      "/api": resolveApiProxyTarget(process.env),
     },
   },
 });
