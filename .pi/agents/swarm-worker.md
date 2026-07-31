@@ -4,7 +4,7 @@ description: Generalist software engineer
 model: openai-codex/gpt-5.6-luna
 thinking: max
 modelModerate: openai-codex/gpt-5.6-terra
-thinkingComplex: xhigh
+thinkingModerate: xhigh
 modelComplex: openai-codex/gpt-5.6-sol
 thinkingComplex: high
 tools:
