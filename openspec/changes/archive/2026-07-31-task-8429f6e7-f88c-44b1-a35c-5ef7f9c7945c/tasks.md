@@ -17,4 +17,4 @@
 ## 3. Verify
 
 - [x] 3.1 Manually review the document against the six-layout, visible-region, primary-action, state-transition, responsive, and outdoor-glanceability requirements.
-- [ ] 3.2 Run `scripts/precommit-run` successfully after adding the document.
+- [x] 3.2 Run `scripts/precommit-run` successfully after adding the document.
