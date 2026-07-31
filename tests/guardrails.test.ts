@@ -18,6 +18,12 @@ describe("verification guardrails", () => {
     expect(packageManifest.scripts["check:api"]).toBeDefined();
     expect(checkScript).toContain("bun run check:api");
   });
+
+  test("normal tests include frontend integration coverage", () => {
+    const packageManifest = readPackageManifest();
+
+    expect(packageManifest.scripts.test).toContain("frontend/src");
+  });
 });
 
 function readPackageManifest(): { scripts: Record<string, string> } {
