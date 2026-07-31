@@ -3,6 +3,7 @@ FROM ${PYTHON_IMAGE}
 
 ARG PRE_COMMIT_VERSION=4.0.1
 
+# Nested pre-commit verification calls mktemp under the workspace UID/GID, so /tmp must be sticky.
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
       bash \
