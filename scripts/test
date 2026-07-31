@@ -18,3 +18,10 @@ verification_run_container "$BUN_IMAGE" sh -c '
   bun install --frozen-lockfile
   bun run test
 '
+
+verification_add_arg --ipc=host
+verification_add_env HOME=/tmp
+verification_run_container "$PLAYWRIGHT_IMAGE" bash -c '
+  set -euo pipefail
+  ./node_modules/.bin/playwright test
+'

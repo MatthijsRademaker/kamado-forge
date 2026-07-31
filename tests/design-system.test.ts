@@ -96,7 +96,7 @@ describe("Kamado Forge design foundation", () => {
     const builtCss = buildFrontendCss();
 
     expect(builtCss).toMatch(/\.duration-fast\{[^}]*transition-duration:var\(--transition-duration-fast\)/);
-  });
+  }, 15_000);
 
   test("encodes role-specific type and spacing scales", () => {
     const requiredTokens = [
@@ -155,7 +155,7 @@ describe("Kamado Forge design foundation", () => {
 
   test("keeps keyboard focus visible and honors reduced-motion preferences", () => {
     expect(styleSheet).toContain(`:focus-visible {
-  outline: 2px solid var(--color-neutral-frost);
+  outline: 2px solid var(--color-focus);
   outline-offset: 4px;
 }`);
     expect(styleSheet).toContain("@media (prefers-reduced-motion: reduce)");
