@@ -1,0 +1,29 @@
+{
+  "name": "@app/frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "latest",
+    "@vitejs/plugin-vue": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "lucide-vue-next": "latest",
+    "reka-ui": "latest",
+    "tailwind-merge": "latest",
+    "tailwindcss": "^4.0.0",
+    "vite": "latest",
+    "vue": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "shadcn-vue": "latest",
+    "typescript": "~5.8.3",
+    "vue-tsc": "latest"
+  }
+}

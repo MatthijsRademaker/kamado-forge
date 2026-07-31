@@ -1,32 +1,20 @@
 {
-  "name": "llm-native-vue-bun-app",
+  "name": "llm-native-vue-bun-monorepo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "dev": "bun run --watch server/index.ts",
-    "dev:web": "bunx vite --host 0.0.0.0",
-    "build": "bunx vite build",
-    "start": "bun server/index.ts"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "latest",
-    "@tailwindcss/vite": "latest",
-    "@vitejs/plugin-vue": "latest",
-    "class-variance-authority": "latest",
-    "clsx": "latest",
-    "lucide-vue-next": "latest",
-    "openai": "latest",
-    "reka-ui": "latest",
-    "tailwind-merge": "latest",
-    "tailwindcss": "^4.0.0",
-    "vite": "latest",
-    "vue": "latest"
+    "dev": "bun run --filter '*' dev",
+    "dev:frontend": "bun run --cwd frontend dev",
+    "dev:backend": "bun run --cwd backend dev",
+    "build:frontend": "bun run --cwd frontend build",
+    "start:backend": "bun run --cwd backend start"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "shadcn-vue": "latest",
-    "typescript": "latest",
-    "vue-tsc": "latest"
+    "typescript": "~5.8.3"
   }
 }

@@ -19,10 +19,15 @@ node_modules/
 # Build outputs
 dist/
 *.tsbuildinfo
+frontend/dist/
+backend/dist/
 
 # Local runtime
 .env.local
 .env.*.local
+backend/data/*.sqlite
+backend/data/*.sqlite-shm
+backend/data/*.sqlite-wal
 
 # Agent runtime directories
 /agents/TODO/*.md
