@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/anton": "latest",
+    "@fontsource/bebas-neue": "latest",
+    "@fontsource/inter": "latest",
     "@tailwindcss/vite": "latest",
     "@vitejs/plugin-vue": "latest",
     "class-variance-authority": "latest",
