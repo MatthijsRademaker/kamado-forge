@@ -2,8 +2,8 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["package.json", "tests/**/*.test.ts"],
-      "project": ["tests/**/*.ts"]
+      "entry": ["package.json", "tests/**/*.test.ts", "e2e/**/*.spec.ts"],
+      "project": ["tests/**/*.ts", "e2e/**/*.ts"]
     },
     "backend": {
       "entry": ["src/**/*.test.ts"],
@@ -14,17 +14,12 @@
       "project": ["src/**/*.{ts,vue}"]
     }
   },
-  "ignore": ["frontend/src/lib/utils.ts"],
+  "ignore": [".devagent/cache/**", "frontend/src/lib/utils.ts"],
   "ignoreDependencies": [
     "@fontsource/anton",
     "@fontsource/bebas-neue",
     "@fontsource/inter",
-    "class-variance-authority",
-    "clsx",
-    "lucide-vue-next",
-    "reka-ui",
     "shadcn-vue",
-    "tailwind-merge",
     "tailwindcss"
   ]
 }

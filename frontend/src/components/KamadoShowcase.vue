@@ -89,6 +89,7 @@ export default defineComponent({
     const activeTab = ref("embers");
     const dialogOpen = ref(false);
     const sheetOpen = ref(false);
+    const sheetSide = ref<"top" | "right" | "bottom" | "left">("right");
     const note = ref("");
     const pitName = ref("");
 
@@ -96,6 +97,7 @@ export default defineComponent({
       activeTab,
       dialogOpen,
       sheetOpen,
+      sheetSide,
       note,
       pitName,
     };
@@ -150,6 +152,14 @@ export default defineComponent({
           <Button variant="link" as="a" href="#forms">Jump to field</Button>
           <Button size="icon" variant="default" aria-label="Open heat reference"><Gauge /></Button>
           <Button disabled>Disabled</Button>
+        </div>
+        <div class="flex flex-wrap items-center gap-3" aria-label="Button size variants">
+          <Button size="xs">Extra small</Button>
+          <Button size="sm">Small</Button>
+          <Button size="lg">Large</Button>
+          <Button size="icon-xs" aria-label="Extra-small icon button"><Gauge /></Button>
+          <Button size="icon-sm" aria-label="Small icon button"><Gauge /></Button>
+          <Button size="icon-lg" aria-label="Large icon button"><Gauge /></Button>
         </div>
       </section>
 
@@ -219,6 +229,11 @@ export default defineComponent({
             </div>
             <Progress id="showcase-progress" :max="100" :model-value="68" aria-label="Illustrative determinate progress" />
             <div class="flex items-baseline justify-between gap-4">
+              <label class="font-label text-label uppercase text-text" for="showcase-bounded-progress">Configured maximum</label>
+              <span class="text-ui text-text-muted">75 / 200</span>
+            </div>
+            <Progress id="showcase-bounded-progress" :max="200" :model-value="75" aria-label="Illustrative bounded progress" />
+            <div class="flex items-baseline justify-between gap-4">
               <label class="font-label text-label uppercase text-text" for="showcase-indeterminate">Indeterminate progress</label>
               <span class="text-ui text-text-muted">Awaiting</span>
             </div>
@@ -265,6 +280,7 @@ export default defineComponent({
             <StatusIndicator label="Watch" value="rising" status="warning" />
             <StatusIndicator label="Hold" value="paused" status="info" />
             <StatusIndicator label="Alert" value="high" status="danger" />
+            <StatusIndicator label="Idle" value="standing by" status="neutral" />
           </div>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
@@ -292,8 +308,11 @@ export default defineComponent({
             </DialogContent>
           </Dialog>
           <Sheet v-model:open="sheetOpen">
-            <SheetTrigger as-child><Button variant="outline">Open named sheet</Button></SheetTrigger>
-            <SheetContent>
+            <SheetTrigger as-child><Button variant="outline" @click="sheetSide = 'top'">Open top sheet</Button></SheetTrigger>
+            <SheetTrigger as-child><Button variant="outline" @click="sheetSide = 'right'">Open right sheet</Button></SheetTrigger>
+            <SheetTrigger as-child><Button variant="outline" @click="sheetSide = 'bottom'">Open bottom sheet</Button></SheetTrigger>
+            <SheetTrigger as-child><Button variant="outline" @click="sheetSide = 'left'">Open left sheet</Button></SheetTrigger>
+            <SheetContent :side="sheetSide">
               <SheetHeader>
                 <SheetTitle>Illustrative sheet</SheetTitle>
                 <SheetDescription>This uses the same Reka focus contract in a side-mounted surface.</SheetDescription>

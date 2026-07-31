@@ -58,18 +58,7 @@
   --color-muted: var(--color-surface-raised);
   --color-card-foreground: var(--color-text);
   --color-destructive: var(--color-feedback-danger);
-  --color-input: var(--color-border);
-  --color-ring: var(--color-focus);
-  --color-popover: var(--color-surface);
-  --color-popover-foreground: var(--color-text);
-
-  --color-primary: var(--color-accent);
-  --color-primary-foreground: var(--color-accent-foreground);
-  --color-secondary: var(--color-surface-raised);
-  --color-secondary-foreground: var(--color-text);
-  --color-muted: var(--color-surface-raised);
-  --color-card-foreground: var(--color-text);
-  --color-destructive: var(--color-feedback-danger);
+  --color-destructive-foreground: var(--color-text);
   --color-input: var(--color-border);
   --color-ring: var(--color-focus);
   --color-popover: var(--color-surface);

@@ -159,5 +159,13 @@ describe("Kamado primitive showcase", () => {
       expect(showcaseSource).toContain(`variant="${variant}"`);
     }
     expect(showcaseSource).toContain('<Button variant="ghost">Ghost</Button>');
+
+    for (const size of ["xs", "sm", "lg", "icon", "icon-xs", "icon-sm", "icon-lg"]) {
+      expect(showcaseSource).toContain(`size="${size}"`);
+    }
+    for (const side of ["top", "right", "bottom", "left"]) {
+      expect(showcaseSource).toContain(`sheetSide = '${side}'`);
+    }
+    expect(showcaseSource).toContain('status="neutral"');
   });
 });

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-withDefaults(
+import { computed } from "vue";
+
+const props = withDefaults(
   defineProps<{
     label: string;
     value?: number | null;
@@ -13,6 +15,18 @@ withDefaults(
     max: 100,
   },
 );
+
+const _hasReading = computed(() => props.value !== undefined && props.value !== null && Number.isFinite(props.value));
+const lowerBound = computed(() => props.min);
+const upperBound = computed(() => Math.max(props.max, lowerBound.value));
+const boundedValue = computed(() =>
+  Math.min(Math.max(props.value ?? lowerBound.value, lowerBound.value), upperBound.value),
+);
+const _fillPercentage = computed(() => {
+  const range = upperBound.value - lowerBound.value;
+
+  return range === 0 ? 100 : ((boundedValue.value - lowerBound.value) / range) * 100;
+});
 </script>
 
 <template>
@@ -20,25 +34,34 @@ withDefaults(
     <div class="flex items-baseline justify-between gap-4">
       <span class="font-label text-label uppercase text-text-muted">{{ label }}</span>
       <output class="font-heading text-heading-lg text-text" :aria-label="label">
-        <slot>{{ value === undefined || value === null ? "Awaiting reading" : `${value} ${unit}` }}</slot>
+        <slot>{{ _hasReading ? `${value} ${unit}` : "Awaiting reading" }}</slot>
       </output>
     </div>
-    <progress
-      v-if="value !== undefined && value !== null"
-      class="h-2 w-full overflow-hidden rounded-pill accent-accent [&::-webkit-progress-bar]:bg-core [&::-webkit-progress-value]:bg-accent"
+    <div
+      v-if="_hasReading"
+      data-slot="temperature-gauge"
+      class="h-2 w-full overflow-hidden rounded-pill bg-core"
+      role="progressbar"
       :aria-label="label"
-      :max="max"
-      :min="min"
-      :value="value"
+      :aria-valuemin="lowerBound"
+      :aria-valuemax="upperBound"
+      :aria-valuenow="boundedValue"
     >
-      {{ value }} {{ unit }}
-    </progress>
-    <progress
+      <span
+        data-slot="temperature-gauge-indicator"
+        class="block h-full rounded-pill bg-accent"
+        :style="{ width: `${_fillPercentage}%` }"
+      ></span>
+    </div>
+    <div
       v-else
-      class="h-2 w-full overflow-hidden rounded-pill accent-accent [&::-webkit-progress-bar]:bg-core [&::-webkit-progress-value]:bg-accent"
+      data-slot="temperature-gauge"
+      class="h-2 w-full overflow-hidden rounded-pill bg-core"
+      role="progressbar"
       :aria-label="`${label}: awaiting reading`"
+      aria-valuetext="Awaiting reading"
     >
-      Awaiting reading
-    </progress>
+      <span class="block h-full w-1/3 animate-pulse rounded-pill bg-accent"></span>
+    </div>
   </section>
 </template>
