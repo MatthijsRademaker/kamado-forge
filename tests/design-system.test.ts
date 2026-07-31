@@ -18,12 +18,12 @@ const styleSheet = readFileSync("frontend/src/style.css", "utf8");
 function buildFrontendCss(): string {
   execFileSync("bun", ["run", "--cwd", "frontend", "build"], { stdio: "pipe" });
 
-  const cssFile = readdirSync("frontend/dist/assets").find((fileName) => fileName.endsWith(".css"));
-  if (!cssFile) {
+  const cssFiles = readdirSync("frontend/dist/assets").filter((fileName) => fileName.endsWith(".css"));
+  if (cssFiles.length === 0) {
     throw new Error("Frontend build did not produce a CSS asset.");
   }
 
-  return readFileSync(`frontend/dist/assets/${cssFile}`, "utf8");
+  return cssFiles.map((cssFile) => readFileSync(`frontend/dist/assets/${cssFile}`, "utf8")).join("\n");
 }
 
 describe("Kamado Forge design foundation", () => {
