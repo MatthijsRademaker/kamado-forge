@@ -21,16 +21,16 @@ telemetry, or hardware behavior.
 
 ```text
 +-----------------------------------------------------------------------------------+
-| A. PRIMARY NAV (persistent; switch destination)                                  |
-|    [Today*]  [Plan]  [Coach]  [Learn]  [Logbook]                                 |
+| A. PRIMARY NAV (persistent; switch destination)                                   |
+|    [Today*]  [Plan]  [Coach]  [Learn]  [Logbook]                                  |
 +--------------------------+--------------------------------------------------------+
-| B. PAGE HEADER           | C. SESSION CARD (current session decision)            |
-|    Today — purpose:      |    EMPTY: No active session.                          |
+| B. PAGE HEADER           | C. SESSION CARD (current session decision)             |
+|    Today — purpose:      |    EMPTY: No active session.                           |
 |    start or resume a cook|    [PRIMARY: Plan a cook] -> Plan / new draft          |
-|                          |    [RECOVERY: Browse Learn] -> Learn                  |
+|                          |    [RECOVERY: Browse Learn] -> Learn                   |
 |                          +--------------------------------------------------------+
-|                          | D. RECENT CONTEXT (purpose: orient, not resume)       |
-|                          |    Last cook summary  [View in Logbook]               |
+|                          | D. RECENT CONTEXT (purpose: orient, not resume)        |
+|                          |    Last cook summary  [View in Logbook]                |
 +--------------------------+--------------------------------------------------------+
 ```
 
@@ -40,7 +40,8 @@ Live Cook state. `[RECOVERY: Review plan]` opens its Plan without creating anoth
 
 **Loading variant.** Region C reads `LOADING: Checking today’s session…`.
 `[PRIMARY: Retry Today]` retries the same lookup; `[RECOVERY: Browse Learn]` leaves safely.
-The existing session identifier remains the retry context, so retry cannot create a duplicate
+The session identifier is the retry context when the lookup has already found a session;
+otherwise the original lookup/request identity is retained. Neither retry path can create an
 active session.
 
 **Error variant.** Region C reads `ERROR !: Today could not load.`
@@ -72,8 +73,9 @@ transition. `[PRIMARY: Resume Live Cook]` returns to the one existing session;
 `[RECOVERY: Review plan]` opens that session’s Plan.
 
 **Loading variant.** Region B shows `LOADING: Checking session…`.
-`[PRIMARY: Retry Today]` retries the same lookup; `[RECOVERY: Browse Learn]` leaves safely.
-The bottom navigation remains usable.
+`[PRIMARY: Retry Today]` retries the original lookup/request identity; if the lookup has found
+a session, that session identifier is retained. Neither retry path can create an active session.
+`[RECOVERY: Browse Learn]` leaves safely, and the bottom navigation remains usable.
 
 **Error variant.** Region B shows `ERROR !: Today could not load.`
 `[PRIMARY: Retry Today]` reloads in place; `[RECOVERY: Go to Plan]` returns safely without
@@ -85,24 +87,24 @@ starting or duplicating a session.
 
 ```text
 +-----------------------------------------------------------------------------------+
-| A. PRIMARY NAV (persistent; switch destination)                                  |
-|    [Today]  [Plan*]  [Coach]  [Learn]  [Logbook]                                 |
-+-------------------+------------------------------+-------------------------------+
-| B. PLAN HEADER    | C. COOKING-DAY TIMELINE      | D. TARGETS (manual guidance)  |
-| Purpose: name and | Purpose: ordered duration    | Dome target: 250°F PLANNED    |
-| save this draft.  | and transition plan.         | Food target: 203°F PLANNED    |
-| Brisket / Sat     | 00:00 Light fire (15 min)    | [Edit targets]                |
-| Draft saved       | T1: fire established         +-------------------------------+
-|                   | 00:15 Stabilize (30 min)     | E. KAMADO SETUP               |
-|                   | T2: dome stable at target    | Fuel: lump charcoal, 3/4 load |
-|                   | 00:45 Cook (6 h)             | Heat: deflector, indirect     |
-|                   | T3: wrap at 165°F target     | Prep: clean grate; water pan  |
-|                   | 06:45 Finish/rest (1 h)      | Vent: bottom 1-finger; top ¼  |
-|                   | T4: food target / rest done  | Fire: adjust slowly; wait     |
-+-------------------+------------------------------+-------------------------------+
-| F. VALIDATION + ACTION (purpose: explain readiness and start exactly one cook)   |
-| Complete: timeline, both targets, setup, and transition points.                  |
-| [PRIMARY: Start Live Cook]    [RECOVERY: Save draft and return to Today]         |
+| A. PRIMARY NAV (persistent; switch destination)                                   |
+|    [Today]  [Plan*]  [Coach]  [Learn]  [Logbook]                                  |
++-------------------+------------------------------+--------------------------------+
+| B. PLAN HEADER    | C. COOKING-DAY TIMELINE      | D. TARGETS (manual guidance)   |
+| Purpose: name and | Purpose: ordered duration    | Dome target: 250°F PLANNED     |
+| save this draft.  | and transition plan.         | Food target: 203°F PLANNED     |
+| Brisket / Sat     | 00:00 Light fire (15 min)    | [Edit targets]                 |
+| Draft saved       | T1: fire established         +--------------------------------+
+|                   | 00:15 Stabilize (30 min)     | E. KAMADO SETUP                |
+|                   | T2: dome stable at target    | Fuel: lump charcoal, 3/4 load  |
+|                   | 00:45 Cook (6 h)             | Heat: deflector, indirect      |
+|                   | T3: wrap; Food 165°F PLANNED | Prep: clean grate; water pan   |
+|                   | 06:45 Finish/rest (1 h)      | Vent: bottom 1-finger; top ¼   |
+|                   | T4: food target / rest done  | Fire: adjust slowly; wait      |
++-------------------+------------------------------+--------------------------------+
+| F. VALIDATION + ACTION (purpose: explain readiness and start exactly one cook)    |
+| Complete: timeline, both targets, setup, and transition points.                   |
+| [PRIMARY: Start Live Cook]    [RECOVERY: Save draft and return to Today]          |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -143,9 +145,9 @@ a session.
 | [Edit targets]                              |
 +---------------------------------------------+
 | D. TIMELINE (collapsible; ordered plan)     |
-| 00:00 Light fire — 15m — T1 fire established|
-| 00:15 Stabilize — 30m — T2 dome stable      |
-| 00:45 Cook — 6h — T3 wrap                   |
+| 00:00 Light fire: 15m; T1 established       |
+| 00:15 Stabilize: 30m; T2 dome stable        |
+| 00:45 Cook: 6h; T3 wrap                     |
 | [Open full timeline and edit]               |
 +---------------------------------------------+
 | E. SETUP + VENTS (collapsible; cook setup)  |
@@ -179,22 +181,23 @@ identify it as an active state, not a primary-navigation item.
 
 ```text
 +-----------------------------------------------------------------------------------+
-| A. PRIMARY NAV (persistent; switch destination)                                  |
-|    [Today]  [Plan]  [Coach]  [Learn]  [Logbook]      SESSION: LIVE COOK          |
+| A. PRIMARY NAV (persistent; switch destination)                                   |
+|    [Today]  [Plan]  [Coach]  [Learn]  [Logbook]      SESSION: LIVE COOK           |
 +----------------------------+------------------------------+-----------------------+
 | B. SESSION PROGRESS        | C. CURRENT STEP + ACTION     | D. TARGETS            |
 | Purpose: place in plan.    | Purpose: immediate task.     | Purpose: manual plan. |
 | Step 2 / 6 • Stabilize     | Hold dome near target.       | Dome 250°F PLANNED    |
-| 00:22 elapsed / 00:45 due | [PRIMARY: Set bottom vent to  | Food 203°F PLANNED    |
-| Next: Cook at 00:45        | 1 finger open]               | Not hardware readings |
-| Prompt: T2 dome stable     |                               |                       |
+| 00:22 elapsed / 00:45 due  | [PRIMARY: Set bottom vent to | Food 203°F PLANNED    |
+| Next: Cook at 00:45        | 1 finger open]               | Manual guidance       |
+| Prompt: T2 dome stable     |                              | Not hardware readings |
 +----------------------------+------------------------------+-----------------------+
-| E. KAMADO GUIDANCE (purpose: safe current setup) | F. TIMELINE (purpose: next) |
-| Fuel: lump charcoal; heat: deflector / indirect  | 1 Fire ✓  2 Stabilize *      |
-| Top vent: ¼ open; wait before changing again     | 3 Cook -> T3 wrap -> Finish  |
-+---------------------------------------------------+-----------------------------+
-| G. SESSION CONTROLS (purpose: deliberate lifecycle) | H. COACH (purpose: help) |
-| [Pause]  [Finish cook]                               | [Ask Coach about this step]|
++----------------------------------------------------+------------------------------+
+| E. KAMADO GUIDANCE (purpose: safe current setup)   | F. TIMELINE (purpose: next)  |
+| Fuel: lump charcoal; heat: deflector / indirect    | 1 Fire ✓  2 Stabilize *      |
+| Top vent: ¼ open; wait before changing again       | 3 Cook -> T3 wrap -> Finish  |
++----------------------------------------------------+------------------------------+
+| G. SESSION CONTROLS (purpose: deliberate lifecycle)| H. COACH (purpose: help)     |
+| [Pause]  [Finish cook]                             | [Ask Coach about this step]  |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -248,8 +251,8 @@ same active step without losing session state.
 | --- | --- | --- | --- |
 | Today | Empty | `No active session`; **Plan a cook** | Browse Learn or Plan; no session exists. |
 | Today | Resumable | `ACTIVE` name, step, next transition; **Resume Live Cook** | Review its Plan; exactly one existing session remains. |
-| Today | Loading | `LOADING` | Retry same lookup; navigation remains available. |
-| Today | Error | `ERROR !`; **Retry Today** | Return to Plan; retry cannot create a session. |
+| Today | Loading | `LOADING` | Retry retains a found session identifier or the original lookup identity; navigation remains available; neither path creates a session. |
+| Today | Error | `ERROR !`; **Retry Today** | Return to Plan; retry retains a found session identifier or the original lookup identity and cannot create a session. |
 | Plan | Empty/new | `No draft`; **Create new plan** | Return to Today; creates only a draft. |
 | Plan | Editable draft | Timeline, targets, setup, and validation; **Start Live Cook** when complete | Save draft / return to Today; no session before successful start. |
 | Plan | Loading | `LOADING` | Retry same draft request or return to Today. |
@@ -282,7 +285,7 @@ same active step without losing session state.
 | Finish confirmation | **Cancel** | Prior Active or Paused state | Remove overlay without losing session state. |
 | Finish confirmation | **Confirm finish** with timing and notes/results | Finished handoff | Capture planned-versus-actual timing, notes, and results once. |
 | Finished handoff | **Review in Logbook** | Logbook review context | Supply the completed-cook context; Logbook is not redesigned here. |
-| Any loading/error state | **Retry** or safe return | Same request or previous stable state | Preserve draft/session identity; never duplicate a session. |
+| Any loading/error state | **Retry** or safe return | Same request or previous stable state | Preserve draft/session or Today lookup identity; never duplicate or create a session. |
 
 ### Safety semantics
 
@@ -295,9 +298,9 @@ same active step without losing session state.
 - **Overdue means manual recovery.** When a transition is late, the current phase remains
   visible with an `OVERDUE !` label. The cook can acknowledge the delay, mark the transition
   done and continue, or escalate to Coach. None of these states auto-advance.
-- **Failures retain identity.** Loading and error recovery retries the same draft or active
-  session, or returns to its last stable state. A retry or return never creates a duplicate
-  active session.
+- **Failures retain identity.** Loading and error recovery retries the same draft, known active
+  session, or original Today lookup identity when no session has been found, or returns to its
+  last stable state. A retry or return never creates a duplicate active session.
 
 ## Responsive and outdoor behavior
 
