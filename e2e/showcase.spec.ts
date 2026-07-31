@@ -74,11 +74,9 @@ test("demonstrates every public button size, sheet side, and status", async ({ p
   await expect(page.getByText("Idle", { exact: true })).toBeVisible();
 });
 
-test("serves the showcase directly at root and its explicit path", async ({ page }) => {
-  for (const path of ["/", "/showcase"]) {
-    await page.goto(path);
-    await expect(page.getByRole("heading", { level: 1, name: "HEAT WITH INTENT" })).toBeVisible();
-  }
+test("serves the showcase directly at its explicit path", async ({ page }) => {
+  await page.goto("/showcase");
+  await expect(page.getByRole("heading", { level: 1, name: "HEAT WITH INTENT" })).toBeVisible();
 });
 
 test("keeps focus visible and supports keyboard tab navigation", async ({ page }) => {

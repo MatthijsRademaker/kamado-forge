@@ -23,7 +23,7 @@ views {
 
   view frontend-map of kamadoCoach.frontend {
     title 'Frontend navigation map'
-    description 'The mounted app currently exposes a route-thin primitive showcase at `/` and `/showcase`; its shell and planned product areas consume API state through domain queries backed by the generated client as it grows into Today, Plan, Coach, Learn, and Logbook.'
+    description 'Vue Router sends five named product routes through the responsive ProductShell and keeps `/showcase` standalone. Today, Plan, Coach, Learn, and Logbook currently render orientation-only placeholders; domain APIs remain planned.'
     include *
     include -> kamadoCoach.frontend.*
     autoLayout TopBottom

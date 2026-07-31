@@ -20,13 +20,14 @@ scripts/              Verification guardrail entrypoints
 | --- | --- |
 | Runtime/build | Vite with Vue plugin in `frontend/vite.config.ts` |
 | Framework | Vue 3 single-file components |
+| Routing | Vue Router history mode from `frontend/src/router.ts` |
 | Styling | Tailwind CSS v4 imported from `frontend/src/style.css` |
 | Component system | `shadcn-vue` configured by `frontend/components.json` with `new-york` style and lucide icons |
 | API access | Generated Hey API fetch client uses relative `/api`; Vite proxies it to `http://localhost:3000` in development |
 | Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`, which currently exposes the route-thin primitive showcase at `/` and `/showcase`; API access is established without adding UI scope. Reusable registry primitives live under `frontend/src/components/ui`; Kamado-specific state/readout compositions and the showcase composition live under `frontend/src/components/`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the five product routes through `frontend/src/components/ProductShell.vue`; orientation-only route components live under `frontend/src/views/`. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
 
 ## Backend
 

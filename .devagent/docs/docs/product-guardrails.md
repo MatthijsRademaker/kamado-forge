@@ -8,7 +8,7 @@ The app is not a generic recipe site. It should help a learner become confident 
 
 ## Primary navigation model
 
-Future frontend work should converge on five areas:
+The responsive product shell uses exactly five authoritative areas:
 
 | Area | Purpose | Guardrail |
 | --- | --- | --- |
@@ -27,13 +27,15 @@ Future frontend work should converge on five areas:
 
 ## Current implementation status
 
-Current code is a scaffold:
+Current code is a routed frontend scaffold:
 
-- `frontend/src/App.vue` mounts the reusable primitive showcase at `/` and `/showcase`; generic primitives live under `frontend/src/components/ui` and Kamado-specific state/readout compositions live under `frontend/src/components/`.
+- `frontend/src/router.ts` defines history-mode routes for `/today`, `/plan`, `/coach`, `/learn`, and `/logbook`, with `/` redirecting to Today.
+- `frontend/src/components/ProductShell.vue` owns responsive product chrome; the five files under `frontend/src/views/` are orientation-only placeholders without product controls or data access.
+- `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; generic primitives live under `frontend/src/components/ui`.
 - `backend/src/index.ts` exposes `/api/health`, initializes SQLite, and configures CORS.
-- `.devagent/architecture/` contains the source-of-truth LikeC4 model for intended product boundaries.
+- `.devagent/architecture/` contains the source-of-truth LikeC4 model for product boundaries.
 
-Planned product features are modeled as guardrails in the architecture diagrams, but their APIs, schema, UI routes, and LLM integration are not implemented yet.
+The product routes and navigation shell are implemented, but their feature behavior, APIs, schema, and LLM integration remain planned.
 
 ## Related pages
 
