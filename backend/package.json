@@ -9,6 +9,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "bun build src/index.ts --target=bun --outdir=dist"
   },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "7.3.4",
+    "zod": "3.25.76"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "~5.8.3"

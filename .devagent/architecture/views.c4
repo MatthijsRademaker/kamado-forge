@@ -23,7 +23,7 @@ views {
 
   view frontend-map of kamadoCoach.frontend {
     title 'Frontend navigation map'
-    description 'The mounted app currently exposes a route-thin primitive showcase at `/` and `/showcase`; the shell should grow into five product areas from the vision: Today, Plan, Coach, Learn, and Logbook.'
+    description 'The mounted app currently exposes a route-thin primitive showcase at `/` and `/showcase`; its shell and planned product areas consume API state through domain queries backed by the generated client as it grows into Today, Plan, Coach, Learn, and Logbook.'
     include *
     include -> kamadoCoach.frontend.*
     autoLayout TopBottom

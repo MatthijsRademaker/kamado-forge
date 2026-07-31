@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TEMP_BACKEND="$(mktemp -d "$ROOT/backend/.api-check.XXXXXX")"
+TEMP_FRONTEND="$(mktemp -d "$ROOT/frontend/.api-check.XXXXXX")"
+trap 'rm -rf "$TEMP_BACKEND" "$TEMP_FRONTEND"' EXIT INT TERM
+
+TEMP_OPENAPI="$TEMP_BACKEND/openapi/openapi.json"
+TEMP_CLIENT="$TEMP_FRONTEND/generated"
+
+cd "$ROOT"
+bun backend/scripts/generate-openapi.ts "$TEMP_OPENAPI"
+OPENAPI_INPUT="$TEMP_OPENAPI" OPENAPI_OUTPUT="$TEMP_CLIENT" bun run generate:client
+./node_modules/.bin/biome format --write "$TEMP_OPENAPI" "$TEMP_CLIENT"
+
+status=0
+if ! diff -u backend/openapi/openapi.json "$TEMP_OPENAPI"; then
+  printf '%s\n' 'Generated OpenAPI drift detected. Run: bun run generate:api' >&2
+  status=1
+fi
+if ! diff -ru frontend/src/api/generated "$TEMP_CLIENT"; then
+  printf '%s\n' 'Generated TypeScript client drift detected. Run: bun run generate:api' >&2
+  status=1
+fi
+exit "$status"
