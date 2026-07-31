@@ -34,6 +34,8 @@
   --color-card: #1f1e1e;
   --color-muted-foreground: #a0a0a0;
   --color-border: #3e3e3e;
+
+  --color-core: #101011;
   --color-canvas: #101011;
   --color-surface: #1f1e1e;
   --color-surface-raised: #282727;
@@ -41,6 +43,37 @@
   --color-text-muted: #d1d1d1;
   --color-border-subtle: #3e3e3e;
   --color-border-strong: #a0a0a0;
+  --color-accent: #e4511a;
+  --color-accent-foreground: #101011;
+  --color-feedback-success: #2ba558;
+  --color-feedback-warning: #ecb016;
+  --color-feedback-danger: #f0311d;
+  --color-feedback-info: #278cd0;
+  --color-focus: #f1620f;
+
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-foreground);
+  --color-secondary: var(--color-surface-raised);
+  --color-secondary-foreground: var(--color-text);
+  --color-muted: var(--color-surface-raised);
+  --color-card-foreground: var(--color-text);
+  --color-destructive: var(--color-feedback-danger);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-focus);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-text);
+
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-foreground);
+  --color-secondary: var(--color-surface-raised);
+  --color-secondary-foreground: var(--color-text);
+  --color-muted: var(--color-surface-raised);
+  --color-card-foreground: var(--color-text);
+  --color-destructive: var(--color-feedback-danger);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-focus);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-text);
 
   --text-display-hero: 96px;
   --text-display-hero--line-height: 1;
@@ -108,7 +141,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-neutral-frost);
+  outline: 2px solid var(--color-focus);
   outline-offset: 4px;
 }
 
