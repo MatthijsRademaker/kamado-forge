@@ -13,7 +13,7 @@
     "dev:backend": "bun run --cwd backend dev",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "biome lint backend/src/index.ts frontend/src/main.ts frontend/src/env.d.ts frontend/vite.config.ts tests/guardrails.test.ts",
+    "lint": "biome lint backend/src frontend/src/main.ts frontend/src/env.d.ts frontend/vite.config.ts tests",
     "typecheck": "bun run --cwd backend typecheck && bun run --cwd frontend typecheck",
     "deadcode": "knip",
     "test": "bun test",

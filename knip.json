@@ -6,6 +6,7 @@
       "project": ["tests/**/*.ts"]
     },
     "backend": {
+      "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
     "frontend": {
