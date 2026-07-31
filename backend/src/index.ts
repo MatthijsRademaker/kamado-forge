@@ -19,43 +19,43 @@ db.run(`
 `);
 
 const json = (body: unknown, init?: { status?: number }) => {
-	const headers: Record<string, string> = {
-		"Access-Control-Allow-Headers": "content-type, authorization",
-		"Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-	};
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "content-type, authorization",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  };
 
-	if (corsOrigin) {
-		headers["Access-Control-Allow-Origin"] = corsOrigin;
-	}
+  if (corsOrigin) {
+    headers["Access-Control-Allow-Origin"] = corsOrigin;
+  }
 
-	return Response.json(body, { status: init?.status, headers });
+  return Response.json(body, { status: init?.status, headers });
 };
 
 const pathnameFor = (requestUrl: string) => {
-	try {
-		return new URL(requestUrl).pathname;
-	} catch {
-		return undefined;
-	}
+  try {
+    return new URL(requestUrl).pathname;
+  } catch {
+    return undefined;
+  }
 };
 
 Bun.serve({
-	port,
-	fetch(request: Request) {
-		const pathname = pathnameFor(request.url);
+  port,
+  fetch(request: Request) {
+    const pathname = pathnameFor(request.url);
 
-		if (!pathname) {
-			return json({ error: "invalid request url" }, { status: 400 });
-		}
+    if (!pathname) {
+      return json({ error: "invalid request url" }, { status: 400 });
+    }
 
-		if (request.method === "OPTIONS") {
-			return json({ ok: true });
-		}
+    if (request.method === "OPTIONS") {
+      return json({ ok: true });
+    }
 
-		if (pathname === "/api/health") {
-			return json({ ok: true, service: "api", database: databasePath });
-		}
+    if (pathname === "/api/health") {
+      return json({ ok: true, service: "api", database: databasePath });
+    }
 
-		return json({ error: "not found" }, { status: 404 });
-	},
+    return json({ error: "not found" }, { status: 404 });
+  },
 });

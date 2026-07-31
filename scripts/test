@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
-# Placeholder: project-specific tests.
-# Replace with actual tests. For Docker-backed tools, source scripts/lib/docker-verification.sh
-# and run containers as the workspace UID/GID with named cache volumes such as /cache/go-build, /cache/go-mod, and /cache/npm.
 set -euo pipefail
-echo "[scripts/test] TODO: replace this placeholder with actual project tests" >&2
-exit 1
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+source "$ROOT/scripts/.versions"
+source "$ROOT/scripts/lib/docker-verification.sh"
+
+WORKSPACE="$(verification_workspace_root)"
+
+verification_reset
+verification_workdir "$WORKSPACE"
+verification_add_arg -v "$WORKSPACE:$WORKSPACE"
+verification_add_cache bun-install /cache/bun BUN_INSTALL_CACHE_DIR
+verification_add_cache bun-home /cache/bun-home HOME
+verification_add_env CI=1
+
+verification_run_container "$BUN_IMAGE" sh -c '
+  set -euo pipefail
+  bun install --frozen-lockfile
+  bun run test
+'
