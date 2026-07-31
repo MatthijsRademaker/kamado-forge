@@ -25,13 +25,13 @@ telemetry, or hardware behavior.
 |    [Today*]  [Plan]  [Coach]  [Learn]  [Logbook]                                  |
 +--------------------------+--------------------------------------------------------+
 | B. PAGE HEADER           | C. SESSION CARD (current session decision)             |
-|    Today — purpose:    |    EMPTY: No active session.                           |
-|    start or resume a cook|    [PRIMARY: Plan a cook] -> Plan / new draft          |
-|                          |    [RECOVERY: Browse Learn] -> Learn                   |
-|                          +--------------------------------------------------------+
-|                          | D. RECENT CONTEXT (purpose: orient, not resume)        |
-|                          |    Last cook summary  [View in Logbook]                |
+| Purpose: start or resume | EMPTY: No active session.                              |
+| a cook.                  | [PRIMARY: Plan a cook] -> Plan / new draft             |
+|                          | [RECOVERY: Browse Learn] -> Learn                      |
 +--------------------------+--------------------------------------------------------+
+| D. RECENT CONTEXT (purpose: orient, not resume)                                   |
+|    Last cook summary  [View in Logbook]                                           |
++-----------------------------------------------------------------------------------+
 ```
 
 **Resumable-session variant.** Region C becomes `ACTIVE: Brisket — Step 3 of 6`, with the
@@ -53,15 +53,15 @@ Today; it does not start a cook.
 ```text
 +---------------------------------------------+
 | A. PAGE HEADER (purpose: session decision)  |
-|    Today                         [status]   |
+| Today                              [STATUS] |
 +---------------------------------------------+
 | B. SESSION CARD (purpose: start or resume)  |
-|    EMPTY: No active session                 |
-|    [PRIMARY: Plan a cook]                   |
-|    [RECOVERY: Browse Learn]                 |
+| EMPTY: No active session                    |
+| [PRIMARY: Plan a cook]                      |
+| [RECOVERY: Browse Learn]                    |
 +---------------------------------------------+
 | C. RECENT CONTEXT (purpose: orient)         |
-|    Last cook summary      [View Logbook]    |
+| Last cook summary       [View Logbook]      |
 +---------------------------------------------+
 | D. PRIMARY NAV (persistent bottom bar)      |
 | [Today*] [Plan] [Coach] [Learn] [Logbook]   |
@@ -90,17 +90,17 @@ starting or duplicating a session.
 | A. PRIMARY NAV (persistent; switch destination)                                   |
 |    [Today]  [Plan*]  [Coach]  [Learn]  [Logbook]                                  |
 +-------------------+------------------------------+--------------------------------+
-| B. PLAN HEADER    | C. COOKING-DAY TIMELINE      | D. TARGETS (manual guidance)   |
-| Purpose: name and | Purpose: ordered duration    | Dome target: 250°F PLANNED    |
-| save this draft.  | and transition plan.         | Food target: 203°F PLANNED    |
+| B. PLAN HEADER    | C. COOKING-DAY TIMELINE      | D. TARGETS; E. SETUP           |
+| Purpose: name and | Purpose: ordered duration    | Dome target: 250F PLANNED      |
+| save this draft.  | and transition plan.         | Food target: 203F PLANNED      |
 | Brisket / Sat     | 00:00 Light fire (15 min)    | [Edit targets]                 |
-| Draft saved       | T1: fire established         +--------------------------------+
-|                   | 00:15 Stabilize (30 min)     | E. KAMADO SETUP                |
-|                   | T2: dome stable at target    | Fuel: lump charcoal, 3/4 load  |
-|                   | 00:45 Cook (6 h)             | Heat: deflector, indirect      |
-|                   | T3 wrap: Food 165°F PLANNED | Prep: clean grate; water pan   |
-|                   | 06:45 Finish/rest (1 h)      | Vent: bottom 1-finger; top ¼  |
-|                   | T4: food target / rest done  | Fire: adjust slowly; wait      |
+| Draft saved       | T1: fire established         | Fuel: lump charcoal, 3/4 load  |
+|                   | 00:15 Stabilize (30 min)     | Heat: deflector, indirect      |
+|                   | T2: dome stable at target    | Prep: clean grate; water pan   |
+|                   | 00:45 Cook (6 h)             | Vent: bottom 1-finger; top 1/4 |
+|                   | T3 wrap: Food 165F PLANNED   | Fire: adjust slowly; wait      |
+|                   | 06:45 Finish/rest (1 h)      |                                |
+|                   | T4: food target / rest done  |                                |
 +-------------------+------------------------------+--------------------------------+
 | F. VALIDATION + ACTION (purpose: explain readiness and start exactly one cook)    |
 | Complete: timeline, both targets, setup, and transition points.                   |
@@ -133,7 +133,7 @@ a session.
 ```text
 +---------------------------------------------+
 | A. PLAN HEADER (purpose: identify draft)    |
-| Brisket/Sat — Draft saved                 |
+| Brisket / Sat - draft saved                 |
 +---------------------------------------------+
 | B. READINESS + ACTION (purpose: start once) |
 | Ready: all required plan fields present     |
@@ -141,7 +141,7 @@ a session.
 | [RECOVERY: Save draft]                      |
 +---------------------------------------------+
 | C. TARGETS (planned/manual guidance)        |
-| Dome 250°F PLANNED; Food 203°F PLANNED    |
+| Dome 250F PLANNED; Food 203F PLANNED        |
 | [Edit targets]                              |
 +---------------------------------------------+
 | D. TIMELINE (collapsible; ordered plan)     |
@@ -152,7 +152,7 @@ a session.
 +---------------------------------------------+
 | E. SETUP + VENTS (collapsible; cook setup)  |
 | Lump charcoal / deflector / grate prep      |
-| Bottom 1-finger; top ¼; adjust slowly      |
+| Bottom 1-finger; top 1/4; adjust slowly     |
 | [Open setup and edit]                       |
 +---------------------------------------------+
 | F. PRIMARY NAV (persistent bottom bar)      |
@@ -188,18 +188,18 @@ does not finish, pause, or create another active session; returning through Toda
 +----------------------------+------------------------------+-----------------------+
 | B. SESSION PROGRESS        | C. CURRENT STEP + ACTION     | D. TARGETS            |
 | Purpose: place in plan.    | Purpose: immediate task.     | Purpose: manual plan. |
-| Step 2/6 • Stabilize     | Hold dome near target.       | Dome 250°F PLANNED   |
-| 00:22 elapsed / 00:45 due  | [PRIMARY: Set bottom vent to | Food 203°F PLANNED   |
+| Step 2/6: Stabilize        | Hold dome near target.       | Dome 250F PLANNED     |
+| 00:22 elapsed; due 00:45   | [PRIMARY: Set bottom vent to | Food 203F PLANNED     |
 | Next: Cook at 00:45        | 1 finger open]               | Manual guidance       |
 | Prompt: T2 dome stable     |                              | Not hardware readings |
 +----------------------------+------------------------------+-----------------------+
-+----------------------------------------------------+------------------------------+
-| E. KAMADO GUIDANCE (purpose: safe current setup)   | F. TIMELINE (purpose: next)  |
-| Fuel: lump charcoal; heat: deflector / indirect    | 1 Fire ✓  2 Stabilize *    |
-| Top vent: ¼ open; wait before changing again      | 3 Cook -> T3 wrap -> Finish  |
-+----------------------------------------------------+------------------------------+
-| G. SESSION CONTROLS (purpose: deliberate lifecycle)| H. COACH (purpose: help)     |
-| [Pause]  [Finish cook]                             | [Ask Coach about this step]  |
+| E. KAMADO GUIDANCE         | F. TIMELINE (next)           | H. COACH              |
+| Fuel: lump charcoal        | 1 Fire done; 2 Stabilize     | [Ask Coach]           |
+| Heat: deflector; indirect  | 3 Cook -> T3 wrap -> Finish  |                       |
+| Top vent: 1/4 open         | Next: Cook; T2 prompt        |                       |
++----------------------------+------------------------------+-----------------------+
+| G. SESSION CONTROLS (purpose: deliberate lifecycle)                               |
+| [Pause]  [Finish cook]                                                            |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -213,19 +213,19 @@ the current fuel, heat-zone/deflector, vent, and fire-adjustment guidance.
 ```text
 +---------------------------------------------+
 | A. SESSION STATUS (purpose: place in plan)  |
-| LIVE COOK • Step 2 / 6 • Stabilize      |
-| 00:22 elapsed • next Cook at 00:45        |
+| LIVE COOK: Step 2/6 - Stabilize             |
+| 00:22 elapsed; next Cook at 00:45           |
 +---------------------------------------------+
 | B. CURRENT STEP + ACTION (unobstructed)     |
 | Hold dome near target.                      |
 | [PRIMARY: Set bottom vent to 1 finger open] |
 +---------------------------------------------+
 | C. TARGETS (immediately visible)            |
-| Dome 250°F PLANNED | Food 203°F PLANNED   |
-| Manual guidance — not hardware readings   |
+| Dome 250F PLANNED; Food 203F PLANNED        |
+| Manual guidance; not hardware readings      |
 +---------------------------------------------+
 | D. NEXT STEP (purpose: prepare ahead)       |
-| Next: Cook • Prompt: T2 dome stable       |
+| Next: Cook; prompt: T2 dome stable          |
 +---------------------------------------------+
 | E. SECONDARY DETAILS (labeled collapsibles) |
 | [Timeline and transition points v]          |
