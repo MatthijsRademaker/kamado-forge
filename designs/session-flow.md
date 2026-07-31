@@ -20,18 +20,16 @@ telemetry, or hardware behavior.
 ### Desktop layout
 
 ```text
-+-----------------------------------------------------------------------------------+
-| A. PRIMARY NAV (persistent; switch destination)                                   |
-|    [Today*]  [Plan]  [Coach]  [Learn]  [Logbook]                                  |
 +--------------------------+--------------------------------------------------------+
-| B. PAGE HEADER           | C. SESSION CARD (current session decision)             |
-| Purpose: start or resume | EMPTY: No active session.                              |
-| a cook.                  | [PRIMARY: Plan a cook] -> Plan / new draft             |
-|                          | [RECOVERY: Browse Learn] -> Learn                      |
+| A. PRIMARY NAV           | B. PAGE HEADER (purpose: start or resume a cook)       |
+| persistent rail; switch  | C. SESSION CARD (current session decision)             |
+| destination              | EMPTY: No active session.                              |
+| [Today*]                 | [PRIMARY: Plan a cook] -> Plan / new draft             |
+| [Plan]                   | [RECOVERY: Browse Learn] -> Learn                      |
+| [Coach]                  +--------------------------------------------------------+
+| [Learn]                  | D. RECENT CONTEXT (purpose: orient, not resume)        |
+| [Logbook]                |    Last cook summary  [View in Logbook]                |
 +--------------------------+--------------------------------------------------------+
-| D. RECENT CONTEXT (purpose: orient, not resume)                                   |
-|    Last cook summary  [View in Logbook]                                           |
-+-----------------------------------------------------------------------------------+
 ```
 
 **Resumable-session variant.** Region C becomes `ACTIVE: Brisket — Step 3 of 6`, with the
@@ -86,34 +84,31 @@ starting or duplicating a session.
 ### Desktop layout
 
 ```text
-+-----------------------------------------------------------------------------------+
-| A. PRIMARY NAV (persistent; switch destination)                                   |
-|    [Today]  [Plan*]  [Coach]  [Learn]  [Logbook]                                  |
 +-------------------+------------------------------+--------------------------------+
-| B. PLAN HEADER    | C. COOKING-DAY TIMELINE      | D. TARGETS; E. SETUP           |
-| Purpose: name and | Purpose: ordered duration    | Dome target: 250F PLANNED      |
-| save this draft.  | and transition plan.         | Food target: 203F PLANNED      |
-| Brisket / Sat     | 00:00 Light fire (15 min)    | [Edit targets]                 |
-| Draft saved       | T1: fire established         | Fuel: lump charcoal, 3/4 load  |
-|                   | 00:15 Stabilize (30 min)     | Heat: deflector, indirect      |
-|                   | T2: dome stable at target    | Prep: clean grate; water pan   |
-|                   | 00:45 Cook (6 h)             | Vent: bottom 1-finger; top 1/4 |
-|                   | T3 wrap: Food 165F PLANNED   | Fire: adjust slowly; wait      |
-|                   | 06:45 Finish/rest (1 h)      |                                |
+| A. PRIMARY NAV    | B. PLAN + TIMELINE           | C. TARGETS + SETUP             |
+| persistent rail;  | Purpose: save ordered draft. | Purpose: planned cook guidance.|
+| switch destination| Brisket/Sat — Draft saved  | Dome target: 250F PLANNED      |
+| [Today]           | 00:00 Light fire (15 min)    | Food target: 203F PLANNED      |
+| [Plan*]           | T1: fire established         | [Edit targets]                 |
+| [Coach]           | 00:15 Stabilize (30 min)     | Fuel: lump charcoal, 3/4 load  |
+| [Learn]           | T2: dome stable at target    | Heat: deflector, indirect      |
+| [Logbook]         | 00:45 Cook (6 h)             | Prep: clean grate; water pan   |
+|                   | T3 wrap: Food 165F PLANNED   | Vent: bottom 1-finger; top 1/4 |
+|                   | 06:45 Finish/rest (1 h)      | Fire: adjust slowly; wait      |
 |                   | T4: food target / rest done  |                                |
-+-------------------+------------------------------+--------------------------------+
-| F. VALIDATION + ACTION (purpose: explain readiness and start exactly one cook)    |
-| Complete: timeline, both targets, setup, and transition points.                   |
-| [PRIMARY: Start Live Cook]    [RECOVERY: Save draft and return to Today]          |
-+-----------------------------------------------------------------------------------+
++-------------------+---------------------------------------------------------------+
+|                   | D. VALIDATION + ACTION (purpose: start exactly one cook)      |
+|                   | Complete: timeline, both targets, setup, and transitions.     |
+|                   | [PRIMARY: Start Live Cook] [RECOVERY: Save draft to Today]    |
++-------------------+---------------------------------------------------------------+
 ```
 
-Every target in Region D is planned/manual guidance, not a hardware reading. Region C is
-editable: the cook can change order, duration, and named transition point. Regions D and E
-are editable: the cook can change the target values, fuel, deflector/heat-zone arrangement,
+Every target in Region C is planned/manual guidance, not a hardware reading. Region B is
+editable: the cook can change order, duration, and named transition point. Region C is
+editable: the cook can change the target values, fuel, deflector/heat-zone arrangement,
 prep, vent setting, and fire guidance.
 
-**Empty/new-plan entry variant.** Regions B–E show `NO DRAFT: Start a cooking-day plan.`
+**Empty/new-plan entry variant.** Regions B–D show `NO DRAFT: Start a cooking-day plan.`
 `[PRIMARY: Create new plan]` creates an editable draft only; `[RECOVERY: Return to Today]`
 creates no session.
 
@@ -182,31 +177,31 @@ does not finish, pause, or create another active session; returning through Toda
 ### Desktop layout
 
 ```text
-+-----------------------------------------------------------------------------------+
-| A. PRIMARY NAV (persistent; switch destination)                                   |
-|    [Today]  [Plan]  [Coach]  [Learn]  [Logbook]      SESSION: LIVE COOK           |
 +----------------------------+------------------------------+-----------------------+
-| B. SESSION PROGRESS        | C. CURRENT STEP + ACTION     | D. TARGETS            |
-| Purpose: place in plan.    | Purpose: immediate task.     | Purpose: manual plan. |
-| Step 2/6: Stabilize        | Hold dome near target.       | Dome 250F PLANNED     |
-| 00:22 elapsed; due 00:45   | [PRIMARY: Set bottom vent to | Food 203F PLANNED     |
-| Next: Cook at 00:45        | 1 finger open]               | Manual guidance       |
-| Prompt: T2 dome stable     |                              | Not hardware readings |
+| A. PRIMARY NAV             | B. SESSION PROGRESS + ACTION | C. TARGETS            |
+| persistent rail; switch    | Purpose: place and act now.  | Planned/manual guide. |
+| destination                | Step 2/6: Stabilize          | Dome 250F PLANNED     |
+| [Today]                    | 00:22 elapsed; due 00:45     | Food 203F PLANNED     |
+| [Plan]                     | Hold dome near target.       | Manual guidance       |
+| [Coach]                    | [PRIMARY: Set bottom vent to | Not hardware readings |
+| [Learn]                    | 1 finger open]               |                       |
+| [Logbook]                  | Next: Cook at 00:45          | SESSION: LIVE COOK    |
 +----------------------------+------------------------------+-----------------------+
-| E. KAMADO GUIDANCE         | F. TIMELINE (next)           | H. COACH              |
-| Fuel: lump charcoal        | 1 Fire done; 2 Stabilize     | [Ask Coach]           |
-| Heat: deflector; indirect  | 3 Cook -> T3 wrap -> Finish  |                       |
-| Top vent: 1/4 open         | Next: Cook; T2 prompt        |                       |
-+----------------------------+------------------------------+-----------------------+
-| G. SESSION CONTROLS (purpose: deliberate lifecycle)                               |
-| [Pause]  [Finish cook]                                                            |
-+-----------------------------------------------------------------------------------+
+|                            | D. GUIDANCE + NEXT STEP      | E. COACH              |
+|                            | Fuel: lump charcoal          | [Ask Coach]           |
+|                            | Heat: deflector; indirect    |                       |
+|                            | Top vent: 1/4 open           |                       |
+|                            | Prompt: T2 dome stable       |                       |
++----------------------------+------------------------------------------------------+
+|                            | F. SESSION CONTROLS (purpose: deliberate lifecycle)  |
+|                            | [Pause]  [Finish cook]                               |
++----------------------------+------------------------------------------------------+
 ```
 
-Region C remains unobstructed until its immediate action is completed or deliberately
-changed. Region D always labels values as planned/manual guidance, never as live probe or
-controller readings. Region F names the next phase and transition prompt; Region E retains
-the current fuel, heat-zone/deflector, vent, and fire-adjustment guidance.
+Region B remains unobstructed until its immediate action is completed or deliberately
+changed. Region C always labels values as planned/manual guidance, never as live probe or
+controller readings. Region D names the next phase and transition prompt and retains the
+current fuel, heat-zone/deflector, vent, and fire-adjustment guidance.
 
 ### Mobile layout
 
@@ -312,7 +307,7 @@ same active step without losing session state.
 
 | Desktop information pattern | Mobile transformation | Priority preserved |
 | --- | --- | --- |
-| Persistent primary navigation beside or above multi-column panels | Persistent fixed bottom bar: Today, Plan, Coach, Learn, Logbook | The five destinations stay available; Live Cook is still a state. |
+| Persistent primary-navigation rail beside multi-column panels | Persistent fixed bottom bar: Today, Plan, Coach, Learn, Logbook | The five destinations stay available; Live Cook is still a state. |
 | Today header, session card, and recent context share horizontal space | Header then session decision, with recent context below | Start/resume action precedes history. |
 | Plan timeline, targets, and setup occupy visible columns | Targets stay visible; timeline and setup/vent details become separately labeled collapsible sections or action sheets | Start readiness and both planned/manual targets stay clear. |
 | Live Cook shows action, targets, guidance, and timeline in panels | Current action, both targets, and next-step prompt stay above the fold; timeline and setup/vent guidance move into labeled collapsibles | The outdoor-critical action and targets cannot be covered by secondary content. |
