@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@fontsource/anton": "latest",
+    "@hey-api/client-fetch": "0.13.1",
+    "@pinia/colada": "1.4.2",
     "@fontsource/bebas-neue": "latest",
     "@fontsource/inter": "latest",
     "@tailwindcss/vite": "latest",
@@ -19,6 +21,7 @@
     "class-variance-authority": "latest",
     "clsx": "latest",
     "lucide-vue-next": "latest",
+    "pinia": "4.0.2",
     "reka-ui": "latest",
     "tailwind-merge": "latest",
     "tailwindcss": "^4.0.0",

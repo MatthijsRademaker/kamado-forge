@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+bun backend/scripts/generate-openapi.ts backend/openapi/openapi.json
+bun run generate:client
+./node_modules/.bin/biome format --write backend/openapi/openapi.json frontend/src/api/generated

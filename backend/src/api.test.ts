@@ -20,8 +20,41 @@ describe("API startup", () => {
       const response = fetchHandler?.(new Request("http://api.test/api/health"));
 
       expect(response).toBeDefined();
-      expect(await response?.json()).toEqual({ ok: true, service: "api", database: fixture.databasePath });
+      expect(await response?.json()).toEqual({
+        data: { ok: true, service: "api", database: { status: "ok" } },
+      });
       expect(response?.headers.get("Access-Control-Allow-Origin")).toBe("https://app.example.test");
+      api.persistence.close();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("preserves successful OPTIONS preflight and configured CORS headers", () => {
+    const fixture = createTemporaryPersistence();
+    let fetchHandler: ((request: Request) => Response) | undefined;
+
+    try {
+      const api = startApi({
+        port: 3000,
+        databasePath: fixture.databasePath,
+        corsOrigin: "https://app.example.test",
+        serve(options) {
+          fetchHandler = options.fetch;
+        },
+      });
+
+      const response = fetchHandler?.(
+        new Request("http://api.test/api/health", {
+          method: "OPTIONS",
+          headers: { "Access-Control-Request-Method": "GET" },
+        }),
+      );
+
+      expect(response?.status).toBe(204);
+      expect(response?.headers.get("Access-Control-Allow-Origin")).toBe("https://app.example.test");
+      expect(response?.headers.get("Access-Control-Allow-Headers")).toBe("content-type, authorization");
+      expect(response?.headers.get("Access-Control-Allow-Methods")).toBe("GET,POST,OPTIONS");
       api.persistence.close();
     } finally {
       fixture.cleanup();
