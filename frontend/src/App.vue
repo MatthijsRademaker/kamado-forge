@@ -1,7 +1,12 @@
-<script setup lang="ts">
-import { RouterView } from "vue-router";
-</script>
+<script lang="ts">
+import { h } from "vue";
+import KamadoShowcase from "@/components/KamadoShowcase.vue";
 
-<template>
-  <RouterView />
-</template>
+export default {
+  setup() {
+    const showcasePath = window.location.pathname === "/showcase" ? "/showcase" : "/";
+
+    return () => h(KamadoShowcase, { "data-showcase-path": showcasePath });
+  },
+};
+</script>
