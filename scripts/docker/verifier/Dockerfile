@@ -3,6 +3,7 @@ FROM ${PYTHON_IMAGE}
 
 ARG PRE_COMMIT_VERSION=4.0.1
 
+# Nested pre-commit verification calls mktemp under the workspace UID/GID, so /tmp must be sticky.
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
       bash \
@@ -15,7 +16,9 @@ RUN apt-get update -qq \
       sed \
       util-linux \
     && rm -rf /var/lib/apt/lists/* \
-    && python -m pip install --no-cache-dir "pre-commit==${PRE_COMMIT_VERSION}"
+    && python -m pip install --no-cache-dir "pre-commit==${PRE_COMMIT_VERSION}" \
+    && mkdir -p /tmp \
+    && chmod 1777 /tmp
 
 ENTRYPOINT []
 CMD ["pre-commit", "--version"]

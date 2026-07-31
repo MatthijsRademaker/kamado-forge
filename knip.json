@@ -15,6 +15,9 @@
   },
   "ignore": ["frontend/src/lib/utils.ts"],
   "ignoreDependencies": [
+    "@fontsource/anton",
+    "@fontsource/bebas-neue",
+    "@fontsource/inter",
     "class-variance-authority",
     "clsx",
     "lucide-vue-next",

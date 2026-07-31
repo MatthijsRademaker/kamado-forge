@@ -5,6 +5,9 @@ logs/
 # Runtime cache artifacts
 cache/
 
+# Pi runtime session transcripts
+sessions/
+
 # Local runtime configuration
 .env
 
