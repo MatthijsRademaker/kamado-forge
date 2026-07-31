@@ -16,4 +16,3 @@ features:
     details: Additional project-specific docs can be linked from the docs navigation.
     icon: 📚
 ---
-
