@@ -81,8 +81,9 @@ model {
 
     sqlite = database 'SQLite database' {
       description '''
-        Local SQLite persistence configured by `DATABASE_PATH`. Currently contains `app_metadata`;
-        planned tables should keep sessions, logs, learning content, and memory in one personal store.
+        Local SQLite persistence configured by `DATABASE_PATH`. It contains runner-owned migration history
+        alongside `app_metadata`; planned product tables should keep sessions, logs, learning content, and
+        memory in one personal store.
       '''
     }
   }

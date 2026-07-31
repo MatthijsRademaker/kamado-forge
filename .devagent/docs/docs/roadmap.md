@@ -4,7 +4,7 @@ This page tracks active epics, upcoming milestones, and completed items for this
 
 See [Vision & Goals](./vision.md) for the long-term strategy this roadmap supports.
 
-Project goals and tasks are tracked in the [.devagent/goals/](../goals/) directory.
+Project goals and tasks are tracked in the `.devagent/goals/` directory.
 
 ## Active Epics
 

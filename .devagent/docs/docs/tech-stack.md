@@ -5,7 +5,7 @@ The repository is a Bun workspace with a Vue frontend, Bun API backend, SQLite p
 ## Repository layout
 
 ```text
-backend/              Bun TypeScript API and SQLite bootstrap
+backend/              Bun TypeScript API and SQLite persistence foundation
 frontend/             Vue 3 + Vite SPA
 .devagent/docs/       Rspress project documentation
 .devagent/architecture/ LikeC4 architecture source of truth
@@ -35,8 +35,8 @@ The only mounted application code today is `frontend/src/main.ts` and `frontend/
 | --- | --- |
 | Runtime | Bun |
 | HTTP server | `Bun.serve` in `backend/src/index.ts` |
-| Persistence | `bun:sqlite` with a database path from `DATABASE_PATH` |
-| Current schema | `app_metadata` bootstrap table |
+| Persistence | `bun:sqlite` bootstrap with WAL, foreign-key enforcement, and numbered migrations at `DATABASE_PATH` |
+| Current schema | Runner-owned migration history alongside `app_metadata` |
 | Current endpoint | `GET /api/health` |
 | Type checking | `tsc -p backend/tsconfig.json --noEmit` |
 
