@@ -25,7 +25,7 @@ telemetry, or hardware behavior.
 |    [Today*]  [Plan]  [Coach]  [Learn]  [Logbook]                                  |
 +--------------------------+--------------------------------------------------------+
 | B. PAGE HEADER           | C. SESSION CARD (current session decision)             |
-|    Today — purpose:      |    EMPTY: No active session.                           |
+|    Today — purpose:    |    EMPTY: No active session.                           |
 |    start or resume a cook|    [PRIMARY: Plan a cook] -> Plan / new draft          |
 |                          |    [RECOVERY: Browse Learn] -> Learn                   |
 |                          +--------------------------------------------------------+
@@ -91,15 +91,15 @@ starting or duplicating a session.
 |    [Today]  [Plan*]  [Coach]  [Learn]  [Logbook]                                  |
 +-------------------+------------------------------+--------------------------------+
 | B. PLAN HEADER    | C. COOKING-DAY TIMELINE      | D. TARGETS (manual guidance)   |
-| Purpose: name and | Purpose: ordered duration    | Dome target: 250°F PLANNED     |
-| save this draft.  | and transition plan.         | Food target: 203°F PLANNED     |
+| Purpose: name and | Purpose: ordered duration    | Dome target: 250°F PLANNED    |
+| save this draft.  | and transition plan.         | Food target: 203°F PLANNED    |
 | Brisket / Sat     | 00:00 Light fire (15 min)    | [Edit targets]                 |
 | Draft saved       | T1: fire established         +--------------------------------+
 |                   | 00:15 Stabilize (30 min)     | E. KAMADO SETUP                |
 |                   | T2: dome stable at target    | Fuel: lump charcoal, 3/4 load  |
 |                   | 00:45 Cook (6 h)             | Heat: deflector, indirect      |
-|                   | T3: wrap; Food 165°F PLANNED | Prep: clean grate; water pan   |
-|                   | 06:45 Finish/rest (1 h)      | Vent: bottom 1-finger; top ¼   |
+|                   | T3 wrap: Food 165°F PLANNED | Prep: clean grate; water pan   |
+|                   | 06:45 Finish/rest (1 h)      | Vent: bottom 1-finger; top ¼  |
 |                   | T4: food target / rest done  | Fire: adjust slowly; wait      |
 +-------------------+------------------------------+--------------------------------+
 | F. VALIDATION + ACTION (purpose: explain readiness and start exactly one cook)    |
@@ -133,7 +133,7 @@ a session.
 ```text
 +---------------------------------------------+
 | A. PLAN HEADER (purpose: identify draft)    |
-| Brisket / Sat — Draft saved                 |
+| Brisket/Sat — Draft saved                 |
 +---------------------------------------------+
 | B. READINESS + ACTION (purpose: start once) |
 | Ready: all required plan fields present     |
@@ -141,7 +141,7 @@ a session.
 | [RECOVERY: Save draft]                      |
 +---------------------------------------------+
 | C. TARGETS (planned/manual guidance)        |
-| Dome 250°F PLANNED  | Food 203°F PLANNED    |
+| Dome 250°F PLANNED; Food 203°F PLANNED    |
 | [Edit targets]                              |
 +---------------------------------------------+
 | D. TIMELINE (collapsible; ordered plan)     |
@@ -152,7 +152,7 @@ a session.
 +---------------------------------------------+
 | E. SETUP + VENTS (collapsible; cook setup)  |
 | Lump charcoal / deflector / grate prep      |
-| Bottom 1-finger; top ¼ — adjust slowly      |
+| Bottom 1-finger; top ¼; adjust slowly      |
 | [Open setup and edit]                       |
 +---------------------------------------------+
 | F. PRIMARY NAV (persistent bottom bar)      |
@@ -175,7 +175,9 @@ with the same named actions; these act on the same draft and cannot duplicate a 
 ## Live Cook (entered session state)
 
 Live Cook retains the fixed five-item navigation. Its session indicator and return affordance
-identify it as an active state, not a primary-navigation item.
+identify it as an active state, not a primary-navigation item. Switching primary destinations
+does not finish, pause, or create another active session; returning through Today uses
+`Resume Live Cook` and preserves the active or paused state.
 
 ### Desktop layout
 
@@ -186,15 +188,15 @@ identify it as an active state, not a primary-navigation item.
 +----------------------------+------------------------------+-----------------------+
 | B. SESSION PROGRESS        | C. CURRENT STEP + ACTION     | D. TARGETS            |
 | Purpose: place in plan.    | Purpose: immediate task.     | Purpose: manual plan. |
-| Step 2 / 6 • Stabilize     | Hold dome near target.       | Dome 250°F PLANNED    |
-| 00:22 elapsed / 00:45 due  | [PRIMARY: Set bottom vent to | Food 203°F PLANNED    |
+| Step 2/6 • Stabilize     | Hold dome near target.       | Dome 250°F PLANNED   |
+| 00:22 elapsed / 00:45 due  | [PRIMARY: Set bottom vent to | Food 203°F PLANNED   |
 | Next: Cook at 00:45        | 1 finger open]               | Manual guidance       |
 | Prompt: T2 dome stable     |                              | Not hardware readings |
 +----------------------------+------------------------------+-----------------------+
 +----------------------------------------------------+------------------------------+
 | E. KAMADO GUIDANCE (purpose: safe current setup)   | F. TIMELINE (purpose: next)  |
-| Fuel: lump charcoal; heat: deflector / indirect    | 1 Fire ✓  2 Stabilize *      |
-| Top vent: ¼ open; wait before changing again       | 3 Cook -> T3 wrap -> Finish  |
+| Fuel: lump charcoal; heat: deflector / indirect    | 1 Fire ✓  2 Stabilize *    |
+| Top vent: ¼ open; wait before changing again      | 3 Cook -> T3 wrap -> Finish  |
 +----------------------------------------------------+------------------------------+
 | G. SESSION CONTROLS (purpose: deliberate lifecycle)| H. COACH (purpose: help)     |
 | [Pause]  [Finish cook]                             | [Ask Coach about this step]  |
@@ -211,19 +213,19 @@ the current fuel, heat-zone/deflector, vent, and fire-adjustment guidance.
 ```text
 +---------------------------------------------+
 | A. SESSION STATUS (purpose: place in plan)  |
-| LIVE COOK • Step 2 / 6 • Stabilize          |
-| 00:22 elapsed • next Cook at 00:45          |
+| LIVE COOK • Step 2 / 6 • Stabilize      |
+| 00:22 elapsed • next Cook at 00:45        |
 +---------------------------------------------+
 | B. CURRENT STEP + ACTION (unobstructed)     |
 | Hold dome near target.                      |
 | [PRIMARY: Set bottom vent to 1 finger open] |
 +---------------------------------------------+
 | C. TARGETS (immediately visible)            |
-| Dome 250°F PLANNED | Food 203°F PLANNED     |
-| Manual guidance — not hardware readings     |
+| Dome 250°F PLANNED | Food 203°F PLANNED   |
+| Manual guidance — not hardware readings   |
 +---------------------------------------------+
 | D. NEXT STEP (purpose: prepare ahead)       |
-| Next: Cook • Prompt: T2 dome stable         |
+| Next: Cook • Prompt: T2 dome stable       |
 +---------------------------------------------+
 | E. SECONDARY DETAILS (labeled collapsibles) |
 | [Timeline and transition points v]          |
@@ -274,10 +276,12 @@ same active step without losing session state.
 | Today / Resumable | **Resume Live Cook** | Live Cook / Active | Reopen the identified existing session. |
 | Plan / Editable draft | **Start Live Cook**, after validation | Live Cook / Active at first step | Create one session only after timeline, targets, setup, and transitions are complete. |
 | Plan / Incomplete draft | Attempt Start Live Cook | Remain in draft with missing fields named | Disable start and focus **Complete plan**; never create a partial session. |
-| Live Cook / Active | Complete current phase at its prompt | Next Live Cook phase | Advance only after the cook records completion. |
+| Live Cook / Active | Cook completes current phase at its prompt | Live Cook / Transition pending | Show the next-transition prompt; do not auto-advance. |
+| Live Cook / Transition pending | **Acknowledge transition** | Remain pending/current phase | Keep the current phase visible until manually marked done. |
+| Live Cook / Transition pending | **Mark transition done and continue** | Next Live Cook phase | Record manual completion once. |
 | Live Cook / Active | **Pause** | Live Cook / Paused | Freeze planned action and timeline position immediately. |
 | Live Cook / Paused | **Resume** | Live Cook / Active | Show wall-clock delay; retain planned position and do not silently advance. |
-| Live Cook / Active | Transition time passes unfinished | Live Cook / Overdue | Label overdue/delayed; do not auto-advance. |
+| Live Cook / Active or Transition pending | Transition time passes unfinished | Live Cook / Overdue | Label overdue/delayed; do not auto-advance. |
 | Live Cook / Overdue | **Acknowledge delay** | Remain overdue/current phase | Preserve current phase for manual completion. |
 | Live Cook / Overdue | **Mark transition done and continue** | Next Live Cook phase | Record the delayed manual completion once. |
 | Live Cook / Overdue | **Ask Coach** | Coach overlay over current phase | Dismissal returns to the unchanged overdue session. |
