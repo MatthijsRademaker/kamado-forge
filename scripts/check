@@ -19,5 +19,6 @@ verification_run_container "$BUN_IMAGE" sh -c '
   bun run format:check
   bun run lint
   bun run typecheck
+  bun run check:api
   bun run deadcode
 '

@@ -10,7 +10,7 @@
       "project": ["src/**/*.ts"]
     },
     "frontend": {
-      "entry": ["src/main.ts"],
+      "entry": ["src/main.ts", "src/**/*.test.ts", "src/api/generated/*.ts"],
       "project": ["src/**/*.{ts,vue}"]
     }
   },

@@ -22,10 +22,11 @@ scripts/              Verification guardrail entrypoints
 | Framework | Vue 3 with `<script setup>` single-file components |
 | Styling | Tailwind CSS v4 imported from `frontend/src/style.css` |
 | Component system | `shadcn-vue` configured by `frontend/components.json` with `new-york` style and lucide icons |
-| API access | Vite dev proxy forwards `/api` to `http://localhost:3000` |
+| API access | Generated Hey API fetch client uses relative `/api`; Vite proxies it to `http://localhost:3000` in development |
+| Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The only mounted application code today is `frontend/src/main.ts` and `frontend/src/App.vue`.
+The mounted scaffold remains `frontend/src/main.ts` and `frontend/src/App.vue`; API access is established without adding UI scope.
 
 ## Backend
 
@@ -34,13 +35,27 @@ The only mounted application code today is `frontend/src/main.ts` and `frontend/
 | Concern | Current setup |
 | --- | --- |
 | Runtime | Bun |
-| HTTP server | `Bun.serve` in `backend/src/index.ts` |
+| HTTP server | Thin `Bun.serve` startup adapter in `backend/src/api.ts` |
 | Persistence | `bun:sqlite` bootstrap with WAL, foreign-key enforcement, and numbered migrations at `DATABASE_PATH` |
 | Current schema | Runner-owned migration history alongside `app_metadata` |
-| Current endpoint | `GET /api/health` |
+| Current endpoint | Contract-validated `GET /api/health` with status-only database health |
 | Type checking | `tsc -p backend/tsconfig.json --noEmit` |
 
 The backend is the correct future boundary for domain APIs, memory reads/writes, and LLM provider requests.
+
+## Typed API and frontend state ownership
+
+`backend/src/contract.ts` is the executable source for route metadata and Zod request/response schemas. The dispatcher in `backend/src/dispatcher.ts` validates inputs and declared outputs. `backend/src/openapi.ts` converts the same registry to `backend/openapi/openapi.json`, which Hey API then converts to the fetch SDK in `frontend/src/api/generated/`.
+
+Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
+
+Frontend state follows these ownership rules:
+
+- **Pinia** owns shared state controlled by the browser application.
+- **Pinia Colada** owns remote query and mutation state. Install it only after Pinia.
+- Components and feature code consume domain composables such as `frontend/src/api/health.ts`; they do not import `frontend/src/api/generated/` or call `fetch` directly.
+- Domain query keys live in `frontend/src/api/queryKeys.ts` and remain stable so cache operations do not depend on component-local arrays.
+- Future successful mutation composables invalidate their related centralized keys through Pinia Colada's query cache. Do not move server responses into Pinia or add mutation endpoints solely to demonstrate invalidation.
 
 ## Documentation and architecture
 

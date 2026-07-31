@@ -11,6 +11,9 @@
     "dev": "bun run --filter '*' dev",
     "dev:frontend": "bun run --cwd frontend dev",
     "dev:backend": "bun run --cwd backend dev",
+    "generate:api": "./scripts/generate-api",
+    "generate:client": "openapi-ts -f openapi-ts.config.ts",
+    "check:api": "./scripts/check-api",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint backend/src frontend/src/main.ts frontend/src/env.d.ts frontend/vite.config.ts tests",
@@ -23,6 +26,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
+    "@hey-api/openapi-ts": "0.83.1",
     "@types/bun": "latest",
     "knip": "5.63.1",
     "typescript": "~5.8.3"

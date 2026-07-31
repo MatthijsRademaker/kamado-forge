@@ -23,7 +23,7 @@ views {
 
   view frontend-map of kamadoCoach.frontend {
     title 'Frontend navigation map'
-    description 'The shell should grow into five product areas from the vision: Today, Plan, Coach, Learn, and Logbook.'
+    description 'The shell and planned product areas consume API state through domain queries backed by the generated client.'
     include *
     include -> kamadoCoach.frontend.*
     autoLayout TopBottom

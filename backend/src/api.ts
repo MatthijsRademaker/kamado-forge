@@ -1,3 +1,4 @@
+import { createApiDispatcher } from "./dispatcher";
 import {
   bootstrapPersistence,
   type BootstrapPersistenceOptions,
@@ -28,24 +29,17 @@ export function startApi({
   serve = defaultServe,
 }: StartApiOptions) {
   const persistence = bootstrap({ databasePath });
+  const dispatch = createApiDispatcher({
+    getHealth: () => ({ ok: true, service: "api", database: { status: "ok" } }),
+  });
   const server = serve({
     port,
     fetch(request) {
-      const pathname = pathnameFor(request.url);
-
-      if (!pathname) {
-        return json({ error: "invalid request url" }, corsOrigin, { status: 400 });
-      }
-
       if (request.method === "OPTIONS") {
-        return json({ ok: true }, corsOrigin);
+        return withCors(new Response(null, { status: 204 }), corsOrigin);
       }
 
-      if (pathname === "/api/health") {
-        return json({ ok: true, service: "api", database: databasePath }, corsOrigin);
-      }
-
-      return json({ error: "not found" }, corsOrigin, { status: 404 });
+      return withCors(dispatch(request), corsOrigin);
     },
   });
 
@@ -54,23 +48,18 @@ export function startApi({
 
 const defaultServe: ApiServerFactory = (options) => Bun.serve(options);
 
-function json(body: unknown, corsOrigin: string | undefined, init?: { status?: number }): Response {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Headers": "content-type, authorization",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  };
+function withCors(response: Response, corsOrigin: string | undefined): Response {
+  const headers = new Headers(response.headers);
+  headers.set("Access-Control-Allow-Headers", "content-type, authorization");
+  headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
 
   if (corsOrigin) {
-    headers["Access-Control-Allow-Origin"] = corsOrigin;
+    headers.set("Access-Control-Allow-Origin", corsOrigin);
   }
 
-  return Response.json(body, { status: init?.status, headers });
-}
-
-function pathnameFor(requestUrl: string): string | undefined {
-  try {
-    return new URL(requestUrl).pathname;
-  } catch {
-    return undefined;
-  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
