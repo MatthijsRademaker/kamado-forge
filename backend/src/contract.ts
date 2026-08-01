@@ -120,6 +120,7 @@ export const deleteSessionRoute = {
   querySchema: sessionQuerySchema,
   paramsSchema: sessionIdParamsSchema,
   responses: { 204: null, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+  responseDescriptions: { 204: "Draft cooking session deleted" },
 } as const;
 
 export const apiRouteRegistry = [

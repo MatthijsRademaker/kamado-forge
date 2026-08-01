@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useNow } from "@vueuse/core";
 import { ArrowLeft, ArrowRight, Check, Flame, Pause, Play, X } from "lucide-vue-next";
 import { useRoute } from "vue-router";
 import {
@@ -46,20 +47,30 @@ const noteError = ref("");
 const finishOpen = ref(false);
 const cancelOpen = ref(false);
 
+const now = useNow({ interval: 1000 });
 const session = computed(() => sessionQuery.data.value);
-const plan = computed(() => session.value?.plan);
-const totalSteps = computed(() => plan.value?.phases.flatMap((phase) => phase.steps).length ?? 0);
-const currentOrdinal = computed(() => session.value?.currentStep?.ordinal ?? totalSteps.value - 1);
-const progressPercent = computed(() =>
-  totalSteps.value === 0 ? 0 : Math.round(((currentOrdinal.value + 1) / totalSteps.value) * 100),
-);
-const terminal = computed(() => session.value?.status === "COMPLETED" || session.value?.status === "CANCELLED");
-const actionPending = computed(() =>
+const _plan = computed(() => session.value?.plan);
+const _currentOrdinal = computed(() => session.value?.progress.currentStepOrdinal ?? 0);
+const _terminal = computed(() => session.value?.status === "COMPLETED" || session.value?.status === "CANCELLED");
+const latestExecution = computed(() => session.value?.executionHistory.at(-1));
+const displayedExecution = computed(() => session.value?.currentStep?.execution ?? latestExecution.value);
+const _displayedStep = computed(() => session.value?.currentStep ?? latestExecution.value?.step);
+const _elapsedSeconds = computed(() => {
+  const currentSession = session.value;
+  const execution = displayedExecution.value;
+  if (!currentSession || !execution) return 0;
+  const activeSeconds =
+    currentSession.status === "ACTIVE"
+      ? Math.max(0, Math.floor((now.value.getTime() - Date.parse(currentSession.projectedAt)) / 1000))
+      : 0;
+  return execution.elapsedSeconds + activeSeconds;
+});
+const _actionPending = computed(() =>
   [pauseMutation, resumeMutation, returnMutation, advanceMutation, cancelMutation, completeMutation].some(
     (mutation) => mutation.isLoading.value,
   ),
 );
-const notes = computed(() => session.value?.executionHistory.flatMap((visit) => visit.notes) ?? []);
+const _notes = computed(() => session.value?.executionHistory.flatMap((visit) => visit.notes) ?? []);
 
 defineOptions({
   components: {
@@ -147,9 +158,7 @@ function correctionFor(error: unknown): string {
   return "The server did not confirm this action. Your visible cook state and entered note were kept; retry when connected.";
 }
 
-function _formatDuration(startedAt: string | undefined): string {
-  if (!startedAt) return "—";
-  const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(startedAt)) / 1000));
+function _formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 }
@@ -157,13 +166,13 @@ function _formatDuration(startedAt: string | undefined): string {
 
 <template>
   <LoadingState
-    v-if="sessionQuery.isPending.value"
+    v-if="!session && sessionQuery.isPending.value"
     label="Loading durable cook"
     description="Reading session guidance, progress, and notes from the server."
   />
 
   <ErrorState
-    v-else-if="sessionQuery.error.value"
+    v-else-if="!session && sessionQuery.error.value"
     title="Cook detail unavailable"
     description="This ID-addressed session could not be loaded. Retry without falling back to fixture state."
   >
@@ -173,7 +182,7 @@ function _formatDuration(startedAt: string | undefined): string {
     </template>
   </ErrorState>
 
-  <EmptyState v-else-if="!session || !plan" title="Cooking session not found" description="Return to Today to choose an eligible plan.">
+  <EmptyState v-else-if="!session || !_plan" title="Cooking session not found" description="Return to Today to choose an eligible plan.">
     <template #action><Button as-child class="min-h-11"><RouterLink :to="{ name: 'today' }">Return to Today</RouterLink></Button></template>
   </EmptyState>
 
@@ -182,24 +191,24 @@ function _formatDuration(startedAt: string | undefined): string {
       <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgb(228_81_26_/_0.18),transparent_42%)]" aria-hidden="true"></div>
       <div class="relative mx-auto grid w-full max-w-6xl gap-4">
         <div class="flex items-center justify-between gap-3">
-          <p class="flex items-center gap-2 font-label text-caption tracking-[0.18em] text-accent uppercase"><Flame aria-hidden="true" class="size-4 fill-current" /> {{ terminal ? 'Cook record' : 'Live cook' }}</p>
+          <p class="flex items-center gap-2 font-label text-caption tracking-[0.18em] text-accent uppercase"><Flame aria-hidden="true" class="size-4 fill-current" /> {{ _terminal ? 'Cook record' : 'Live cook' }}</p>
           <StatusIndicator label="Session" :value="session.status" :status="session.status === 'ACTIVE' ? 'success' : session.status === 'PAUSED' ? 'warning' : 'neutral'" />
         </div>
 
         <div class="grid gap-2">
-          <p class="font-label text-caption tracking-[0.18em] text-neutral-mist uppercase">{{ terminal ? 'Final state' : `Current action · ${currentOrdinal + 1} of ${totalSteps}` }}</p>
-          <h1 class="font-display text-[2.45rem] leading-[0.95] tracking-[0.01em] uppercase sm:text-display-title">{{ terminal ? plan.title : session.currentStep?.title }}</h1>
-          <p data-testid="current-action" class="max-w-3xl break-words text-[0.9rem] leading-5 text-neutral-smoke sm:text-body">{{ terminal ? `${session.status.toLowerCase()} cooking session · read-only durable detail` : session.currentStep?.instructions }}</p>
+          <p class="font-label text-caption tracking-[0.18em] text-neutral-mist uppercase">{{ _terminal ? 'Final state' : `Current action · ${_currentOrdinal + 1} of ${session.progress.totalSteps}` }}</p>
+          <h1 class="font-display text-[2.45rem] leading-[0.95] tracking-[0.01em] uppercase sm:text-display-title">{{ _terminal ? _plan.title : session.currentStep?.title }}</h1>
+          <p data-testid="current-action" class="max-w-3xl break-words text-[0.9rem] leading-5 text-neutral-smoke sm:text-body">{{ _terminal ? `${session.status.toLowerCase()} cooking session · read-only durable detail` : session.currentStep?.instructions }}</p>
         </div>
 
         <div class="grid grid-cols-2 gap-2 sm:max-w-xl sm:gap-3">
           <div data-testid="planned-dome-target" class="min-w-0 border-l-2 border-accent bg-surface/70 px-3 py-2.5">
             <p class="font-label text-caption tracking-[0.12em] text-neutral-mist uppercase">Planned dome range</p>
-            <p class="break-words font-heading text-[1.75rem] leading-none text-text">{{ plan.plannedDomeRange.minF }}–{{ plan.plannedDomeRange.maxF }}<span class="ml-1 text-label text-accent">°F</span></p>
+            <p class="break-words font-heading text-[1.75rem] leading-none text-text">{{ _plan.plannedDomeRange.minF }}–{{ _plan.plannedDomeRange.maxF }}<span class="ml-1 text-label text-accent">°F</span></p>
           </div>
           <div data-testid="planned-food-target" class="min-w-0 border-l-2 border-accent bg-surface/70 px-3 py-2.5">
             <p class="font-label text-caption tracking-[0.12em] text-neutral-mist uppercase">Planned food target</p>
-            <p class="break-words font-heading text-[1.75rem] leading-none text-text">{{ plan.plannedFoodTargetF ?? '—' }}<span class="ml-1 text-label text-accent">°F</span></p>
+            <p class="break-words font-heading text-[1.75rem] leading-none text-text">{{ _plan.plannedFoodTargetF ?? '—' }}<span class="ml-1 text-label text-accent">°F</span></p>
           </div>
         </div>
       </div>
@@ -208,32 +217,41 @@ function _formatDuration(startedAt: string | undefined): string {
     <div class="mx-auto grid w-full max-w-6xl gap-5 px-4 py-6 sm:px-8 lg:grid-cols-[1.3fr_0.7fr] lg:px-12 lg:py-10">
       <div class="grid min-w-0 gap-5">
         <p v-if="actionError" class="rounded-default border border-feedback-danger bg-surface p-4 text-feedback-danger" role="alert">{{ actionError }}</p>
+        <div
+          v-if="sessionQuery.error.value"
+          class="rounded-default border border-feedback-danger bg-surface p-4 text-feedback-danger"
+          role="alert"
+        >
+          <p class="font-heading text-heading-lg uppercase">Cook refresh failed</p>
+          <p class="text-ui">The last confirmed cook and entered note remain visible.</p>
+          <Button type="button" variant="outline" class="mt-3 min-h-11" @click="sessionQuery.refetch(true)">Retry refresh</Button>
+        </div>
 
-        <section v-if="!terminal && session.currentStep" class="grid gap-4 rounded-roomy border border-border-subtle bg-surface p-5 shadow-inset">
+        <section v-if="displayedExecution && _displayedStep" class="grid gap-4 rounded-roomy border border-border-subtle bg-surface p-5 shadow-inset">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="font-label text-caption tracking-[0.16em] text-accent uppercase">Step timing</p>
-              <h2 class="font-heading text-heading-xl uppercase">{{ _formatDuration(session.currentStep.execution.actualStartedAt) }} elapsed</h2>
+              <p class="font-label text-caption tracking-[0.16em] text-accent uppercase">{{ _terminal ? 'Final timing' : 'Step timing' }}</p>
+              <h2 data-testid="step-elapsed" class="font-heading text-heading-xl uppercase">{{ _formatDuration(_elapsedSeconds) }} elapsed</h2>
             </div>
-            <Button v-if="session.status === 'ACTIVE'" size="lg" variant="outline" class="min-h-11" :disabled="actionPending" @click="_runAction('pause')"><Pause aria-hidden="true" /> Pause</Button>
-            <Button v-else size="lg" class="min-h-11" :disabled="actionPending" @click="_runAction('resume')"><Play aria-hidden="true" /> Resume</Button>
+            <Button v-if="!_terminal && session.status === 'ACTIVE'" size="lg" variant="outline" class="min-h-11" :disabled="_actionPending" @click="_runAction('pause')"><Pause aria-hidden="true" /> Pause</Button>
+            <Button v-else-if="!_terminal" size="lg" class="min-h-11" :disabled="_actionPending" @click="_runAction('resume')"><Play aria-hidden="true" /> Resume</Button>
           </div>
           <div class="grid gap-2">
-            <div class="flex justify-between gap-3 text-small text-text-muted"><span>Session progress</span><span>{{ progressPercent }}% · {{ session.currentStep.durationMinutes }} min planned</span></div>
-            <Progress :model-value="progressPercent" :max="100" aria-label="Session progress" class="h-3" />
+            <div data-testid="session-progress" class="flex justify-between gap-3 text-small text-text-muted"><span>Session progress</span><span>{{ session.progress.percent }}% · {{ _displayedStep.durationMinutes }} min planned</span></div>
+            <Progress :model-value="session.progress.percent" :max="100" aria-label="Session progress" class="h-3" />
           </div>
         </section>
 
         <section class="grid gap-4 rounded-roomy border border-border-subtle bg-surface p-5">
           <div class="grid gap-4 sm:grid-cols-2">
-            <div><p class="font-label text-label text-accent uppercase">Kamado setup</p><p class="mt-1 text-ui text-text-muted">{{ plan.setupGuidance }}</p></div>
-            <div><p class="font-label text-label text-accent uppercase">Vent guidance</p><p class="mt-1 text-ui text-text-muted">{{ plan.ventGuidance }}</p></div>
-            <div><p class="font-label text-label text-accent uppercase">Deflector</p><p class="mt-1 text-ui text-text-muted">{{ plan.deflectorGuidance }}</p></div>
-            <div><p class="font-label text-label text-accent uppercase">Heat zone</p><p class="mt-1 text-ui text-text-muted">{{ plan.heatZoneGuidance }}</p></div>
+            <div><p class="font-label text-label text-accent uppercase">Kamado setup</p><p class="mt-1 text-ui text-text-muted">{{ _plan.setupGuidance }}</p></div>
+            <div><p class="font-label text-label text-accent uppercase">Vent guidance</p><p class="mt-1 text-ui text-text-muted">{{ _plan.ventGuidance }}</p></div>
+            <div><p class="font-label text-label text-accent uppercase">Deflector</p><p class="mt-1 text-ui text-text-muted">{{ _plan.deflectorGuidance }}</p></div>
+            <div><p class="font-label text-label text-accent uppercase">Heat zone</p><p class="mt-1 text-ui text-text-muted">{{ _plan.heatZoneGuidance }}</p></div>
           </div>
           <div class="border-t border-border-subtle pt-4">
             <p class="font-label text-caption tracking-[0.14em] text-text-muted uppercase">Next move</p>
-            <p class="mt-1 font-heading text-heading-lg uppercase">{{ terminal ? 'This cook is read-only' : session.nextStep?.title ?? 'Finish this cook when the food is ready' }}</p>
+            <p class="mt-1 font-heading text-heading-lg uppercase">{{ _terminal ? 'This cook is read-only' : session.nextStep?.title ?? 'Finish this cook when the food is ready' }}</p>
           </div>
         </section>
 
@@ -242,11 +260,11 @@ function _formatDuration(startedAt: string | undefined): string {
             <p class="font-label text-label uppercase">Persisted notes</p>
             <p class="text-small text-text-muted">Notes are attached to the current execution step and survive reload.</p>
           </div>
-          <ul v-if="notes.length" class="grid gap-2">
-            <li v-for="persistedNote in notes" :key="persistedNote.id" class="rounded-default border border-border-subtle bg-core p-3 text-ui">{{ persistedNote.content }}</li>
+          <ul v-if="_notes.length" class="grid gap-2">
+            <li v-for="persistedNote in _notes" :key="persistedNote.id" class="rounded-default border border-border-subtle bg-core p-3 text-ui">{{ persistedNote.content }}</li>
           </ul>
           <p v-else class="text-ui text-text-muted">No notes saved yet.</p>
-          <template v-if="!terminal">
+          <template v-if="!_terminal">
             <label for="session-note" class="font-label text-label uppercase">New step note</label>
             <Textarea v-model="note" id="session-note" class="min-h-24" :disabled="noteMutation.isLoading.value" />
             <p v-if="noteError" class="text-small text-feedback-danger" role="alert">{{ noteError }}</p>
@@ -255,18 +273,18 @@ function _formatDuration(startedAt: string | undefined): string {
         </section>
       </div>
 
-      <aside v-if="!terminal" class="grid content-start gap-5">
+      <aside v-if="!_terminal" class="grid content-start gap-5">
         <section class="grid gap-3 rounded-roomy border border-border-subtle bg-neutral-obsidian p-5">
           <p class="font-label text-caption tracking-[0.16em] text-text-muted uppercase">Move through the cook</p>
           <div class="grid grid-cols-2 gap-3">
-            <Button variant="outline" size="lg" class="min-h-11" :disabled="actionPending || currentOrdinal <= 0" @click="_runAction('return')"><ArrowLeft aria-hidden="true" /> Back</Button>
-            <Button size="lg" class="min-h-11" :disabled="actionPending || !session.nextStep" @click="_runAction('advance')">Advance <ArrowRight aria-hidden="true" /></Button>
+            <Button variant="outline" size="lg" class="min-h-11" :disabled="_actionPending || _currentOrdinal <= 0" @click="_runAction('return')"><ArrowLeft aria-hidden="true" /> Back</Button>
+            <Button size="lg" class="min-h-11" :disabled="_actionPending || !session.nextStep" @click="_runAction('advance')">Advance <ArrowRight aria-hidden="true" /></Button>
           </div>
         </section>
 
         <section class="grid gap-3 rounded-roomy border border-border-subtle bg-surface p-5">
           <Dialog v-model:open="finishOpen">
-            <DialogTrigger as-child><Button size="lg" class="min-h-11 w-full" :disabled="actionPending || Boolean(session.nextStep)"><Check aria-hidden="true" /> Finish cook</Button></DialogTrigger>
+            <DialogTrigger as-child><Button size="lg" class="min-h-11 w-full" :disabled="_actionPending || Boolean(session.nextStep)"><Check aria-hidden="true" /> Finish cook</Button></DialogTrigger>
             <DialogContent :show-close-button="false">
               <DialogHeader><DialogTitle>Finish cook?</DialogTitle><DialogDescription>This records final progress and keeps this session available at its current URL.</DialogDescription></DialogHeader>
               <p v-if="actionError" class="rounded-default border border-feedback-danger p-3 text-feedback-danger" role="alert">{{ actionError }}</p>
@@ -275,7 +293,7 @@ function _formatDuration(startedAt: string | undefined): string {
           </Dialog>
 
           <Dialog v-model:open="cancelOpen">
-            <DialogTrigger as-child><Button variant="destructive" size="lg" class="min-h-11 w-full" :disabled="actionPending"><X aria-hidden="true" /> Cancel cook</Button></DialogTrigger>
+            <DialogTrigger as-child><Button variant="destructive" size="lg" class="min-h-11 w-full" :disabled="_actionPending"><X aria-hidden="true" /> Cancel cook</Button></DialogTrigger>
             <DialogContent :show-close-button="false">
               <DialogHeader><DialogTitle>Cancel cook?</DialogTitle><DialogDescription>This records a durable cancelled terminal state.</DialogDescription></DialogHeader>
               <p v-if="actionError" class="rounded-default border border-feedback-danger p-3 text-feedback-danger" role="alert">{{ actionError }}</p>

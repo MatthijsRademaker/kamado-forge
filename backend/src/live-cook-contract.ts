@@ -32,37 +32,7 @@ const plannedStepFields = {
   instructions: requiredTextSchema,
   durationMinutes: z.number().int().min(1).max(1440),
 };
-const plannedStepWriteSchema = z.object(plannedStepFields).strict().openapi("LiveCookPlannedStepWrite");
-
-const createLiveDraftBodySchema = z
-  .object({
-    steps: z.array(plannedStepWriteSchema).min(1),
-  })
-  .strict()
-  .superRefine(({ steps }, context) => {
-    for (const [index, step] of steps.entries()) {
-      if (step.ordinal !== index) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["steps", index, "ordinal"],
-          message: "Step ordinals must be contiguous and ordered from zero",
-        });
-      }
-    }
-  })
-  .openapi("CreateLiveDraftRequest");
-
 const liveCookSessionStepFields = { id: opaqueIdSchema, ...plannedStepFields };
-const plannedStepReadSchema = z.object(liveCookSessionStepFields).strict().openapi("LiveCookPlannedStep");
-
-const liveDraftSchema = z
-  .object({
-    id: opaqueIdSchema,
-    createdAt: utcTimestampSchema,
-    steps: z.array(plannedStepReadSchema).min(1),
-  })
-  .strict()
-  .openapi("LiveCookDraft");
 
 const liveCookQuerySchema = z.object({}).strict().openapi("LiveCookQuery");
 
@@ -94,6 +64,7 @@ const executionSchema = z
     actualStartedAt: utcTimestampSchema,
     actualFinishedAt: utcTimestampSchema.nullable(),
     cancelledAt: utcTimestampSchema.nullable(),
+    elapsedSeconds: z.number().int().min(0),
     notes: z.array(stepNoteSchema),
   })
   .strict()
@@ -110,15 +81,25 @@ const nullableCurrentStepSchema = z
   .nullable()
   .openapi("LiveCookCurrentStep");
 const nullableNextStepSchema = z.object(liveCookSessionStepFields).strict().nullable().openapi("LiveCookNextStep");
+const liveCookProgressSchema = z
+  .object({
+    currentStepOrdinal: z.number().int().min(0),
+    totalSteps: z.number().int().min(1),
+    percent: z.number().int().min(0).max(100),
+  })
+  .strict()
+  .openapi("LiveCookProgress");
 
 const liveCookProjectionSchema = z
   .object({
     id: opaqueIdSchema,
     status: liveSessionStatusSchema,
     activatedAt: utcTimestampSchema,
-    plan: sessionReadSchema.optional(),
+    projectedAt: utcTimestampSchema,
+    plan: sessionReadSchema,
     currentStep: nullableCurrentStepSchema,
     nextStep: nullableNextStepSchema,
+    progress: liveCookProgressSchema,
     executionHistory: z.array(executionVisitSchema),
   })
   .strict()
@@ -201,10 +182,9 @@ export const findActiveCookingSessionRoute = {
   summary: "Find the active cooking session",
   querySchema: liveCookQuerySchema,
   responses: { 200: liveCookSuccessSchema, 204: null, ...liveCookErrorResponses },
+  responseDescriptions: { 204: "No active cooking session" },
 } as const;
 
 export type LiveCookAction = keyof typeof cookingSessionCommandRoutes;
-export type CreateLiveDraft = z.infer<typeof createLiveDraftBodySchema>;
 export type LiveCookCommand = z.infer<typeof liveCookCommandBodySchema>;
-export type LiveCookDraft = z.infer<typeof liveDraftSchema>;
 export type LiveCookProjection = z.infer<typeof liveCookProjectionSchema>;

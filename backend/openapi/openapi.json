@@ -424,6 +424,10 @@
             "nullable": true,
             "format": "date-time"
           },
+          "elapsedSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
           "notes": {
             "type": "array",
             "items": {
@@ -431,7 +435,7 @@
             }
           }
         },
-        "required": ["id", "ordinal", "actualStartedAt", "actualFinishedAt", "cancelledAt", "notes"],
+        "required": ["id", "ordinal", "actualStartedAt", "actualFinishedAt", "cancelledAt", "elapsedSeconds", "notes"],
         "additionalProperties": false
       },
       "LiveCookCurrentStep": {
@@ -495,6 +499,26 @@
         "required": ["id", "ordinal", "title", "instructions", "durationMinutes"],
         "additionalProperties": false
       },
+      "LiveCookProgress": {
+        "type": "object",
+        "properties": {
+          "currentStepOrdinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalSteps": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "percent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": ["currentStepOrdinal", "totalSteps", "percent"],
+        "additionalProperties": false
+      },
       "LiveCookSessionStep": {
         "type": "object",
         "properties": {
@@ -554,6 +578,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "projectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "plan": {
             "$ref": "#/components/schemas/CookingSession"
           },
@@ -563,6 +591,9 @@
           "nextStep": {
             "$ref": "#/components/schemas/LiveCookNextStep"
           },
+          "progress": {
+            "$ref": "#/components/schemas/LiveCookProgress"
+          },
           "executionHistory": {
             "type": "array",
             "items": {
@@ -570,7 +601,17 @@
             }
           }
         },
-        "required": ["id", "status", "activatedAt", "currentStep", "nextStep", "executionHistory"],
+        "required": [
+          "id",
+          "status",
+          "activatedAt",
+          "projectedAt",
+          "plan",
+          "currentStep",
+          "nextStep",
+          "progress",
+          "executionHistory"
+        ],
         "additionalProperties": false
       },
       "LiveCookSessionSuccess": {
@@ -1214,7 +1255,7 @@
             }
           },
           "204": {
-            "description": "Draft cooking session deleted"
+            "description": "No active cooking session"
           },
           "400": {
             "description": "Malformed request",

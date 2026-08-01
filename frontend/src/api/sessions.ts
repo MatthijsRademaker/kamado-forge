@@ -69,9 +69,10 @@ export function useSessionListQuery() {
   });
 }
 
-export function useSessionDetailQuery(sessionId: MaybeRefOrGetter<string>) {
+export function useSessionDetailQuery(sessionId: MaybeRefOrGetter<string>, enabled: MaybeRefOrGetter<boolean> = true) {
   return useQuery<CookingSession, SessionApiError>({
     key: () => sessionKeys.detail(toValue(sessionId), "draft"),
+    enabled,
     query: async () =>
       (
         await getCookingSession({
@@ -113,16 +114,47 @@ export function useActiveSessionQuery() {
   });
 }
 
-async function invalidateSessionQueries(queryCache: QueryCache, keys: SessionQueryKey[]): Promise<void> {
-  for (const key of keys) await queryCache.invalidateQueries({ key, exact: true }, "all");
+function refreshSessionQueries(queryCache: QueryCache, keys: SessionQueryKey[]): void {
+  void Promise.all(keys.map((key) => queryCache.invalidateQueries({ key, exact: true }, "all"))).catch((error) => {
+    console.error("Session query refresh failed", error);
+  });
+}
+
+function upsertSession(sessions: readonly CookingSession[] | undefined, session: CookingSession): CookingSession[] {
+  return [...(sessions ?? []).filter(({ id }) => id !== session.id), session].sort(
+    (left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id),
+  );
+}
+
+function reconcileDraft(queryCache: QueryCache, session: CookingSession): void {
+  queryCache.setQueryData<CookingSession>(sessionKeys.detail(session.id, "draft"), session);
+  queryCache.setQueryData<CookingSession[]>(sessionKeys.list(), (sessions) => upsertSession(sessions, session));
+  queryCache.setQueryData<CookingSession[]>(sessionKeys.eligible(), (sessions) => upsertSession(sessions, session));
+}
+
+function reconcileLive(queryCache: QueryCache, session: LiveCookSession): void {
+  queryCache.setQueryData<LiveCookSession>(sessionKeys.detail(session.id, "live"), session);
+  queryCache.setQueryData<CookingSession>(sessionKeys.detail(session.id, "draft"), session.plan);
+  queryCache.setQueryData<LiveCookSession | null>(
+    sessionKeys.active(),
+    session.status === "ACTIVE" || session.status === "PAUSED" ? session : null,
+  );
+  for (const key of [sessionKeys.list(), sessionKeys.eligible()]) {
+    queryCache.setQueryData<CookingSession[]>(key, (sessions) =>
+      (sessions ?? []).filter(({ id }) => id !== session.id),
+    );
+  }
 }
 
 export function useCreateSessionMutation() {
   const queryCache = useQueryCache();
   return useMutation<CookingSession, CookingSessionWrite, SessionApiError>({
     mutation: async (input) => (await createCookingSession({ body: input, throwOnError: true })).data.data,
-    onSuccess: async () => invalidateSessionQueries(queryCache, sessionMutationInvalidation.create()),
-    onError: async () => invalidateSessionQueries(queryCache, sessionMutationInvalidation.create()),
+    onSuccess: (session) => {
+      reconcileDraft(queryCache, session);
+      refreshSessionQueries(queryCache, sessionMutationInvalidation.create());
+    },
+    onError: () => refreshSessionQueries(queryCache, sessionMutationInvalidation.create()),
   });
 }
 
@@ -131,10 +163,11 @@ export function useUpdateSessionMutation() {
   return useMutation<CookingSession, { sessionId: string; input: CookingSessionWrite }, SessionApiError>({
     mutation: async ({ sessionId, input }) =>
       (await updateCookingSession({ body: input, path: { sessionId }, throwOnError: true })).data.data,
-    onSuccess: async (_, { sessionId }) =>
-      invalidateSessionQueries(queryCache, sessionMutationInvalidation.update(sessionId)),
-    onError: async (_, { sessionId }) =>
-      invalidateSessionQueries(queryCache, sessionMutationInvalidation.update(sessionId)),
+    onSuccess: (session, { sessionId }) => {
+      reconcileDraft(queryCache, session);
+      refreshSessionQueries(queryCache, sessionMutationInvalidation.update(sessionId));
+    },
+    onError: (_, { sessionId }) => refreshSessionQueries(queryCache, sessionMutationInvalidation.update(sessionId)),
   });
 }
 
@@ -148,10 +181,11 @@ function useLiveMutation(
   const queryCache = useQueryCache();
   return useMutation<LiveCookSession, LiveMutationVariables, SessionApiError>({
     mutation: operation,
-    onSuccess: async (_, { sessionId }) =>
-      invalidateSessionQueries(queryCache, sessionMutationInvalidation[name](sessionId)),
-    onError: async (_, { sessionId }) =>
-      invalidateSessionQueries(queryCache, sessionMutationInvalidation[name](sessionId)),
+    onSuccess: (session, { sessionId }) => {
+      reconcileLive(queryCache, session);
+      refreshSessionQueries(queryCache, sessionMutationInvalidation[name](sessionId));
+    },
+    onError: (_, { sessionId }) => refreshSessionQueries(queryCache, sessionMutationInvalidation[name](sessionId)),
   });
 }
 
@@ -220,10 +254,11 @@ export function useAddSessionNoteMutation() {
           throwOnError: true,
         })
       ).data.data,
-    onSuccess: async (_, { sessionId }) =>
-      invalidateSessionQueries(queryCache, sessionMutationInvalidation.note(sessionId)),
-    onError: async (_, { sessionId }) =>
-      invalidateSessionQueries(queryCache, sessionMutationInvalidation.note(sessionId)),
+    onSuccess: (session, { sessionId }) => {
+      reconcileLive(queryCache, session);
+      refreshSessionQueries(queryCache, sessionMutationInvalidation.note(sessionId));
+    },
+    onError: (_, { sessionId }) => refreshSessionQueries(queryCache, sessionMutationInvalidation.note(sessionId)),
   });
 }
 

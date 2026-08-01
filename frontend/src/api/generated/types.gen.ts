@@ -114,6 +114,7 @@ export type LiveCookExecution = {
   actualStartedAt: string;
   actualFinishedAt: string | null;
   cancelledAt: string | null;
+  elapsedSeconds: number;
   notes: Array<LiveCookStepNote>;
 };
 
@@ -134,6 +135,12 @@ export type LiveCookNextStep = {
   durationMinutes: number;
 } | null;
 
+export type LiveCookProgress = {
+  currentStepOrdinal: number;
+  totalSteps: number;
+  percent: number;
+};
+
 export type LiveCookSessionStep = {
   id: string;
   ordinal: number;
@@ -150,9 +157,11 @@ export type LiveCookSession = {
   id: string;
   status: LiveCookSessionStatus;
   activatedAt: string;
-  plan?: CookingSession;
+  projectedAt: string;
+  plan: CookingSession;
   currentStep: LiveCookCurrentStep;
   nextStep: LiveCookNextStep;
+  progress: LiveCookProgress;
   executionHistory: Array<LiveCookExecutionVisit>;
 };
 
@@ -552,7 +561,7 @@ export type FindActiveCookingSessionResponses = {
    */
   200: LiveCookSessionSuccess;
   /**
-   * Draft cooking session deleted
+   * No active cooking session
    */
   204: void;
 };

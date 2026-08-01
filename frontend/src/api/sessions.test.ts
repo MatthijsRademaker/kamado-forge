@@ -15,6 +15,7 @@ import {
   useCompleteSessionMutation,
   useCreateSessionMutation,
   useEligibleSessionsQuery,
+  useLiveSessionQuery,
   usePauseSessionMutation,
   useResumeSessionMutation,
   useReturnSessionMutation,
@@ -106,6 +107,7 @@ const liveSession: LiveCookSession = {
   id: session.id,
   status: "ACTIVE",
   activatedAt: "2026-08-08T12:05:00.000Z",
+  projectedAt: "2026-08-08T12:05:00.000Z",
   plan: session,
   currentStep: {
     id: "44444444-4444-4444-8444-444444444444",
@@ -119,10 +121,12 @@ const liveSession: LiveCookSession = {
       actualStartedAt: "2026-08-08T12:05:00.000Z",
       actualFinishedAt: null,
       cancelledAt: null,
+      elapsedSeconds: 0,
       notes: [],
     },
   },
   nextStep: null,
+  progress: { currentStepOrdinal: 0, totalSteps: 1, percent: 100 },
   executionHistory: [],
 };
 
@@ -236,7 +240,112 @@ describe("session generated-client composables", () => {
     }
   });
 
-  test("invalidates and refetches the declared keys after every successful mutation", async () => {
+  test("keeps a committed update successful and retains reconciled data when refresh fails", async () => {
+    const confirmed = { ...session, title: "Confirmed server title", updatedAt: "2026-08-08T12:10:00.000Z" };
+    const refreshError: ApiError = {
+      error: { code: "REFRESH_FAILED", message: "Refresh unavailable", issues: [] },
+    };
+    let failRefresh = false;
+    client.setConfig({ baseUrl: "http://app.test/api" });
+    setControlledFetch(async (request) => {
+      if (request.method === "PUT") return Response.json({ data: confirmed });
+      if (failRefresh) return Response.json(refreshError, { status: 503 });
+      if (request.url.endsWith(`/sessions/${session.id}`)) return Response.json({ data: session });
+      return Response.json({ data: [session] });
+    });
+    const fixture = createComposableFixture(() => ({
+      list: useSessionListQuery(),
+      detail: useSessionDetailQuery(() => session.id),
+      eligible: useEligibleSessionsQuery(),
+      update: useUpdateSessionMutation(),
+    }));
+
+    try {
+      await fixture.value.list.refetch(true);
+      await fixture.value.detail.refetch(true);
+      await fixture.value.eligible.refetch(true);
+      failRefresh = true;
+
+      await expect(fixture.value.update.mutateAsync({ sessionId: session.id, input: draftInput })).resolves.toEqual(
+        confirmed,
+      );
+      await waitFor(() => Boolean(fixture.value.list.error.value && fixture.value.detail.error.value));
+
+      expect(fixture.value.list.data.value).toEqual([confirmed]);
+      expect(fixture.value.detail.data.value).toEqual(confirmed);
+      expect(fixture.value.eligible.data.value).toEqual([confirmed]);
+    } finally {
+      fixture.dispose();
+    }
+  });
+
+  test("refetches and reconciles every mounted query affected by activation", async () => {
+    let activated = false;
+    const requestCounts = new Map<string, number>();
+    client.setConfig({ baseUrl: "http://app.test/api" });
+    setControlledFetch(async (request) => {
+      const apiPathIndex = request.url.indexOf("/api");
+      if (apiPathIndex < 0) throw new Error(`Request has no API path: ${request.url}`);
+      const path = request.url.slice(apiPathIndex);
+      const key = `${request.method} ${path}`;
+      requestCounts.set(key, (requestCounts.get(key) ?? 0) + 1);
+      if (request.method === "POST") {
+        activated = true;
+        return Response.json({ data: liveSession });
+      }
+      if (path.endsWith("/live-sessions/active")) {
+        return activated ? Response.json({ data: liveSession }) : new Response(null, { status: 204 });
+      }
+      if (path.endsWith("/sessions/eligible") || path.endsWith("/sessions")) {
+        return Response.json({ data: activated ? [] : [session] });
+      }
+      if (path.endsWith(`/live-sessions/${session.id}`)) return Response.json({ data: liveSession });
+      if (path.endsWith(`/sessions/${session.id}`)) return Response.json({ data: session });
+      throw new Error(`Unexpected request: ${key}`);
+    });
+    const fixture = createComposableFixture(() => ({
+      list: useSessionListQuery(),
+      draft: useSessionDetailQuery(() => session.id),
+      eligible: useEligibleSessionsQuery(),
+      active: useActiveSessionQuery(),
+      live: useLiveSessionQuery(() => session.id),
+      activate: useActivateSessionMutation(),
+    }));
+
+    try {
+      await Promise.all([
+        fixture.value.list.refetch(true),
+        fixture.value.draft.refetch(true),
+        fixture.value.eligible.refetch(true),
+        fixture.value.active.refetch(true),
+        fixture.value.live.refetch(true),
+      ]);
+      const refreshedPaths = [
+        "/api/sessions",
+        "/api/sessions/eligible",
+        `/api/sessions/${session.id}`,
+        "/api/live-sessions/active",
+        `/api/live-sessions/${session.id}`,
+      ];
+      const initialCounts = new Map(
+        refreshedPaths.map((path) => [path, requestCounts.get(`GET ${path}`) ?? 0] as const),
+      );
+      await fixture.value.activate.mutateAsync({ sessionId: session.id });
+      await waitFor(() =>
+        refreshedPaths.every((path) => (requestCounts.get(`GET ${path}`) ?? 0) > (initialCounts.get(path) ?? 0)),
+      );
+
+      expect(fixture.value.list.data.value).toEqual([]);
+      expect(fixture.value.eligible.data.value).toEqual([]);
+      expect(fixture.value.draft.data.value).toEqual(session);
+      expect(fixture.value.active.data.value).toEqual(liveSession);
+      expect(fixture.value.live.data.value).toEqual(liveSession);
+    } finally {
+      fixture.dispose();
+    }
+  });
+
+  test("dispatches every declared invalidation after successful mutations", async () => {
     client.setConfig({ baseUrl: "http://app.test/api" });
     setControlledFetch(async (request) =>
       Response.json({ data: request.url.endsWith("/sessions") && request.method === "POST" ? session : liveSession }),
@@ -323,6 +432,14 @@ describe("session generated-client composables", () => {
     }
   });
 });
+
+async function waitFor(predicate: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (predicate()) return;
+    await Bun.sleep(1);
+  }
+  throw new Error("Timed out waiting for composable state");
+}
 
 function setControlledFetch(handler: (request: Request) => Promise<Response>): void {
   const controlledFetch = async (input: RequestInfo | URL, init?: RequestInit) => {

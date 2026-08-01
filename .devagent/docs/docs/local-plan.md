@@ -1,6 +1,6 @@
 # Durable Plan Page
 
-Plan at `/plan` edits a complete cooking-day aggregate in local form state and persists only on explicit save. The server remains authoritative for durable identities and confirmed content; failed saves never replace or discard the editable buffer.
+Plan at `/plan` edits a complete cooking-day aggregate in local form state and persists only on explicit save. Saved selection is retained as `/plan?sessionId={sessionId}`, so multiple drafts reload by explicit server identity. The server remains authoritative for confirmed content; failed saves never replace or discard the editable buffer.
 
 ## Data flow
 
@@ -19,7 +19,7 @@ server-confirmed aggregate ── rehydrate buffer
 
 `frontend/src/features/plan/PlanPage.vue` owns route states and save orchestration. `frontend/src/features/plan/PlanEditor.vue` owns nested interactions and readiness. `frontend/src/features/plan/draft.ts` converts between the durable aggregate and local keys without sending client identities in write payloads.
 
-The central separation is deliberate: Pinia Colada owns remote query state, while the Plan buffer owns unsaved user input. Query invalidation cannot silently overwrite edits. Only a successful create/update or explicit draft selection rehydrates the form.
+The central separation is deliberate: Pinia Colada owns remote query state, while the Plan buffer owns unsaved user input. Query invalidation cannot silently overwrite edits. Only a successful create/update or an explicit ID-addressed selection rehydrates the form. A refresh failure stays inline beside the retained editor and has its own retry action.
 
 ## Complete ordered saves
 
@@ -31,9 +31,9 @@ A rejected save keeps all values and ordering. Structured validation issues appe
 
 - **Loading:** waits for authoritative session list data.
 - **Empty:** offers creation when no draft exists.
-- **Editing:** distinguishes new unsaved input from a saved server draft.
+- **Editing:** distinguishes new unsaved input from an ID-addressed saved server draft.
 - **Saving:** disables duplicate submission.
-- **Validation/conflict/transport failure:** preserves the buffer and explains correction or retry.
+- **Validation/conflict/transport/refresh failure:** preserves the buffer and explains correction or retry.
 - **Confirmed:** rehydrates from the server response and reports the durable save time.
 
 Production no longer supports `?fixture=` selectors. Typed local examples remain only under `frontend/src/test-support/` and cannot be selected by runtime code.
@@ -42,7 +42,7 @@ Production no longer supports `?fixture=` selectors. Typed local examples remain
 
 - `frontend/src/features/plan/draft.test.ts` covers complete field and order conversion.
 - `frontend/src/features/plan/model.test.ts` covers timeline, readiness, and local nested operations.
-- `e2e/session-flow.spec.ts` creates, saves, reloads, and later activates the same server-assigned plan.
+- `e2e/session-flow.spec.ts` creates, saves, retains selection against a newer competing draft, reloads, and later activates the same server-assigned plan.
 
 ## Related pages
 

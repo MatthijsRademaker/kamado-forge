@@ -7,8 +7,10 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - backend-dependencies:/workspace/backend/node_modules
+      - frontend-dependencies:/workspace/frontend/node_modules
       - bun-cache:/root/.bun/install/cache
-    command: bun install --frozen-lockfile
+    command: bun install --frozen-lockfile --force
 
   backend:
     image: oven/bun:1.2.23-alpine
@@ -22,6 +24,7 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - backend-dependencies:/workspace/backend/node_modules
       - development-data:/data
     ports:
       - "3000:3000"
@@ -45,6 +48,7 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - frontend-dependencies:/workspace/frontend/node_modules
     ports:
       - "5173:5173"
     command: bun run dev:frontend
@@ -70,6 +74,7 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - backend-dependencies:/workspace/backend/node_modules
     command: bun run dev:backend
     healthcheck:
       test: >-
@@ -94,6 +99,7 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - frontend-dependencies:/workspace/frontend/node_modules
     command: bun run dev:frontend
     healthcheck:
       test: >-
@@ -123,4 +129,6 @@ services:
 volumes:
   bun-cache:
   dependencies:
+  backend-dependencies:
+  frontend-dependencies:
   development-data:

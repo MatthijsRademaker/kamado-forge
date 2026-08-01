@@ -38,7 +38,7 @@ model {
       }
 
       sessionQueries = component 'Session domain layer' {
-        description 'Pinia Colada queries, pessimistic mutations, stable parameterized keys, and centralized reconciliation over the generated client.'
+        description 'Pinia Colada queries, pessimistic mutations, stable parameterized keys, response-first reconciliation, and non-masking background refresh over the generated client.'
       }
 
       showcase = component 'Primitive showcase' {
@@ -58,11 +58,11 @@ model {
       }
 
       live = component 'Live cook route' {
-        description 'ID-addressed `/live/:sessionId` guidance and read-only terminal detail with pessimistic transitions and durable step notes.'
+        description 'ID-addressed `/live/:sessionId` guidance with reactive pause-aware timing, authoritative progress, pessimistic transitions, durable step notes, and read-only terminal detail.'
       }
 
       planner = component 'Session planner' {
-        description 'Durable `/plan` editor with a local ordered form buffer, explicit create/update, and server-confirmed reconciliation.'
+        description 'Durable `/plan?sessionId=...` editor with an ID-addressed local ordered form buffer, explicit create/update, and server-confirmed reconciliation.'
       }
 
       coach = component 'Coach route' {

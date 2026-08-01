@@ -16,7 +16,7 @@ docker compose logs -f frontend backend
 docker compose down
 ```
 
-`API_PROXY_TARGET=http://backend:3000` keeps browser requests relative. `DATABASE_PATH=/data/app.sqlite` points development at the durable `development-data` volume.
+`API_PROXY_TARGET=http://backend:3000` keeps browser requests relative. `DATABASE_PATH=/data/app.sqlite` points development at the durable `development-data` volume. Root, backend, and frontend dependency trees use separate named volumes mounted consistently into the installer and every consuming service; forced frozen-lockfile installation prevents source-mounted workspace links from targeting a different dependency layout.
 
 ## Isolated browser verification
 
@@ -46,7 +46,7 @@ Do not point browser acceptance tests at the durable development `backend` servi
 
 | Symptom | Check | Fix |
 | --- | --- | --- |
-| API service is unhealthy | `docker compose logs backend-e2e` | Fix contract or migration failure; do not bypass health gating. |
+| API service is unhealthy | `docker compose logs backend-e2e dependencies` | Fix contract, migration, or dependency installation failure; do not bypass health gating. |
 | Browser cannot load Compose host | Vite `server.allowedHosts` | Keep `frontend-e2e` allowed for the isolated profile. |
 | Frontend API request fails | `docker compose logs frontend-e2e backend-e2e` | Confirm `API_PROXY_TARGET=http://backend-e2e:3000`. |
 | E2E state leaks | Compose project/teardown output | Use a unique project and `down --volumes --remove-orphans`. |

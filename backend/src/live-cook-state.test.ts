@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createLiveCookRepository, LiveCookError } from "./persistence/live-cook-repository";
+import { createSessionRepository } from "./persistence/session-repository";
 import { createTemporaryPersistence } from "./persistence/test-support";
+import type { SessionWrite } from "./session-contract";
 
 const clock = { now: () => new Date("2026-08-08T12:00:00.000Z") };
 const draft = {
@@ -9,6 +11,31 @@ const draft = {
     { ordinal: 1, title: "Cook", instructions: "Cook indirectly.", durationMinutes: 40 },
   ],
 };
+
+type TestPersistence = ReturnType<ReturnType<typeof createTemporaryPersistence>["bootstrap"]>;
+
+function createSession(persistence: TestPersistence, steps = draft.steps): string {
+  const input: SessionWrite = {
+    title: "Saturday cook",
+    cookingDate: "2026-08-08",
+    plannedDomeRange: { minF: 225, maxF: 275 },
+    plannedFoodTargetF: 130,
+    setupGuidance: "Set up for two zones.",
+    deflectorGuidance: "Use the half-moon deflector.",
+    heatZoneGuidance: "Keep the right side direct.",
+    ventGuidance: "Bottom vent one finger, top vent quarter open.",
+    prepNotes: "Dry brine overnight.",
+    phases: [
+      {
+        title: "Cook",
+        technique: "Indirect",
+        transitionGuidance: "Follow the ordered steps.",
+        steps: steps.map(({ ordinal: _, ...step }) => step),
+      },
+    ],
+  };
+  return createSessionRepository(persistence).create(input).id;
+}
 
 function errorCode(work: () => unknown): string | undefined {
   try {
@@ -47,16 +74,11 @@ describe("live-cook state machine", () => {
     try {
       const persistence = fixture.bootstrap();
       const repository = createLiveCookRepository(persistence, clock);
-      const created = repository.createDraft(draft);
-      persistence.database.run("PRAGMA ignore_check_constraints = ON");
-      persistence.database.run("DROP TRIGGER live_cook_draft_steps_integer_duration_update");
-      persistence.database.run("UPDATE live_cook_draft_steps SET duration_minutes = 1.5 WHERE draft_id = ?", [
-        created.id,
-      ]);
-      persistence.database.run("PRAGMA ignore_check_constraints = OFF");
+      const sessionId = createSession(persistence);
+      persistence.database.run("UPDATE cooking_session_steps SET duration_minutes = 1.5");
       const before = durableSnapshot(persistence);
 
-      expect(errorCode(() => repository.activateDraft(created.id, {}))).toBe("INVALID_DRAFT");
+      expect(errorCode(() => repository.activateSession(sessionId, {}))).toBe("INVALID_DRAFT");
       expect(durableSnapshot(persistence)).toEqual(before);
     } finally {
       fixture.cleanup();
@@ -69,18 +91,67 @@ describe("live-cook state machine", () => {
       const persistence = fixture.bootstrap();
       const repository = createLiveCookRepository(persistence, clock);
       const empty = durableSnapshot(persistence);
-      expect(errorCode(() => repository.activateDraft("00000000-0000-4000-8000-000000000000", {}))).toBe("NOT_FOUND");
+      expect(errorCode(() => repository.activateSession("00000000-0000-4000-8000-000000000000", {}))).toBe("NOT_FOUND");
       expect(durableSnapshot(persistence)).toEqual(empty);
 
-      const first = repository.createDraft(draft);
-      const second = repository.createDraft(draft);
-      repository.activateDraft(first.id, {});
+      const firstId = createSession(persistence);
+      const secondId = createSession(persistence);
+      repository.activateSession(firstId, {});
       for (const status of ["ACTIVE", "PAUSED"] as const) {
-        if (status === "PAUSED") repository.command("pause", {});
+        if (status === "PAUSED") repository.command("pause", {}, firstId);
         const before = durableSnapshot(persistence);
-        expect(errorCode(() => repository.activateDraft(second.id, {}))).toBe("ACTIVE_SESSION_CONFLICT");
+        expect(errorCode(() => repository.activateSession(secondId, {}))).toBe("ACTIVE_SESSION_CONFLICT");
         expect(durableSnapshot(persistence)).toEqual(before);
       }
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("reports terminal progress from the step where cancellation occurred", () => {
+    const fixture = createTemporaryPersistence();
+    try {
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
+      const sessionId = createSession(persistence, [
+        ...draft.steps,
+        { ordinal: 2, title: "Rest", instructions: "Rest the meat.", durationMinutes: 10 },
+      ]);
+      repository.activateSession(sessionId, {});
+      repository.command("advance", {}, sessionId);
+
+      expect(repository.command("cancel", {}, sessionId)).toMatchObject({
+        progress: { currentStepOrdinal: 1, totalSteps: 3, percent: 67 },
+      });
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("reports pause-aware elapsed time from an authoritative projection timestamp", () => {
+    const fixture = createTemporaryPersistence();
+    let now = "2026-08-08T12:00:00.000Z";
+    const variableClock = { now: () => new Date(now) };
+    try {
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, variableClock);
+      const sessionId = createSession(persistence);
+      repository.activateSession(sessionId, {});
+
+      now = "2026-08-08T12:01:00.000Z";
+      repository.command("pause", {}, sessionId);
+      now = "2026-08-08T12:03:00.000Z";
+      expect(repository.getActive()).toMatchObject({
+        projectedAt: now,
+        currentStep: { execution: { elapsedSeconds: 60 } },
+      });
+
+      repository.command("resume", {}, sessionId);
+      now = "2026-08-08T12:04:00.000Z";
+      expect(repository.getActive()).toMatchObject({
+        projectedAt: now,
+        currentStep: { execution: { elapsedSeconds: 120 } },
+      });
     } finally {
       fixture.cleanup();
     }
@@ -91,10 +162,10 @@ describe("live-cook state machine", () => {
     try {
       const persistence = fixture.bootstrap();
       const repository = createLiveCookRepository(persistence, clock);
-      const created = repository.createDraft(draft);
-      repository.activateDraft(created.id, {});
+      const sessionId = createSession(persistence);
+      repository.activateSession(sessionId, {});
 
-      expect(repository.command("cancel", { note: "Stopped for rain." })).toMatchObject({
+      expect(repository.command("cancel", { note: "Stopped for rain." }, sessionId)).toMatchObject({
         status: "CANCELLED",
         currentStep: null,
         nextStep: null,
@@ -129,26 +200,26 @@ describe("live-cook state machine", () => {
     try {
       const persistence = fixture.bootstrap();
       const repository = createLiveCookRepository(persistence, clock);
-      const created = repository.createDraft(draft);
-      repository.activateDraft(created.id, {});
+      const sessionId = createSession(persistence);
+      repository.activateSession(sessionId, {});
 
       const reject = (action: "advance" | "return" | "pause" | "resume" | "complete" | "cancel") => {
         const before = durableSnapshot(persistence);
-        expect(errorCode(() => repository.command(action, {}))).toBe("INVALID_TRANSITION");
+        expect(errorCode(() => repository.command(action, {}, sessionId))).toBe("INVALID_TRANSITION");
         expect(durableSnapshot(persistence)).toEqual(before);
       };
 
       reject("return");
       reject("complete");
       reject("resume");
-      repository.command("pause", {});
+      repository.command("pause", {}, sessionId);
       reject("pause");
       reject("advance");
       reject("complete");
-      repository.command("resume", {});
-      repository.command("advance", {});
+      repository.command("resume", {}, sessionId);
+      repository.command("advance", {}, sessionId);
       reject("advance");
-      expect(repository.command("complete", {})).toMatchObject({ status: "COMPLETED" });
+      expect(repository.command("complete", {}, sessionId)).toMatchObject({ status: "COMPLETED" });
       for (const action of ["advance", "return", "pause", "resume", "complete", "cancel"] as const) reject(action);
     } finally {
       fixture.cleanup();
@@ -158,11 +229,13 @@ describe("live-cook state machine", () => {
   test("preserves every visit and note across repeated returns and final completion", () => {
     const fixture = createTemporaryPersistence();
     try {
-      const repository = createLiveCookRepository(fixture.bootstrap(), clock);
-      const created = repository.createDraft({
-        steps: [...draft.steps, { ordinal: 2, title: "Rest", instructions: "Rest the meat.", durationMinutes: 10 }],
-      });
-      repository.activateDraft(created.id, {});
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
+      const sessionId = createSession(persistence, [
+        ...draft.steps,
+        { ordinal: 2, title: "Rest", instructions: "Rest the meat.", durationMinutes: 10 },
+      ]);
+      repository.activateSession(sessionId, {});
       for (const [action, note] of [
         ["advance", "to cook"],
         ["advance", "to rest"],
@@ -171,9 +244,9 @@ describe("live-cook state machine", () => {
         ["advance", "second cook"],
         ["advance", "second rest"],
       ] as const) {
-        repository.command(action, { note });
+        repository.command(action, { note }, sessionId);
       }
-      const completed = repository.command("complete", { note: "done" });
+      const completed = repository.command("complete", { note: "done" }, sessionId);
 
       expect(completed.executionHistory.map((visit) => visit.step.ordinal)).toEqual([0, 1, 2, 1, 0, 1, 2]);
       expect(completed.executionHistory.flatMap((visit) => visit.notes.map((note) => note.content))).toEqual([
@@ -196,14 +269,14 @@ describe("live-cook state machine", () => {
     try {
       const persistence = fixture.bootstrap();
       const repository = createLiveCookRepository(persistence, clock);
-      const created = repository.createDraft(draft);
-      const active = repository.activateDraft(created.id, {});
+      const sessionId = createSession(persistence);
+      const active = repository.activateSession(sessionId, {});
       persistence.close();
 
       const activePersistence = fixture.bootstrap();
       const reopenedRepository = createLiveCookRepository(activePersistence, clock);
       expect(reopenedRepository.getActive()).toEqual(active);
-      const paused = reopenedRepository.command("pause", {});
+      const paused = reopenedRepository.command("pause", {}, sessionId);
       activePersistence.close();
 
       const pausedPersistence = fixture.bootstrap();

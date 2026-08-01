@@ -82,10 +82,22 @@ describe("OpenAPI generation", () => {
     expect(document.paths?.["/sessions/eligible"]?.get?.operationId).toBe("listEligibleCookingSessions");
     expect(document.paths?.["/sessions/{sessionId}"]?.delete?.operationId).toBe("deleteCookingSession");
     expect(document.paths?.["/sessions/{sessionId}/activate"]?.post?.operationId).toBe("activateCookingSession");
-    expect(document.paths?.["/live-sessions/active"]?.get?.responses[204]).toBeDefined();
+    expect(document.paths?.["/live-sessions/active"]?.get?.responses[204]?.description).toBe(
+      "No active cooking session",
+    );
+    expect(document.paths?.["/sessions/{sessionId}"]?.delete?.responses[204]?.description).toBe(
+      "Draft cooking session deleted",
+    );
     expect(document.paths?.["/live-sessions/{sessionId}"]?.get?.operationId).toBe("getLiveCookingSession");
     expect(document.paths?.["/live-sessions/{sessionId}/notes"]?.post?.operationId).toBe("addLiveCookingSessionNote");
     expect(document.paths?.["/live-sessions/{sessionId}/complete"]?.post?.responses[200]).toBeDefined();
+  });
+
+  test("requires every ID-addressed live projection to include its persisted plan", () => {
+    const document = buildOpenApiDocument();
+    const liveSession = document.components?.schemas?.LiveCookSession;
+
+    expect(liveSession).toMatchObject({ required: expect.arrayContaining(["plan"]) });
   });
 
   test("represents terminal current and next steps as nullable components", () => {

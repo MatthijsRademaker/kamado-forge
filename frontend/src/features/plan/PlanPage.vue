@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import type { SessionApiError } from "@/api/sessions";
-import { useCreateSessionMutation, useSessionListQuery, useUpdateSessionMutation } from "@/api/sessions";
+import {
+  useCreateSessionMutation,
+  useSessionDetailQuery,
+  useSessionListQuery,
+  useUpdateSessionMutation,
+} from "@/api/sessions";
 import _EmptyState from "@/components/EmptyState.vue";
 import _ErrorState from "@/components/ErrorState.vue";
 import _LoadingState from "@/components/LoadingState.vue";
@@ -26,7 +32,11 @@ defineOptions({
   },
 });
 
+const route = useRoute();
+const router = useRouter();
+const routeSessionId = computed(() => (typeof route.query.sessionId === "string" ? route.query.sessionId : ""));
 const sessionsQuery = useSessionListQuery();
+const detailQuery = useSessionDetailQuery(routeSessionId, () => routeSessionId.value.length > 0);
 const createMutation = useCreateSessionMutation();
 const updateMutation = useUpdateSessionMutation();
 const editor = ref<PlanEditorForm | null>(null);
@@ -45,27 +55,53 @@ const _errorMessage = computed(() => {
 
 watch(
   sessions,
-  (available) => {
-    if (editor.value || available.length === 0) return;
-    selectSession(available[0]?.id ?? "");
+  async (available) => {
+    const firstSession = available[0];
+    if (editor.value || routeSessionId.value || !firstSession) return;
+    await router.replace({ name: "plan", query: { sessionId: firstSession.id } });
   },
   { immediate: true },
 );
 
-function selectSession(sessionId: string): void {
-  const session = sessions.value.find(({ id }) => id === sessionId);
-  if (!session) return;
-  editor.value = toEditorForm(fromCookingSession(session));
-  selectedSessionId.value = session.id;
-  saveError.value = null;
-  savedMessage.value = "";
+watch(
+  routeSessionId,
+  (sessionId) => {
+    if (!sessionId || selectedSessionId.value === sessionId) return;
+    editor.value = null;
+    selectedSessionId.value = null;
+    saveError.value = null;
+    savedMessage.value = "";
+  },
+  { immediate: true },
+);
+
+watch(
+  () => detailQuery.data.value,
+  (session) => {
+    if (!session || session.id !== routeSessionId.value || selectedSessionId.value === session.id) return;
+    editor.value = toEditorForm(fromCookingSession(session));
+    selectedSessionId.value = session.id;
+  },
+  { immediate: true },
+);
+
+async function _selectSession(sessionId: string): Promise<void> {
+  if (sessionId === selectedSessionId.value) return;
+  await router.push({ name: "plan", query: { sessionId } });
 }
 
-function _createDraft(): void {
+async function _createDraft(): Promise<void> {
+  await router.push({ name: "plan" });
   editor.value = toEditorForm(createEmptyPlanDraft());
   selectedSessionId.value = null;
   saveError.value = null;
   savedMessage.value = "";
+}
+
+async function _retryPlanQueries(): Promise<void> {
+  const refreshes: Promise<unknown>[] = [sessionsQuery.refetch(true)];
+  if (routeSessionId.value) refreshes.push(detailQuery.refetch(true));
+  await Promise.all(refreshes);
 }
 
 async function _savePlan(form: PlanEditorForm): Promise<void> {
@@ -80,6 +116,7 @@ async function _savePlan(form: PlanEditorForm): Promise<void> {
       : await createMutation.mutateAsync(input);
     editor.value = toEditorForm(fromCookingSession(saved));
     selectedSessionId.value = saved.id;
+    await router.replace({ name: "plan", query: { sessionId: saved.id } });
     savedMessage.value = `Saved ${new Date(saved.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   } catch (error) {
     saveError.value = error instanceof Error || isApiError(error) ? error : new Error("Unknown save failure");
@@ -112,17 +149,17 @@ function correctiveMessage(error: SessionApiError): string {
 
     <div class="plan-main">
       <LoadingState
-        v-if="sessionsQuery.isPending.value"
+        v-if="!editor && (sessionsQuery.isPending.value || (routeSessionId && detailQuery.isPending.value))"
         label="Loading saved plans"
         description="Reading the authoritative cooking-session timeline."
       />
 
       <ErrorState
-        v-else-if="sessionsQuery.error.value"
+        v-else-if="!editor && (sessionsQuery.error.value || detailQuery.error.value)"
         title="Saved plans unavailable"
         description="The server could not load your plans. Nothing has been replaced with fixture data."
       >
-        <template #action><Button class="plan-touch-action" @click="sessionsQuery.refetch(true)">Retry</Button></template>
+        <template #action><Button class="plan-touch-action" @click="_retryPlanQueries">Retry</Button></template>
       </ErrorState>
 
       <EmptyState
@@ -134,6 +171,16 @@ function correctiveMessage(error: SessionApiError): string {
       </EmptyState>
 
       <section v-else aria-label="Plan workspace">
+        <div
+          v-if="sessionsQuery.error.value || detailQuery.error.value"
+          class="mb-5 rounded-roomy border border-feedback-danger bg-surface p-5"
+          role="alert"
+        >
+          <p class="font-heading text-heading-lg uppercase">Saved plan refresh failed</p>
+          <p class="text-ui text-text-muted">Your editable plan is still here. Retry to refresh server data.</p>
+          <Button type="button" variant="outline" class="plan-touch-action mt-3" @click="_retryPlanQueries">Retry refresh</Button>
+        </div>
+
         <div class="plan-workspace-actions">
           <div>
             <p v-if="savedMessage" role="status" class="text-feedback-success">{{ savedMessage }}</p>
@@ -148,7 +195,7 @@ function correctiveMessage(error: SessionApiError): string {
               variant="outline"
               class="plan-touch-action"
               :aria-pressed="selectedSessionId === session.id"
-              @click="selectSession(session.id)"
+              @click="_selectSession(session.id)"
             >
               {{ session.title }}
             </Button>

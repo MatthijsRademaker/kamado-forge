@@ -22,13 +22,13 @@ The planning API owns session, phase, and step identities. Callers submit comple
 
 ## Live projection and absence
 
-A live projection contains the complete plan, status, activation timestamp, current and next step, and immutable execution history with notes. `ACTIVE` and `PAUSED` projections expose a current step. `COMPLETED` and `CANCELLED` projections retain final history while current and next steps are `null`.
+A live projection always contains the complete persisted plan, status, activation and projection timestamps, server-derived progress, and execution history with pause-aware elapsed seconds and notes. `ACTIVE` and `PAUSED` projections expose current and next steps. `COMPLETED` and `CANCELLED` projections retain final history and progress while current and next steps are `null`.
 
 No active session is ordinary absence, not an error: `/api/live-sessions/active` returns `204`. Unknown IDs and rejected transitions use the shared structured error envelope, allowing Today and Live to distinguish absence, validation, conflict, and transport failure.
 
 ## Frontend cache boundary
 
-`frontend/src/api/sessions.ts` is the only production session-domain transport boundary. It defines parameterized list, draft/live detail, active, and eligible queries and keys. Every create, update, activation, note, transition, cancellation, and completion mutation invalidates and refetches its declared authoritative keys on success and after failures that may leave a stale response. Live mutations are pessimistic; rejected actions retain visible state and trigger reconciliation when server state may have changed.
+`frontend/src/api/sessions.ts` is the only production session-domain transport boundary. It defines parameterized list, draft/live detail, active, and eligible queries and keys. Successful mutations reconcile their complete response before asynchronously invalidating and refetching every declared key. A later refresh failure remains visible on the affected query but cannot turn a committed mutation into a rejection. Rejected actions retain visible state and trigger the same non-masking refresh when server state may have changed.
 
 Plan alone owns a local editable buffer. `frontend/src/features/plan/draft.ts` converts confirmed server aggregates into form state and strips local keys before a complete create or update.
 

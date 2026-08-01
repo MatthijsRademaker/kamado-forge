@@ -16,15 +16,15 @@ Active-query failure is never rendered as empty state. Eligible-query failure is
 
 ## Live: durable ID-addressed execution
 
-`frontend/src/views/LiveView.vue` loads `/api/live-sessions/{sessionId}` directly. This route supports browser reload for active, paused, completed, and cancelled sessions. Current action, current and next step, planned targets, setup/deflector/heat-zone/vent guidance, timing, progress, status, and notes come from the backend projection.
+`frontend/src/views/LiveView.vue` loads `/api/live-sessions/{sessionId}` directly. This route supports browser reload for active, paused, completed, and cancelled sessions. Current action, current and next step, planned targets, setup/deflector/heat-zone/vent guidance, timing, progress, status, and notes come from the backend projection. A cleaned-up reactive clock advances active elapsed time from the server's projection timestamp; the backend baseline excludes persisted pause intervals.
 
-Pause, resume, return, advance, note, cancel, and complete are pessimistic generated-client mutations. Pending controls reject duplicate submission. A rejection retains prior visible state, preserves entered note text, shows corrective guidance, and refetches authoritative keys when state may have changed.
+Pause, resume, return, advance, note, cancel, and complete are pessimistic generated-client mutations. Pending controls reject duplicate submission. A rejection retains prior visible state, preserves entered note text, shows corrective guidance, and refetches authoritative keys when state may have changed. Failed background refreshes render inline without replacing cached guidance or note input.
 
 Notes are persisted against the current execution visit. Successful note creation clears the local input only after backend confirmation; persisted notes survive reload.
 
 ## Terminal detail
 
-Completion and cancellation retain the session ID and current URL. The terminal projection is read-only, contains final execution history and notes, and does not depend on active lookup. Active lookup correctly returns `204` after terminal transition.
+Completion and cancellation retain the session ID and current URL. The terminal projection is read-only and renders final progress, pause-aware step timing, execution history, and notes without depending on active lookup. Completion reports the final step; cancellation reports the step where the cook stopped. Active lookup correctly returns `204` after terminal transition.
 
 The Live layout keeps current action and planned dome/food targets readable at 320px without page-level horizontal overflow.
 
@@ -34,7 +34,7 @@ Production no longer contains mounted session controllers, runtime fixture selec
 
 - `frontend/src/api/sessions.test.ts` covers success, structured rejection, and authoritative cache reconciliation.
 - `backend/src/durable-session-workflow.test.ts` covers ID-addressed notes, transitions, completion, and terminal reload semantics.
-- `e2e/session-flow.spec.ts` covers explicit activation, durable reloads, a recoverable stale-state rejection, notes, advance, completion, direct final reload, and 320px rendering.
+- `e2e/session-flow.spec.ts` covers explicit activation, durable reloads, refresh-failure input retention, reactive timing, notes, advance, completed and cancelled terminal progress, direct final reload, and 320px rendering.
 
 ## Related pages
 

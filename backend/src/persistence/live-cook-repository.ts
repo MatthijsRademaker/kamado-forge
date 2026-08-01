@@ -1,17 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type {
-  CreateLiveDraft,
-  LiveCookAction,
-  LiveCookCommand,
-  LiveCookDraft,
-  LiveCookProjection,
-} from "../live-cook-contract";
+import type { LiveCookAction, LiveCookCommand, LiveCookProjection } from "../live-cook-contract";
 import type { PersistenceContext } from "./repository-context";
 import { createSessionRepository } from "./session-repository";
 
 interface DraftRow {
   readonly id: string;
-  readonly created_at: string;
   readonly activated_at: string | null;
 }
 
@@ -54,6 +47,11 @@ interface StepNoteRow {
   readonly created_at: string;
 }
 
+interface TransitionRow {
+  readonly action: "ACTIVATE" | "PAUSE" | "RESUME" | "ADVANCE" | "RETURN" | "COMPLETE" | "CANCEL";
+  readonly occurred_at: string;
+}
+
 interface UtcClock {
   now(): Date;
 }
@@ -71,14 +69,12 @@ export class LiveCookError extends Error {
 }
 
 export interface LiveCookRepository {
-  createDraft(input: CreateLiveDraft): LiveCookDraft;
-  activateDraft(draftId: string, command: LiveCookCommand): LiveCookProjection;
   activateSession(sessionId: string, command: LiveCookCommand): LiveCookProjection;
   findActive(): LiveCookProjection | undefined;
   get(sessionId: string): LiveCookProjection;
   getActive(): LiveCookProjection;
   addNote(sessionId: string, note: string): LiveCookProjection;
-  command(action: LiveCookAction, command: LiveCookCommand, sessionId?: string): LiveCookProjection;
+  command(action: LiveCookAction, command: LiveCookCommand, sessionId: string): LiveCookProjection;
 }
 
 const systemClock: UtcClock = Object.freeze({
@@ -90,19 +86,6 @@ export function createLiveCookRepository(
   clock: UtcClock = systemClock,
 ): LiveCookRepository {
   const { database } = persistence;
-
-  function readDraft(id: string): LiveCookDraft {
-    const draft = database
-      .query<Pick<DraftRow, "id" | "created_at">, [string]>("SELECT id, created_at FROM live_cook_drafts WHERE id = ?")
-      .get(id);
-    if (!draft) throw new Error(`Live-cook draft disappeared during transaction: ${id}`);
-
-    return {
-      id: draft.id,
-      createdAt: draft.created_at,
-      steps: readDraftSteps(id).map(toStep),
-    };
-  }
 
   function readDraftSteps(draftId: string): DraftStepRow[] {
     return database
@@ -133,6 +116,15 @@ export function createLiveCookRepository(
          ORDER BY ordinal ASC`,
       )
       .all(session.id);
+    const projectedAt = timestampFrom(clock);
+    const transitions = database
+      .query<TransitionRow, [string]>(
+        `SELECT action, occurred_at
+         FROM live_cook_transitions
+         WHERE session_id = ?
+         ORDER BY ordinal ASC`,
+      )
+      .all(session.id);
     const visits = database
       .query<ExecutionVisitRow, [string]>(
         `SELECT id, session_step_id, ordinal, actual_started_at, actual_finished_at, cancelled_at
@@ -148,6 +140,11 @@ export function createLiveCookRepository(
         actualStartedAt: visit.actual_started_at,
         actualFinishedAt: visit.actual_finished_at,
         cancelledAt: visit.cancelled_at,
+        elapsedSeconds: calculateElapsedSeconds(
+          visit.actual_started_at,
+          visit.actual_finished_at ?? visit.cancelled_at ?? projectedAt,
+          transitions,
+        ),
         notes: database
           .query<StepNoteRow, [string]>(
             `SELECT id, ordinal, content, created_at
@@ -175,15 +172,24 @@ export function createLiveCookRepository(
         ? readCurrentStep(session.current_step_id, steps, visits)
         : null;
     const nextStep = currentStep ? (steps.find(({ ordinal }) => ordinal === currentStep.ordinal + 1) ?? null) : null;
+    const progressStep = currentStep ?? executionHistory.at(-1)?.step;
+    if (!progressStep || steps.length === 0) throw new Error(`Live-cook session has no progress step: ${session.id}`);
     const plan = createSessionRepository(persistence).get(session.id);
+    if (!plan) throw new Error(`Live-cook session has no persisted plan: ${session.id}`);
 
     return {
       id: session.id,
       status: session.status,
       activatedAt: session.activated_at,
-      ...(plan ? { plan } : {}),
+      projectedAt,
+      plan,
       currentStep,
       nextStep: nextStep ? toStep(nextStep) : null,
+      progress: {
+        currentStepOrdinal: progressStep.ordinal,
+        totalSteps: steps.length,
+        percent: Math.round(((progressStep.ordinal + 1) / steps.length) * 100),
+      },
       executionHistory,
     };
   }
@@ -198,6 +204,7 @@ export function createLiveCookRepository(
       readonly actualStartedAt: string;
       readonly actualFinishedAt: string | null;
       readonly cancelledAt: string | null;
+      readonly elapsedSeconds: number;
       readonly notes: LiveCookProjection["executionHistory"][number]["notes"];
     }[],
   ): NonNullable<LiveCookProjection["currentStep"]> {
@@ -228,19 +235,6 @@ export function createLiveCookRepository(
   function requireSession(sessionId: string): SessionRow {
     const session = findSession(sessionId);
     if (!session) throw new LiveCookError("NOT_FOUND", "Cooking session not found");
-    return session;
-  }
-
-  function requireCommandSession(): SessionRow {
-    const session = database
-      .query<SessionRow, []>(
-        `SELECT id, status, current_step_id, activated_at
-         FROM live_cook_sessions
-         ORDER BY CASE WHEN status IN ('ACTIVE', 'PAUSED') THEN 0 ELSE 1 END, updated_at DESC
-         LIMIT 1`,
-      )
-      .get();
-    if (!session) throw new LiveCookError("NOT_FOUND", "No live-cook session exists");
     return session;
   }
 
@@ -340,95 +334,75 @@ export function createLiveCookRepository(
     return targetVisitId;
   }
 
-  const repository: LiveCookRepository = {
-    createDraft(input: CreateLiveDraft): LiveCookDraft {
-      const id = randomUUID();
+  function activatePreparedDraft(draftId: string, command: LiveCookCommand): LiveCookProjection {
+    return persistence.transaction(() => {
+      const draft = database
+        .query<DraftRow, [string]>("SELECT id, activated_at FROM live_cook_drafts WHERE id = ?")
+        .get(draftId);
+      if (!draft) throw new LiveCookError("NOT_FOUND", "Live-cook draft not found");
+      if (draft.activated_at !== null)
+        throw new LiveCookError("INVALID_DRAFT", "Live-cook draft has already been activated");
+
+      const draftSteps = readDraftSteps(draft.id);
+      if (!isValidDraftSteps(draftSteps)) {
+        throw new LiveCookError("INVALID_DRAFT", "Live-cook draft has no valid ordered steps");
+      }
+
       const timestamp = timestampFrom(clock);
-
-      return persistence.transaction(() => {
-        database.run("INSERT INTO live_cook_drafts (id, created_at) VALUES (?, ?)", [id, timestamp]);
-
-        for (const step of input.steps) {
-          database.run(
-            `INSERT INTO live_cook_draft_steps
-             (id, draft_id, ordinal, title, instructions, duration_minutes)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [randomUUID(), id, step.ordinal, step.title, step.instructions, step.durationMinutes],
-          );
-        }
-
-        return readDraft(id);
-      });
-    },
-
-    activateDraft(draftId: string, command: LiveCookCommand): LiveCookProjection {
-      return persistence.transaction(() => {
-        const draft = database
-          .query<DraftRow, [string]>("SELECT id, created_at, activated_at FROM live_cook_drafts WHERE id = ?")
-          .get(draftId);
-        if (!draft) throw new LiveCookError("NOT_FOUND", "Live-cook draft not found");
-        if (draft.activated_at !== null)
-          throw new LiveCookError("INVALID_DRAFT", "Live-cook draft has already been activated");
-
-        const draftSteps = readDraftSteps(draft.id);
-        if (!isValidDraftSteps(draftSteps)) {
-          throw new LiveCookError("INVALID_DRAFT", "Live-cook draft has no valid ordered steps");
-        }
-
-        const timestamp = timestampFrom(clock);
-        const sessionId = draft.id;
-        try {
-          database.run(
-            `INSERT INTO live_cook_sessions (id, draft_id, status, current_step_id, activated_at, updated_at)
-             VALUES (?, ?, 'ACTIVE', NULL, ?, ?)`,
-            [sessionId, draft.id, timestamp, timestamp],
-          );
-        } catch (error) {
-          if (isLiveSessionConflict(error)) {
-            throw new LiveCookError("ACTIVE_SESSION_CONFLICT", "Another live-cook session is already active");
-          }
-          throw error;
-        }
-
-        const sessionSteps = draftSteps.map((step) => ({ ...step, id: randomUUID() }));
-        for (const step of sessionSteps) {
-          database.run(
-            `INSERT INTO live_cook_session_steps
-             (id, session_id, ordinal, title, instructions, duration_minutes)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [step.id, sessionId, step.ordinal, step.title, step.instructions, step.duration_minutes],
-          );
-        }
-
-        const firstStep = sessionSteps[0];
-        if (!firstStep) throw new Error("Validated live-cook draft unexpectedly has no first step");
-        const visitId = randomUUID();
-        database.run("UPDATE live_cook_sessions SET current_step_id = ? WHERE id = ?", [firstStep.id, sessionId]);
-        database.run("UPDATE live_cook_drafts SET activated_at = ? WHERE id = ?", [timestamp, draft.id]);
+      const sessionId = draft.id;
+      try {
         database.run(
-          `INSERT INTO live_cook_transitions
-           (id, session_id, ordinal, action, from_status, to_status, occurred_at)
-           VALUES (?, ?, 0, 'ACTIVATE', NULL, 'ACTIVE', ?)`,
-          [randomUUID(), sessionId, timestamp],
+          `INSERT INTO live_cook_sessions (id, draft_id, status, current_step_id, activated_at, updated_at)
+           VALUES (?, ?, 'ACTIVE', NULL, ?, ?)`,
+          [sessionId, draft.id, timestamp, timestamp],
         );
-        database.run(
-          `INSERT INTO live_cook_execution_visits
-           (id, session_id, session_step_id, ordinal, actual_started_at)
-           VALUES (?, ?, ?, 0, ?)`,
-          [visitId, sessionId, firstStep.id, timestamp],
-        );
-        if (command.note) {
-          database.run(
-            `INSERT INTO live_cook_step_notes (id, execution_visit_id, ordinal, content, created_at)
-             VALUES (?, ?, 0, ?, ?)`,
-            [randomUUID(), visitId, command.note, timestamp],
-          );
+      } catch (error) {
+        if (isLiveSessionConflict(error)) {
+          throw new LiveCookError("ACTIVE_SESSION_CONFLICT", "Another live-cook session is already active");
         }
+        throw error;
+      }
 
-        return readProjection(sessionId);
-      });
-    },
+      const sessionSteps = draftSteps.map((step) => ({ ...step, id: randomUUID() }));
+      for (const step of sessionSteps) {
+        database.run(
+          `INSERT INTO live_cook_session_steps
+           (id, session_id, ordinal, title, instructions, duration_minutes)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [step.id, sessionId, step.ordinal, step.title, step.instructions, step.duration_minutes],
+        );
+      }
 
+      const firstStep = sessionSteps[0];
+      if (!firstStep) throw new Error("Validated live-cook draft unexpectedly has no first step");
+      const visitId = randomUUID();
+      database.run("UPDATE live_cook_sessions SET current_step_id = ? WHERE id = ?", [firstStep.id, sessionId]);
+      database.run("UPDATE live_cook_drafts SET activated_at = ? WHERE id = ?", [timestamp, draft.id]);
+      database.run(
+        `INSERT INTO live_cook_transitions
+         (id, session_id, ordinal, action, from_status, to_status, occurred_at)
+         VALUES (?, ?, 0, 'ACTIVATE', NULL, 'ACTIVE', ?)`,
+        [randomUUID(), sessionId, timestamp],
+      );
+      database.run(
+        `INSERT INTO live_cook_execution_visits
+         (id, session_id, session_step_id, ordinal, actual_started_at)
+         VALUES (?, ?, ?, 0, ?)`,
+        [visitId, sessionId, firstStep.id, timestamp],
+      );
+      if (command.note) {
+        database.run(
+          `INSERT INTO live_cook_step_notes (id, execution_visit_id, ordinal, content, created_at)
+           VALUES (?, ?, 0, ?, ?)`,
+          [randomUUID(), visitId, command.note, timestamp],
+        );
+      }
+
+      return readProjection(sessionId);
+    });
+  }
+
+  const repository: LiveCookRepository = {
     activateSession(sessionId: string, command: LiveCookCommand): LiveCookProjection {
       return persistence.transaction(() => {
         const session = createSessionRepository(persistence).get(sessionId);
@@ -437,18 +411,30 @@ export function createLiveCookRepository(
           .query<{ id: string }, [string]>("SELECT id FROM live_cook_drafts WHERE id = ?")
           .get(session.id);
         if (existingDraft) throw new LiveCookError("INVALID_DRAFT", "Cooking session has already been activated");
+
+        const steps = session.phases
+          .flatMap((phase) => phase.steps)
+          .map((step, ordinal) => ({
+            id: step.id,
+            ordinal,
+            title: step.title,
+            instructions: step.instructions,
+            duration_minutes: step.durationMinutes,
+          }));
+        if (!isValidDraftSteps(steps)) {
+          throw new LiveCookError("INVALID_DRAFT", "Cooking session has no valid ordered steps");
+        }
+
         database.run("INSERT INTO live_cook_drafts (id, created_at) VALUES (?, ?)", [session.id, session.createdAt]);
-        let ordinal = 0;
-        for (const step of session.phases.flatMap((phase) => phase.steps)) {
+        for (const step of steps) {
           database.run(
             `INSERT INTO live_cook_draft_steps
              (id, draft_id, ordinal, title, instructions, duration_minutes)
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [randomUUID(), session.id, ordinal, step.title, step.instructions, step.durationMinutes],
+            [randomUUID(), session.id, step.ordinal, step.title, step.instructions, step.duration_minutes],
           );
-          ordinal += 1;
         }
-        return repository.activateDraft(session.id, command);
+        return activatePreparedDraft(session.id, command);
       });
     },
 
@@ -477,9 +463,9 @@ export function createLiveCookRepository(
       });
     },
 
-    command(action: LiveCookAction, command: LiveCookCommand, sessionId?: string): LiveCookProjection {
+    command(action: LiveCookAction, command: LiveCookCommand, sessionId: string): LiveCookProjection {
       return persistence.transaction(() => {
-        const session = sessionId ? requireSession(sessionId) : requireCommandSession();
+        const session = requireSession(sessionId);
         if (session.status === "COMPLETED" || session.status === "CANCELLED") {
           throw new LiveCookError("INVALID_TRANSITION", "Terminal live-cook sessions cannot accept commands");
         }
@@ -605,6 +591,26 @@ function isValidDraftSteps(steps: readonly DraftStepRow[]): boolean {
         step.duration_minutes <= 1440,
     )
   );
+}
+
+function calculateElapsedSeconds(startedAt: string, endedAt: string, transitions: readonly TransitionRow[]): number {
+  const startedMilliseconds = Date.parse(startedAt);
+  const endedMilliseconds = Date.parse(endedAt);
+  let pausedAt: number | undefined;
+  let pausedMilliseconds = 0;
+
+  for (const transition of transitions) {
+    const occurredMilliseconds = Date.parse(transition.occurred_at);
+    if (occurredMilliseconds < startedMilliseconds || occurredMilliseconds > endedMilliseconds) continue;
+    if (transition.action === "PAUSE" && pausedAt === undefined) pausedAt = occurredMilliseconds;
+    if (transition.action === "RESUME" && pausedAt !== undefined) {
+      pausedMilliseconds += occurredMilliseconds - pausedAt;
+      pausedAt = undefined;
+    }
+  }
+  if (pausedAt !== undefined) pausedMilliseconds += endedMilliseconds - pausedAt;
+
+  return Math.max(0, Math.floor((endedMilliseconds - startedMilliseconds - pausedMilliseconds) / 1000));
 }
 
 function timestampFrom(clock: UtcClock): string {
