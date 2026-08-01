@@ -52,6 +52,8 @@ test("edits the local draft and derives timing from nested array order", async (
 });
 
 test("relates readiness errors, focuses the first invalid field, and completes only a valid local plan", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/plan?fixture=incomplete");
 
   const foodTarget = page.getByLabel("Planned food target");
@@ -60,6 +62,14 @@ test("relates readiness errors, focuses the first invalid field, and completes o
   expect(describedBy).toBeTruthy();
   await expect(page.locator(`#${describedBy}`)).toContainText("Planned food target must be");
 
+  const requirements = page.getByRole("list", { name: "Plan requirements" });
+  await expect(requirements).toContainText("Phase 1 identity must be unique.");
+
+  await page.getByRole("button", { name: "Complete plan" }).click();
+  await expect(requirements).toBeFocused();
+  expect(pageErrors).toEqual([]);
+
+  await page.getByRole("button", { name: "Remove Roast chicken" }).click();
   await page.getByRole("button", { name: "Complete plan" }).click();
   await expect(page.getByLabel("Cooking date")).toBeFocused();
 

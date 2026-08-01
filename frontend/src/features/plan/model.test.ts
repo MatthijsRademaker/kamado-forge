@@ -176,6 +176,38 @@ describe("Plan nested operations", () => {
     expect(() => removePhase(plan, "missing-phase")).toThrow("Unknown phase: missing-phase");
   });
 
+  test("rejects missing or duplicate identities nested in additions", () => {
+    const phase = {
+      id: "phase-rest",
+      title: "Rest",
+      technique: "Resting",
+      transitionGuidance: "Slice across the grain.",
+      steps: [
+        {
+          id: "step-light",
+          title: "Rest",
+          durationMinutes: 10,
+          instructions: "Rest uncovered.",
+        },
+      ],
+    };
+    const step = phase.steps[0];
+    if (!step) throw new Error("Expected nested step");
+
+    expect(() => addPhase(plan, phase)).toThrow("Duplicate identity: step-light");
+    expect(() => addPhase(plan, { ...phase, steps: [{ ...step, id: "" }] })).toThrow("Identity is required");
+    expect(() =>
+      addPhase(plan, {
+        ...phase,
+        steps: [
+          { ...step, id: "step-rest" },
+          { ...step, id: "step-rest" },
+        ],
+      }),
+    ).toThrow("Duplicate identity: step-rest");
+    expect(() => addStep(plan, "phase-low", { ...step, id: "" })).toThrow("Identity is required");
+  });
+
   test("rejects phase and step identities already used anywhere in the draft", () => {
     const phase = {
       id: plan.id,

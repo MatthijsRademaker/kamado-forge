@@ -137,7 +137,9 @@ export default defineComponent({
         const invalidPath = readiness.value.firstInvalidPath;
         if (invalidPath === null) throw new Error("Invalid Plan readiness result has no focus target");
         await nextTick();
-        const invalidControl = document.getElementById(controlId(invalidPath));
+        const invalidControl =
+          document.getElementById(controlId(invalidPath)) ??
+          (isIdentityPath(invalidPath) ? document.getElementById("plan-readiness-errors") : null);
         if (invalidControl === null) throw new Error(`No Plan control found for invalid path: ${invalidPath}`);
         const disclosure = invalidControl.closest("details");
         if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
@@ -175,6 +177,10 @@ export default defineComponent({
   },
 });
 
+function isIdentityPath(path: string): boolean {
+  return path === "id" || path.endsWith(".id");
+}
+
 function formatMinutes(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -197,7 +203,13 @@ function formatMinutes(minutes: number): string {
         :value="completed ? 'In memory only' : readiness.ready ? 'No save performed' : `${readiness.errors.length} updates needed`"
         :status="readiness.ready ? 'neutral' : 'warning'"
       />
-      <ul v-if="!readiness.ready" class="readiness-errors" aria-label="Plan requirements">
+      <ul
+        v-if="!readiness.ready"
+        id="plan-readiness-errors"
+        class="readiness-errors"
+        aria-label="Plan requirements"
+        tabindex="-1"
+      >
         <li v-for="error in readiness.errors" :key="error.path">{{ error.message }}</li>
       </ul>
       <Button class="touch-action" type="submit">Complete plan</Button>

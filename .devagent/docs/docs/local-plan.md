@@ -43,7 +43,7 @@ Create, retry, return, and reset actions are deterministic in-memory transitions
 
 Step `durationMinutes` values are the timing authority. `frontend/src/features/plan/model.ts` sums steps in explicit array order to derive step offsets, phase offsets and totals, and the Plan total. Fixtures never persist derived timing.
 
-Readiness is also a pure derivation. It checks the contract/readiness rules, returns ordered field paths and messages, and identifies the first invalid control. `frontend/src/features/plan/PlanEditor.vue` relates each message to its input and focuses the first invalid field when completion is requested.
+Readiness is also a pure derivation. It checks the contract/readiness rules and returns ordered field paths and messages. `frontend/src/features/plan/PlanEditor.vue` relates editable-field messages to their inputs and focuses the first invalid field when completion is requested. Because structural identities are not editable, identity failures focus the visible requirements summary instead of throwing or inventing identity fields.
 
 Dome and food temperatures are manual planned targets in degrees Fahrenheit. The editor deliberately avoids current-reading, probe, controller, and telemetry semantics.
 

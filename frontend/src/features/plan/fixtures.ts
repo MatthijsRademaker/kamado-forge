@@ -69,7 +69,7 @@ const incompleteFixture = {
   date: "",
   phases: [
     {
-      id: "phase-chicken",
+      id: "plan-incomplete",
       title: "Roast chicken",
       technique: "",
       transitionGuidance: "",

@@ -137,7 +137,7 @@ export function validateReadiness(plan: SessionPlan): ReadinessResult {
 }
 
 export function addPhase(plan: SessionPlan, phase: SessionPlanPhase): SessionPlan {
-  requireAvailableIdentity(plan, phase.id);
+  requireAvailableIdentities(plan, [phase.id, ...phase.steps.map(({ id }) => id)]);
   return { ...plan, phases: [...plan.phases, phase] };
 }
 
@@ -154,7 +154,7 @@ export function movePhase(plan: SessionPlan, phaseId: string, direction: "up" | 
 
 export function addStep(plan: SessionPlan, phaseId: string, step: SessionPlanStep): SessionPlan {
   const phaseIndex = findPhaseIndex(plan, phaseId);
-  requireAvailableIdentity(plan, step.id);
+  requireAvailableIdentities(plan, [step.id]);
   return updatePhase(plan, phaseIndex, (phase) => ({ ...phase, steps: [...phase.steps, step] }));
 }
 
@@ -180,12 +180,18 @@ export function moveStep(plan: SessionPlan, phaseId: string, stepId: string, dir
   return steps === phase.steps ? plan : updatePhase(plan, phaseIndex, (current) => ({ ...current, steps }));
 }
 
-function requireAvailableIdentity(plan: SessionPlan, identity: string): void {
-  if (
-    identity === plan.id ||
-    plan.phases.some((phase) => phase.id === identity || phase.steps.some((step) => step.id === identity))
-  ) {
-    throw new Error(`Duplicate identity: ${identity}`);
+function requireAvailableIdentities(plan: SessionPlan, additions: string[]): void {
+  const identities = [
+    plan.id,
+    ...plan.phases.map(({ id }) => id),
+    ...plan.phases.flatMap(({ steps }) => steps.map(({ id }) => id)),
+    ...additions,
+  ];
+  const used = new Set<string>();
+  for (const identity of identities) {
+    if (identity.length === 0) throw new Error("Identity is required");
+    if (used.has(identity)) throw new Error(`Duplicate identity: ${identity}`);
+    used.add(identity);
   }
 }
 
