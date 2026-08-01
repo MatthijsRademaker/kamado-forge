@@ -58,34 +58,31 @@ function dispatchHealth(request: Request, url: URL, getHealth: () => unknown): R
   return validatedJson(healthSuccessSchema, { data }, 200);
 }
 
-function dispatchSessionCollection(
-  request: Request,
-  url: URL,
-  repository: SessionRepository,
-): Response | Promise<Response> {
+async function dispatchSessionCollection(request: Request, url: URL, repository: SessionRepository): Promise<Response> {
   const queryError = validateQuery(url);
   if (queryError) return queryError;
 
   if (request.method === listSessionsRoute.method) {
-    return validatedJson(listSessionsRoute.responses[200], { data: repository.list() }, 200);
+    const sessions = await repository.list();
+    return validatedJson(listSessionsRoute.responses[200], { data: sessions }, 200);
   }
   if (request.method === createSessionRoute.method) {
-    return parseSessionBody(request).then((body) =>
-      body instanceof Response
-        ? body
-        : validatedJson(createSessionRoute.responses[201], { data: repository.create(body) }, 201),
-    );
+    const body = await parseSessionBody(request);
+    if (body instanceof Response) return body;
+
+    const session = await repository.create(body);
+    return validatedJson(createSessionRoute.responses[201], { data: session }, 201);
   }
 
   return errorResponse(405, API_ERRORS.methodNotAllowed);
 }
 
-function dispatchSessionItem(
+async function dispatchSessionItem(
   request: Request,
   url: URL,
   sessionId: string,
   repository: SessionRepository,
-): Response | Promise<Response> {
+): Promise<Response> {
   const queryError = validateQuery(url);
   if (queryError) return queryError;
 
@@ -95,24 +92,24 @@ function dispatchSessionItem(
   }
 
   if (request.method === getSessionRoute.method) {
-    const session = repository.get(sessionId);
+    const session = await repository.get(sessionId);
     return session
       ? validatedJson(sessionSuccessSchema, { data: session }, 200)
       : errorResponse(404, API_ERRORS.sessionNotFound);
   }
 
   if (request.method === updateSessionRoute.method) {
-    return parseSessionBody(request).then((body) => {
-      if (body instanceof Response) return body;
-      const session = repository.update(sessionId, body);
-      return session
-        ? validatedJson(updateSessionRoute.responses[200], { data: session }, 200)
-        : errorResponse(404, API_ERRORS.sessionNotFound);
-    });
+    const body = await parseSessionBody(request);
+    if (body instanceof Response) return body;
+
+    const session = await repository.update(sessionId, body);
+    return session
+      ? validatedJson(updateSessionRoute.responses[200], { data: session }, 200)
+      : errorResponse(404, API_ERRORS.sessionNotFound);
   }
 
   if (request.method === deleteSessionRoute.method) {
-    return repository.delete(sessionId)
+    return (await repository.delete(sessionId))
       ? new Response(null, { status: 204 })
       : errorResponse(404, API_ERRORS.sessionNotFound);
   }

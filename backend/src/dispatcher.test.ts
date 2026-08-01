@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createApiDispatcher } from "./dispatcher";
-import { createSessionRepository } from "./persistence/session-repository";
+import { createSessionRepository, type SessionRepository } from "./persistence/session-repository";
 import { createTemporaryPersistence } from "./persistence/test-support";
 import type { SessionWrite } from "./session-contract";
 
@@ -190,6 +190,62 @@ describe("API dispatcher", () => {
       );
       expect(missingUpdate.status).toBe(404);
       expect(missingDelete.status).toBe(404);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("awaits asynchronous repository operations for every session route", async () => {
+    const fixture = createTemporaryPersistence();
+
+    try {
+      const synchronousRepository = createSessionRepository(fixture.bootstrap());
+      const sessionRepository = {
+        async create(draft) {
+          return synchronousRepository.create(draft);
+        },
+        async get(id) {
+          return synchronousRepository.get(id);
+        },
+        async list() {
+          return synchronousRepository.list();
+        },
+        async update(id, draft) {
+          return synchronousRepository.update(id, draft);
+        },
+        async delete(id) {
+          return synchronousRepository.delete(id);
+        },
+      } satisfies SessionRepository;
+      const dispatch = createApiDispatcher({ getHealth: () => validHealthData, sessionRepository });
+
+      const createResponse = await dispatch(
+        new Request("http://api.test/api/sessions", {
+          method: "POST",
+          body: JSON.stringify(validDraft),
+        }),
+      );
+      const created = (await createResponse.json()) as { data: { id: string } };
+      expect(createResponse.status).toBe(201);
+
+      expect((await dispatch(new Request(`http://api.test/api/sessions/${created.data.id}`))).status).toBe(200);
+      expect((await dispatch(new Request("http://api.test/api/sessions"))).status).toBe(200);
+      expect(
+        (
+          await dispatch(
+            new Request(`http://api.test/api/sessions/${created.data.id}`, {
+              method: "PUT",
+              body: JSON.stringify({ ...validDraft, title: "Async replacement" }),
+            }),
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (await dispatch(new Request(`http://api.test/api/sessions/${created.data.id}`, { method: "DELETE" }))).status,
+      ).toBe(204);
+      expect(
+        (await dispatch(new Request(`http://api.test/api/sessions/${created.data.id}`, { method: "DELETE" }))).status,
+      ).toBe(404);
     } finally {
       fixture.cleanup();
     }

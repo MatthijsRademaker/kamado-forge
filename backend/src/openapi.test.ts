@@ -59,6 +59,23 @@ describe("OpenAPI generation", () => {
     expect(Object.keys(document.paths?.["/health"]?.get?.responses ?? {})).toEqual(["200", "400", "404", "405"]);
   });
 
+  test("emits the complete strict read step as one satisfiable object schema", () => {
+    const schema = buildOpenApiDocument().components?.schemas?.CookingSessionStep;
+
+    expect(schema).toMatchObject({
+      type: "object",
+      properties: {
+        title: { type: "string", minLength: 1 },
+        instructions: { type: "string", minLength: 1 },
+        durationMinutes: { type: "integer", minimum: 1, maximum: 1440 },
+        id: { type: "string", format: "uuid" },
+      },
+      required: ["title", "instructions", "durationMinutes", "id"],
+      additionalProperties: false,
+    });
+    expect(schema).not.toHaveProperty("allOf");
+  });
+
   test("publishes the local plan model and every cooking-session CRUD operation", () => {
     const document = buildOpenApiDocument();
     const sessionPlan = document.components?.schemas?.SessionPlan;

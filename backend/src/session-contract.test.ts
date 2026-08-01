@@ -39,6 +39,31 @@ describe("draft cooking-session contract", () => {
     expect(sessionWriteSchema.parse({ ...validDraft, plannedFoodTargetF: undefined })).toBeDefined();
   });
 
+  test("preserves surrounding whitespace in every accepted text field", () => {
+    const paddedDraft = structuredClone(validDraft);
+    paddedDraft.title = "  Reverse-sear dinner  ";
+    paddedDraft.setupGuidance = "  Set up for two zones.  ";
+    paddedDraft.deflectorGuidance = "  Install the deflector.  ";
+    paddedDraft.heatZoneGuidance = "  Keep a direct zone.  ";
+    paddedDraft.ventGuidance = "  Settle the vents.  ";
+    paddedDraft.prepNotes = "  Dry brine overnight.  ";
+    paddedDraft.phases[0].title = "  Roast  ";
+    paddedDraft.phases[0].technique = "  Indirect roasting  ";
+    paddedDraft.phases[0].transitionGuidance = "  Remove the deflector.  ";
+    paddedDraft.phases[0].steps[0].title = "  Roast  ";
+    paddedDraft.phases[0].steps[0].instructions = "  Cook over indirect heat.  ";
+
+    expect(sessionWriteSchema.parse(paddedDraft)).toEqual(paddedDraft);
+  });
+
+  test("accepts real calendar dates in four-digit years below 100", () => {
+    for (const cookingDate of ["0001-01-01", "0004-02-29", "0099-12-31"]) {
+      expect(sessionWriteSchema.safeParse({ ...validDraft, cookingDate }).success).toBe(true);
+    }
+
+    expect(sessionWriteSchema.safeParse({ ...validDraft, cookingDate: "0001-02-29" }).success).toBe(false);
+  });
+
   test("rejects invalid dates, durations, temperatures, ordering, and server-owned fields", () => {
     const invalidDurations = [0, -1, 1.5, 1441];
     const invalidDrafts = [

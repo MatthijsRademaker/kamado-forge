@@ -70,13 +70,10 @@ export type PlannedDomeRange = {
   maxF: number;
 };
 
-export type CookingSessionStepWrite = {
+export type CookingSessionStep = {
   title: string;
   instructions: string;
   durationMinutes: number;
-};
-
-export type CookingSessionStep = CookingSessionStepWrite & {
   id: string;
 };
 
@@ -107,6 +104,12 @@ export type CookingSession = {
 
 export type CookingSessionSuccess = {
   data: CookingSession;
+};
+
+export type CookingSessionStepWrite = {
+  title: string;
+  instructions: string;
+  durationMinutes: number;
 };
 
 export type CookingSessionPhaseWrite = {

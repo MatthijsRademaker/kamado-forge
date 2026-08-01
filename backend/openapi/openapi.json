@@ -248,7 +248,7 @@
         "required": ["minF", "maxF"],
         "additionalProperties": false
       },
-      "CookingSessionStepWrite": {
+      "CookingSessionStep": {
         "type": "object",
         "properties": {
           "title": {
@@ -263,28 +263,14 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 1440
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
           }
         },
-        "required": ["title", "instructions", "durationMinutes"],
+        "required": ["title", "instructions", "durationMinutes", "id"],
         "additionalProperties": false
-      },
-      "CookingSessionStep": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/CookingSessionStepWrite"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              }
-            },
-            "required": ["id"],
-            "additionalProperties": false
-          }
-        ]
       },
       "CookingSessionPhase": {
         "type": "object",
@@ -404,6 +390,26 @@
           }
         },
         "required": ["data"],
+        "additionalProperties": false
+      },
+      "CookingSessionStepWrite": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instructions": {
+            "type": "string",
+            "minLength": 1
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          }
+        },
+        "required": ["title", "instructions", "durationMinutes"],
         "additionalProperties": false
       },
       "CookingSessionPhaseWrite": {

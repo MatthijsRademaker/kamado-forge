@@ -1,6 +1,9 @@
 import { z } from "./schema";
 
-const requiredTextSchema = z.string().trim().min(1);
+const requiredTextSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim().length > 0, { message: "Text must not be blank" });
 const opaqueIdSchema = z.string().uuid();
 const utcTimestampSchema = z.string().datetime({ offset: false });
 
@@ -29,14 +32,13 @@ const plannedDomeRangeSchema = z
   })
   .openapi("PlannedDomeRange");
 
-const sessionStepWriteSchema = z
-  .object({
-    title: requiredTextSchema,
-    instructions: requiredTextSchema,
-    durationMinutes: z.number().int().min(1).max(1440),
-  })
-  .strict()
-  .openapi("CookingSessionStepWrite");
+const sessionStepFields = {
+  title: requiredTextSchema,
+  instructions: requiredTextSchema,
+  durationMinutes: z.number().int().min(1).max(1440),
+};
+
+const sessionStepWriteSchema = z.object(sessionStepFields).strict().openapi("CookingSessionStepWrite");
 
 const sessionPhaseWriteSchema = z
   .object({
@@ -64,8 +66,8 @@ export const sessionWriteSchema = z
   .strict()
   .openapi("CookingSessionWrite");
 
-const sessionStepReadSchema = sessionStepWriteSchema
-  .extend({ id: opaqueIdSchema })
+const sessionStepReadSchema = z
+  .object({ ...sessionStepFields, id: opaqueIdSchema })
   .strict()
   .openapi("CookingSessionStep");
 
@@ -109,7 +111,10 @@ function isRealCalendarDate(value: string): boolean {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
+  if (year === 0) return false;
+
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
 
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }

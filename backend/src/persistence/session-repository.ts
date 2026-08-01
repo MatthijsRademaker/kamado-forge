@@ -33,15 +33,17 @@ interface StepRow {
   readonly duration_minutes: number;
 }
 
+type RepositoryResult<T> = T | Promise<T>;
+
 export interface SessionRepository {
-  create(draft: SessionWrite): SessionRead;
-  get(id: string): SessionRead | undefined;
-  list(): SessionRead[];
-  update(id: string, draft: SessionWrite): SessionRead | undefined;
-  delete(id: string): boolean;
+  create(draft: SessionWrite): RepositoryResult<SessionRead>;
+  get(id: string): RepositoryResult<SessionRead | undefined>;
+  list(): RepositoryResult<SessionRead[]>;
+  update(id: string, draft: SessionWrite): RepositoryResult<SessionRead | undefined>;
+  delete(id: string): RepositoryResult<boolean>;
 }
 
-export function createSessionRepository(persistence: PersistenceContext): SessionRepository {
+export function createSessionRepository(persistence: PersistenceContext) {
   const { database } = persistence;
 
   function get(id: string): SessionRead | undefined {
@@ -123,7 +125,7 @@ export function createSessionRepository(persistence: PersistenceContext): Sessio
   }
 
   return {
-    create(draft) {
+    create(draft: SessionWrite): SessionRead {
       const id = randomUUID();
       const timestamp = new Date().toISOString();
 
@@ -161,7 +163,7 @@ export function createSessionRepository(persistence: PersistenceContext): Sessio
         .all()
         .map(({ id }) => requireSession(id));
     },
-    update(id, draft) {
+    update(id: string, draft: SessionWrite): SessionRead | undefined {
       const existing = get(id);
       if (!existing) return undefined;
 
@@ -192,7 +194,7 @@ export function createSessionRepository(persistence: PersistenceContext): Sessio
         return requireSession(id);
       });
     },
-    delete(id) {
+    delete(id: string): boolean {
       return persistence.transaction(() => database.run("DELETE FROM cooking_sessions WHERE id = ?", [id]).changes > 0);
     },
   };
