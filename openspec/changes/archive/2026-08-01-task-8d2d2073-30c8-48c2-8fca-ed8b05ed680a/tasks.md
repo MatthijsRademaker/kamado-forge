@@ -5,7 +5,7 @@
 - [ ] 1.1 Obtain and identify the authoritative session-flow blueprint and exact generated session type/version used by frontend fixtures.
 - [ ] 1.2 Map lifecycle states, steps, targets, timing, notes, and terminal semantics to that contract; record any local-only UI state separately.
 - [ ] 1.3 If direct generated typing is unavailable, obtain explicit contract-owner approval for an imported generated-type-derived adapter; do not hand-edit generated output or create an independent transport DTO.
-- [ ] 1.4 Stop fixture implementation and report the dependency if neither the generated contract nor an approved derived boundary is available.
+- [x] 1.4 Stop fixture implementation and report the dependency if neither the generated contract nor an approved derived boundary is available.
 
 ## 2. Add route and fixture boundaries
 
