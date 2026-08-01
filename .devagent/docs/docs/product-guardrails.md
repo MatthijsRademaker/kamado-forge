@@ -27,18 +27,20 @@ The responsive product shell uses exactly five authoritative areas:
 
 ## Current implementation status
 
-Current code is a routed frontend scaffold:
+Current code is a routed frontend scaffold with one local product slice:
 
 - `frontend/src/router.ts` defines history-mode routes for `/today`, `/plan`, `/coach`, `/learn`, and `/logbook`, with `/` redirecting to Today.
-- `frontend/src/components/ProductShell.vue` owns responsive product chrome; the five files under `frontend/src/views/` are orientation-only placeholders without product controls or data access.
+- `frontend/src/components/ProductShell.vue` owns responsive product chrome. `frontend/src/views/PlanView.vue` renders the fixture-driven Plan editor; the remaining route components are orientation-only placeholders without product controls or data access.
+- `frontend/src/features/plan/` owns cloned local drafts, pure timeline/readiness logic, and the outdoor-responsive editor. Its completion state is in memory only.
 - `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; generic primitives live under `frontend/src/components/ui`.
-- `backend/src/index.ts` exposes `/api/health`, initializes SQLite, and configures CORS.
+- `backend/src/contract.ts` owns the generated `SessionPlan` shape but exposes no session endpoint. `backend/src/index.ts` still exposes only `/api/health`, initializes SQLite, and configures CORS.
 - `.devagent/architecture/` contains the source-of-truth LikeC4 model for product boundaries.
 
-The product routes and navigation shell are implemented, but their feature behavior, APIs, schema, and LLM integration remain planned.
+Today, Coach, Learn, Logbook, durable Plan persistence, session APIs, and LLM integration remain planned. The local Plan page must not imply that edits are saved or that completing a draft starts a cook.
 
 ## Related pages
 
 - [Vision & Goals](./vision.md) — product strategy and anti-goals.
 - [Architecture Diagrams](./architecture.mdx) — LikeC4 views for product boundaries and planned flow.
 - [Tech Stack](./tech-stack.md) — repository layout, scripts, and current tooling.
+- [Local Plan Page](./local-plan.md) — contract ownership, fixture states, and local-only lifecycle.

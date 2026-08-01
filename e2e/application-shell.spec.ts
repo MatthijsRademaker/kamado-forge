@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 
 const productRoutes = [
   { heading: "Today", path: "/today" },
-  { heading: "Plan", path: "/plan" },
+  { heading: "Reverse-sear steak night", path: "/plan" },
   { heading: "Coach", path: "/coach" },
   { heading: "Learn", path: "/learn" },
   { heading: "Logbook", path: "/logbook" },
 ] as const;
 
-const navigationNames = productRoutes.map(({ heading }) => heading);
+const navigationNames = ["Today", "Plan", "Coach", "Learn", "Logbook"];
 
 test("replaces the root route with the canonical Today destination", async ({ page }) => {
   await page.goto("/");

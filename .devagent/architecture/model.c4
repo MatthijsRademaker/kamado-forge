@@ -46,15 +46,15 @@ model {
       }
 
       generatedClient = component 'Generated API client' {
-        description 'Hey API fetch transport generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
+        description 'Hey API fetch transport and standalone SessionPlan type generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
       }
 
       today = component 'Today route' {
         description 'Shipped `/today` orientation placeholder; active-cook behavior, targets, and next actions remain planned.'
       }
 
-      planner = component 'Plan route' {
-        description 'Shipped `/plan` orientation placeholder; the multi-phase cooking-day planner remains planned.'
+      planner = component 'Session planner' {
+        description 'Implemented local fixture-driven timeline editor rendered at `/plan` through ProductShell; derives timing and readiness in memory without API calls or persistence.'
       }
 
       coach = component 'Coach route' {
@@ -119,7 +119,7 @@ model {
   kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders five product routes through shared chrome'
   kamadoCoach.frontend.router -> kamadoCoach.frontend.showcase 'renders standalone internal gallery'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.today 'navigates to static route placeholder'
-  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'renders local fixture-driven editor'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.coach 'navigates to static route placeholder'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.learn 'navigates to static route placeholder'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.logbook 'navigates to static route placeholder'
@@ -127,7 +127,8 @@ model {
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
   kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'loads active cook and records progress'
-  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'creates and adjusts cooking-day timeline'
+  kamadoCoach.frontend.planner -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
+  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: persists and adjusts cooking-day timeline'
   kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
   kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
   kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'

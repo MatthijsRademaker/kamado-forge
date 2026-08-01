@@ -1,11 +1,12 @@
-<script setup lang="ts">
-import ProductAreaView from "@/components/ProductAreaView.vue";
+<script lang="ts">
+import { defineComponent } from "vue";
+import PlanPage from "@/features/plan/PlanPage.vue";
+
+export default defineComponent({
+  components: { PlanPage },
+});
 </script>
 
 <template>
-  <ProductAreaView
-    eyebrow="Before the fire"
-    heading="Plan"
-    description="The future home for shaping a cooking day around setup, targets, timing, and the transitions that make kamado cooking work."
-  />
+  <PlanPage />
 </template>
