@@ -119,8 +119,7 @@ test("prioritizes planned targets and readiness without overflow at 320px", asyn
   await page.keyboard.press("Enter");
   await expect(timelineSummary.locator("xpath=..")).not.toHaveAttribute("open", "");
 
-  const navigation = page.getByRole("navigation", { name: "Primary" });
-  await expect(navigation).toHaveCSS("position", "fixed");
+  await expect(page.getByRole("button", { name: "Open product menu" })).toBeVisible();
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 
   for (const fixture of ["loading", "error", "empty"]) {
@@ -213,11 +212,4 @@ test("renders every fixture and keeps create, retry, return, reset, and refresh 
   await page.reload();
   await expect(page.getByLabel("Plan title")).toHaveValue("Reverse-sear steak night");
   expect(apiRequests).toEqual([]);
-});
-
-test("preserves direct root and showcase behavior", async ({ page }) => {
-  for (const path of ["/", "/showcase"]) {
-    await page.goto(path);
-    await expect(page.getByRole("heading", { level: 1, name: "HEAT WITH INTENT" })).toBeVisible();
-  }
 });

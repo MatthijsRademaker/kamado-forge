@@ -23,7 +23,7 @@ views {
 
   view frontend-map of kamadoCoach.frontend {
     title 'Frontend navigation map'
-    description 'The mounted app exposes the primitive showcase at `/` and `/showcase` and a local fixture-driven editor at `/plan`; Plan imports the generated SessionPlan type without an API call, while Today, Coach, Learn, and Logbook remain planned.'
+    description 'Vue Router sends five named product routes through the responsive ProductShell and keeps `/showcase` standalone. Plan renders a local fixture-driven editor that imports the generated SessionPlan type without an API call; Today, Coach, Learn, and Logbook remain orientation-only placeholders.'
     include *
     include -> kamadoCoach.frontend.*
     autoLayout TopBottom

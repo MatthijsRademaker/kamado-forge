@@ -8,7 +8,7 @@ The app is not a generic recipe site. It should help a learner become confident 
 
 ## Primary navigation model
 
-Future frontend work should converge on five areas:
+The responsive product shell uses exactly five authoritative areas:
 
 | Area | Purpose | Guardrail |
 | --- | --- | --- |
@@ -27,12 +27,14 @@ Future frontend work should converge on five areas:
 
 ## Current implementation status
 
-Current code implements the scaffold plus one local product slice:
+Current code is a routed frontend scaffold with one local product slice:
 
-- `frontend/src/App.vue` mounts the reusable primitive showcase at `/` and `/showcase` and the fixture-driven Plan editor at `/plan` through direct pathname composition.
+- `frontend/src/router.ts` defines history-mode routes for `/today`, `/plan`, `/coach`, `/learn`, and `/logbook`, with `/` redirecting to Today.
+- `frontend/src/components/ProductShell.vue` owns responsive product chrome. `frontend/src/views/PlanView.vue` renders the fixture-driven Plan editor; the remaining route components are orientation-only placeholders without product controls or data access.
 - `frontend/src/features/plan/` owns cloned local drafts, pure timeline/readiness logic, and the outdoor-responsive editor. Its completion state is in memory only.
+- `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; generic primitives live under `frontend/src/components/ui`.
 - `backend/src/contract.ts` owns the generated `SessionPlan` shape but exposes no session endpoint. `backend/src/index.ts` still exposes only `/api/health`, initializes SQLite, and configures CORS.
-- `.devagent/architecture/` contains the source-of-truth LikeC4 model for intended product boundaries.
+- `.devagent/architecture/` contains the source-of-truth LikeC4 model for product boundaries.
 
 Today, Coach, Learn, Logbook, durable Plan persistence, session APIs, and LLM integration remain planned. The local Plan page must not imply that edits are saved or that completing a draft starts a cook.
 

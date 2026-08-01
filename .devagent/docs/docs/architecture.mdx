@@ -24,7 +24,7 @@ Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. 
 
 ## Frontend navigation map
 
-Shows the intended product navigation from `vision.md`: Today, Plan, Coach, Learn, and Logbook. The mounted app exposes the primitive showcase at `/` and `/showcase` plus a route-thin local Plan editor at `/plan`. Plan consumes a generated contract type without calling a session endpoint; the other product areas remain planned guardrails.
+Shows the shipped Vue Router boundary: Today, Plan, Coach, Learn, and Logbook render through the responsive `ProductShell`, while `/showcase` renders the internal gallery outside product chrome. Plan contains the local fixture-driven editor and consumes a generated contract type without calling a session endpoint; the other product areas remain orientation-only placeholders.
 
 <ClientOnly>
   <likec4-view view-id="frontend-map" />

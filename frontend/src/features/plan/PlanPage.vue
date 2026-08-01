@@ -13,10 +13,9 @@ import {
   type PlanFixtureState,
 } from "./fixtures";
 import PlanEditor from "./PlanEditor.vue";
-import PlanNavigation from "./PlanNavigation.vue";
 
 export default defineComponent({
-  components: { Button, EmptyState, ErrorState, LoadingState, PlanEditor, PlanNavigation },
+  components: { Button, EmptyState, ErrorState, LoadingState, PlanEditor },
   setup() {
     const state = ref<PlanFixtureState>(selectFixture(window.location.search));
     const createDraft = () => {
@@ -40,10 +39,6 @@ export default defineComponent({
 <template>
   <div class="plan-page">
     <header class="plan-masthead">
-      <a class="plan-brand plan-touch-action" href="/" aria-label="Kamado Mastery showcase">
-        <span aria-hidden="true">▲</span>
-        <span>KAMADO<br />MASTERY</span>
-      </a>
       <div>
         <p class="plan-eyebrow">Local cooking-day draft</p>
         <h1 v-if="state.kind === 'draft'" class="plan-title">{{ state.draft.title || "Untitled plan" }}</h1>
@@ -52,7 +47,7 @@ export default defineComponent({
       <p class="plan-local-note">In memory only · refresh resets edits</p>
     </header>
 
-    <main class="plan-main">
+    <div class="plan-main">
       <LoadingState
         v-if="state.kind === 'loading'"
         label="Preparing local plan"
@@ -81,21 +76,18 @@ export default defineComponent({
         </div>
         <PlanEditor v-model="state.draft" />
       </section>
-    </main>
-
-    <PlanNavigation />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .plan-page {
-  min-height: 100vh;
+  min-width: 0;
   overflow-x: clip;
   background:
     radial-gradient(circle at 78% 8%, rgb(228 81 26 / 10%), transparent 26rem),
     linear-gradient(135deg, var(--color-neutral-obsidian), var(--color-core) 48%, #171411);
   color: var(--color-text);
-  padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
 .plan-masthead {
@@ -170,15 +162,8 @@ export default defineComponent({
 }
 
 @media (min-width: 768px) {
-  .plan-page {
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    padding-bottom: 0;
-  }
-
   .plan-masthead {
-    grid-row: 2;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
     padding: 36px max(32px, calc((100vw - 1240px) / 2));
   }

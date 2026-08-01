@@ -20,13 +20,14 @@ scripts/              Verification guardrail entrypoints
 | --- | --- |
 | Runtime/build | Vite with Vue plugin in `frontend/vite.config.ts` |
 | Framework | Vue 3 single-file components |
+| Routing | Vue Router history mode from `frontend/src/router.ts` |
 | Styling | Tailwind CSS v4 imported from `frontend/src/style.css` |
 | Component system | `shadcn-vue` configured by `frontend/components.json` with `new-york` style and lucide icons |
 | API access | Generated Hey API fetch client uses relative `/api`; Vite proxies it to `http://localhost:3000` in development |
 | Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. Its pathname-based composition exposes the primitive showcase at `/` and `/showcase` and the local fixture-driven editor at `/plan`; the app does not use Vue Router. Reusable registry primitives live under `frontend/src/components/ui`, Kamado-specific state/readout compositions live under `frontend/src/components/`, and the Plan feature lives under `frontend/src/features/plan/`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the five product routes through `frontend/src/components/ProductShell.vue`; `frontend/src/views/PlanView.vue` mounts the local fixture-driven editor from `frontend/src/features/plan/`, while the other route components are orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
 
 ## Backend
 

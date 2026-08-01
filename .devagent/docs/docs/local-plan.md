@@ -19,9 +19,9 @@ Generated files are generator-owned. Change the Zod source, run `bun run generat
 
 ## Route-thin composition
 
-`frontend/src/App.vue` selects the composition from `window.location.pathname`: `/plan` mounts `frontend/src/features/plan/PlanPage.vue`, while `/` and `/showcase` continue to mount the primitive showcase. The app deliberately has no Vue Router.
+`frontend/src/router.ts` mounts `/plan` through `frontend/src/components/ProductShell.vue`; `frontend/src/views/PlanView.vue` renders `frontend/src/features/plan/PlanPage.vue` inside that shared product chrome. `/` redirects to Today, and `/showcase` remains outside product chrome.
 
-The Plan shell displays Today, Plan, Coach, Learn, and Logbook in product order. Only Plan is current and implemented; the other navigation items are inert rather than placeholder product routes. At narrow widths the navigation is a persistent bottom bar, while desktop keeps it at the top.
+The shared shell displays Today, Plan, Coach, Learn, and Logbook in product order. Plan is implemented locally; Today, Coach, Learn, and Logbook are orientation-only placeholders. At narrow widths the shell exposes navigation through its menu; desktop keeps navigation in the sidebar.
 
 ## Fixture selector
 
