@@ -18,7 +18,7 @@ The Bun API joins complete planning drafts to one durable live-cook lifecycle. P
 | `POST` | `/api/live-sessions/{sessionId}/notes` | Persist a note on the current execution visit |
 | `POST` | `/api/live-sessions/{sessionId}/{action}` | `advance`, `return`, `pause`, `resume`, `complete`, or `cancel` |
 
-The planning API owns session, phase, and step identities. Callers submit complete ordered replacements; SQLite transactions preserve the previous aggregate if replacement fails. Activation retains the planning session ID as the live and terminal route identity.
+The planning API owns session, phase, and step identities. Callers submit complete ordered replacements; SQLite transactions preserve the previous aggregate if replacement fails. Draft lists exclude activated plans, and replace or delete rejects an activated ID so the plan embedded in live and terminal detail cannot drift. Activation retains the planning session ID as the live and terminal route identity; a repeated activation returns a structured `INVALID_DRAFT` conflict instead of leaking a SQLite constraint error.
 
 ## Live projection and absence
 
@@ -28,7 +28,7 @@ No active session is ordinary absence, not an error: `/api/live-sessions/active`
 
 ## Frontend cache boundary
 
-`frontend/src/api/sessions.ts` is the only production session-domain transport boundary. It defines parameterized list, draft/live detail, active, and eligible keys. Every create, update, activation, note, transition, cancellation, and completion mutation invalidates and refetches its declared authoritative keys. Live mutations are pessimistic; rejected actions retain visible state and trigger reconciliation when server state may have changed.
+`frontend/src/api/sessions.ts` is the only production session-domain transport boundary. It defines parameterized list, draft/live detail, active, and eligible queries and keys. Every create, update, activation, note, transition, cancellation, and completion mutation invalidates and refetches its declared authoritative keys on success and after failures that may leave a stale response. Live mutations are pessimistic; rejected actions retain visible state and trigger reconciliation when server state may have changed.
 
 Plan alone owns a local editable buffer. `frontend/src/features/plan/draft.ts` converts confirmed server aggregates into form state and strips local keys before a complete create or update.
 

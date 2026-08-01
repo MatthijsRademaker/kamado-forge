@@ -66,6 +66,13 @@ test("persists the complete Plan-to-Live journey, recovers from a backend confli
   await page.getByRole("button", { name: "Advance" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Stabilize the dome" })).toBeVisible();
   await page.getByRole("button", { name: "Finish cook" }).click();
+  const finalStepPause = await page.request.post(`/api/live-sessions/${sessionId}/pause`, { data: {} });
+  expect(finalStepPause.status()).toBe(200);
+  await page.getByRole("button", { name: "Confirm finish" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("server state changed");
+  await page.getByRole("button", { name: "Keep cooking" }).click();
+  await page.getByRole("button", { name: "Resume" }).click();
+  await page.getByRole("button", { name: "Finish cook" }).click();
   await page.getByRole("button", { name: "Confirm finish" }).click();
   await expect(page).toHaveURL(liveUrl);
   await expect(page.getByText("completed cooking session · read-only durable detail")).toBeVisible();

@@ -8,6 +8,7 @@ import {
   completeCookingSession,
   createCookingSession,
   findActiveCookingSession,
+  getCookingSession,
   getLiveCookingSession,
   listCookingSessions,
   listEligibleCookingSessions,
@@ -68,6 +69,19 @@ export function useSessionListQuery() {
   });
 }
 
+export function useSessionDetailQuery(sessionId: MaybeRefOrGetter<string>) {
+  return useQuery<CookingSession, SessionApiError>({
+    key: () => sessionKeys.detail(toValue(sessionId), "draft"),
+    query: async () =>
+      (
+        await getCookingSession({
+          throwOnError: true,
+          path: { sessionId: toValue(sessionId) },
+        })
+      ).data.data,
+  });
+}
+
 export function useEligibleSessionsQuery(enabled: MaybeRefOrGetter<boolean> = true) {
   return useQuery<CookingSession[], SessionApiError>({
     key: sessionKeys.eligible(),
@@ -108,6 +122,7 @@ export function useCreateSessionMutation() {
   return useMutation<CookingSession, CookingSessionWrite, SessionApiError>({
     mutation: async (input) => (await createCookingSession({ body: input, throwOnError: true })).data.data,
     onSuccess: async () => invalidateSessionQueries(queryCache, sessionMutationInvalidation.create()),
+    onError: async () => invalidateSessionQueries(queryCache, sessionMutationInvalidation.create()),
   });
 }
 
@@ -117,6 +132,8 @@ export function useUpdateSessionMutation() {
     mutation: async ({ sessionId, input }) =>
       (await updateCookingSession({ body: input, path: { sessionId }, throwOnError: true })).data.data,
     onSuccess: async (_, { sessionId }) =>
+      invalidateSessionQueries(queryCache, sessionMutationInvalidation.update(sessionId)),
+    onError: async (_, { sessionId }) =>
       invalidateSessionQueries(queryCache, sessionMutationInvalidation.update(sessionId)),
   });
 }
@@ -204,6 +221,8 @@ export function useAddSessionNoteMutation() {
         })
       ).data.data,
     onSuccess: async (_, { sessionId }) =>
+      invalidateSessionQueries(queryCache, sessionMutationInvalidation.note(sessionId)),
+    onError: async (_, { sessionId }) =>
       invalidateSessionQueries(queryCache, sessionMutationInvalidation.note(sessionId)),
   });
 }

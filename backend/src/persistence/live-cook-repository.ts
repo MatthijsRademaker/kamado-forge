@@ -433,6 +433,10 @@ export function createLiveCookRepository(
       return persistence.transaction(() => {
         const session = createSessionRepository(persistence).get(sessionId);
         if (!session) throw new LiveCookError("NOT_FOUND", "Cooking session not found");
+        const existingDraft = database
+          .query<{ id: string }, [string]>("SELECT id FROM live_cook_drafts WHERE id = ?")
+          .get(session.id);
+        if (existingDraft) throw new LiveCookError("INVALID_DRAFT", "Cooking session has already been activated");
         database.run("INSERT INTO live_cook_drafts (id, created_at) VALUES (?, ?)", [session.id, session.createdAt]);
         let ordinal = 0;
         for (const step of session.phases.flatMap((phase) => phase.steps)) {

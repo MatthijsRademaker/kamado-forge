@@ -269,6 +269,7 @@ function _formatDuration(startedAt: string | undefined): string {
             <DialogTrigger as-child><Button size="lg" class="min-h-11 w-full" :disabled="actionPending || Boolean(session.nextStep)"><Check aria-hidden="true" /> Finish cook</Button></DialogTrigger>
             <DialogContent :show-close-button="false">
               <DialogHeader><DialogTitle>Finish cook?</DialogTitle><DialogDescription>This records final progress and keeps this session available at its current URL.</DialogDescription></DialogHeader>
+              <p v-if="actionError" class="rounded-default border border-feedback-danger p-3 text-feedback-danger" role="alert">{{ actionError }}</p>
               <DialogFooter class="gap-2 sm:gap-0"><DialogClose as-child><Button variant="outline" class="min-h-11">Keep cooking</Button></DialogClose><Button class="min-h-11" :disabled="completeMutation.isLoading.value" @click="_finishCook">Confirm finish</Button></DialogFooter>
             </DialogContent>
           </Dialog>
@@ -277,6 +278,7 @@ function _formatDuration(startedAt: string | undefined): string {
             <DialogTrigger as-child><Button variant="destructive" size="lg" class="min-h-11 w-full" :disabled="actionPending"><X aria-hidden="true" /> Cancel cook</Button></DialogTrigger>
             <DialogContent :show-close-button="false">
               <DialogHeader><DialogTitle>Cancel cook?</DialogTitle><DialogDescription>This records a durable cancelled terminal state.</DialogDescription></DialogHeader>
+              <p v-if="actionError" class="rounded-default border border-feedback-danger p-3 text-feedback-danger" role="alert">{{ actionError }}</p>
               <DialogFooter class="gap-2 sm:gap-0"><DialogClose as-child><Button variant="outline" class="min-h-11">Keep cooking</Button></DialogClose><Button variant="destructive" class="min-h-11" :disabled="cancelMutation.isLoading.value" @click="_cancelCook">Confirm cancel</Button></DialogFooter>
             </DialogContent>
           </Dialog>

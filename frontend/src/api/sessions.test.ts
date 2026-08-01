@@ -18,6 +18,7 @@ import {
   usePauseSessionMutation,
   useResumeSessionMutation,
   useReturnSessionMutation,
+  useSessionDetailQuery,
   useSessionListQuery,
   useUpdateSessionMutation,
 } from "@/api/sessions";
@@ -130,20 +131,24 @@ describe("session generated-client composables", () => {
     client.setConfig({ baseUrl: "http://app.test/api" });
     setControlledFetch(async (request) => {
       if (request.url.endsWith("/live-sessions/active")) return new Response(null, { status: 204 });
+      if (request.url.endsWith(`/sessions/${session.id}`)) return Response.json({ data: session });
       return Response.json({ data: [session] });
     });
     const fixture = createComposableFixture(() => ({
       list: useSessionListQuery(),
+      detail: useSessionDetailQuery(() => session.id),
       eligible: useEligibleSessionsQuery(),
       active: useActiveSessionQuery(),
     }));
 
     try {
       await fixture.value.list.refetch(true);
+      await fixture.value.detail.refetch(true);
       await fixture.value.eligible.refetch(true);
       await fixture.value.active.refetch(true);
 
       expect(fixture.value.list.data.value).toEqual([session]);
+      expect(fixture.value.detail.data.value).toEqual(session);
       expect(fixture.value.eligible.data.value).toEqual([session]);
       expect(fixture.value.active.data.value).toBeNull();
     } finally {
@@ -177,6 +182,56 @@ describe("session generated-client composables", () => {
         sessionMutationInvalidation.activate(session.id).map((key) => [{ key, exact: true }, "all"]),
       );
     } finally {
+      fixture.dispose();
+    }
+  });
+
+  test("invalidates affected queries when draft and note mutation responses may be stale", async () => {
+    const apiError: ApiError = {
+      error: {
+        code: "CONFLICT",
+        message: "The mutation result is unknown",
+        issues: [],
+      },
+    };
+    client.setConfig({ baseUrl: "http://app.test/api" });
+    setControlledFetch(async () => Response.json(apiError, { status: 409 }));
+    const fixture = createComposableFixture(() => {
+      const queryCache = useQueryCache();
+      return {
+        queryCache,
+        create: useCreateSessionMutation(),
+        update: useUpdateSessionMutation(),
+        note: useAddSessionNoteMutation(),
+      };
+    });
+    const invalidations: unknown[][] = [];
+    const stopActionListener = fixture.value.queryCache.$onAction(({ name, args }) => {
+      if (name === "invalidateQueries") invalidations.push(args);
+    });
+
+    try {
+      const mutations = [
+        { name: "create", variables: draftInput, expected: sessionMutationInvalidation.create() },
+        {
+          name: "update",
+          variables: { sessionId: session.id, input: draftInput },
+          expected: sessionMutationInvalidation.update(session.id),
+        },
+        {
+          name: "note",
+          variables: { sessionId: session.id, note: "Clean smoke." },
+          expected: sessionMutationInvalidation.note(session.id),
+        },
+      ] as const;
+
+      for (const mutation of mutations) {
+        invalidations.length = 0;
+        await expect(fixture.value[mutation.name].mutateAsync(mutation.variables as never)).rejects.toEqual(apiError);
+        expect(invalidations).toEqual(mutation.expected.map((key) => [{ key, exact: true }, "all"]));
+      }
+    } finally {
+      stopActionListener();
       fixture.dispose();
     }
   });

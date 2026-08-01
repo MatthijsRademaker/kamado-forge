@@ -114,7 +114,7 @@ describe("durable planning-to-live workflow", () => {
     }
   });
 
-  test("lists only cooking-session drafts that have not been activated", async () => {
+  test("excludes activated cooking sessions from planning draft lists", async () => {
     const fixture = createTemporaryPersistence();
 
     try {
@@ -134,10 +134,30 @@ describe("durable planning-to-live workflow", () => {
         }),
       );
 
-      const response = await dispatcher(new Request("http://api.test/api/sessions/eligible"));
+      for (const path of ["/api/sessions", "/api/sessions/eligible"]) {
+        const response = await dispatcher(new Request(`http://api.test${path}`));
 
-      expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({ data: [{ id: eligible.id, title: "Eligible" }] });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ data: [eligible] });
+      }
+
+      const updateResponse = await dispatcher(
+        new Request(`http://api.test/api/sessions/${activated.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ ...plan, title: "Changed after activation" }),
+        }),
+      );
+      expect(updateResponse.status).toBe(404);
+      expect(await updateResponse.json()).toMatchObject({ error: { code: "SESSION_NOT_FOUND" } });
+
+      const deleteResponse = await dispatcher(
+        new Request(`http://api.test/api/sessions/${activated.id}`, { method: "DELETE" }),
+      );
+      expect(deleteResponse.status).toBe(404);
+      expect(await deleteResponse.json()).toMatchObject({ error: { code: "SESSION_NOT_FOUND" } });
+
+      const liveDetail = await dispatcher(new Request(`http://api.test/api/live-sessions/${activated.id}`));
+      expect(await liveDetail.json()).toMatchObject({ data: { plan: { title: "Activated" } } });
     } finally {
       fixture.cleanup();
     }
@@ -178,6 +198,15 @@ describe("durable planning-to-live workflow", () => {
           nextStep: { title: "Settle" },
         },
       });
+
+      const repeatedActivation = await dispatcher(
+        new Request(`http://api.test/api/sessions/${created.id}/activate`, {
+          method: "POST",
+          body: JSON.stringify({}),
+        }),
+      );
+      expect(repeatedActivation.status).toBe(409);
+      expect(await repeatedActivation.json()).toMatchObject({ error: { code: "INVALID_DRAFT" } });
     } finally {
       fixture.cleanup();
     }

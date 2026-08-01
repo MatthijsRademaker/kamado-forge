@@ -12,4 +12,4 @@
 - [x] 10. Remove production fixture providers, imports, selectors, environment switches, and route branches for Plan, Today, and Live Cook; retain typed builders only in test-support modules that production cannot select.
 - [x] 11. Extend Playwright infrastructure to run the real frontend and API with isolated durable SQLite reset/cleanup, then cover create, reload, activate, advance, add note, complete, direct final reload, and at least one recoverable backend error.
 - [x] 12. Update affected `.devagent/docs/` and LikeC4 source so generated session data flow and now-executable Plan/Today/Live paths are current rather than planned.
-- [ ] 13. Run API generation/drift verification and the complete Docker-backed `scripts/precommit-run` suite; resolve all failures before completion.
+- [x] 13. Run API generation/drift verification and the complete Docker-backed `scripts/precommit-run` suite; resolve all failures before completion.
