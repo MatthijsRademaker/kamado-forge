@@ -1,4 +1,19 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function expectPlanTouchTargets(page: Page) {
+  const undersized = await page
+    .locator(".plan-page a, .plan-page button, .plan-page input, .plan-page textarea, .plan-page summary")
+    .evaluateAll((elements) =>
+      elements.flatMap((element) => {
+        const bounds = element.getBoundingClientRect();
+        if (bounds.width === 0 || bounds.height === 0 || (bounds.width >= 44 && bounds.height >= 44)) return [];
+        const name = element.getAttribute("aria-label") ?? element.id ?? element.textContent?.trim() ?? "unnamed";
+        return [`${element.tagName.toLowerCase()} ${name}: ${Math.round(bounds.width)}x${Math.round(bounds.height)}`];
+      }),
+    );
+
+  expect(undersized).toEqual([]);
+}
 
 test("serves Plan directly with its ordered current navigation", async ({ page }) => {
   await page.goto("/plan?fixture=complete");
@@ -86,6 +101,8 @@ test("prioritizes planned targets and readiness without overflow at 320px", asyn
   expect(readinessTop).toBeLessThan(timelineTop);
   expect(targetsTop).toBeLessThan(timelineTop);
 
+  await expectPlanTouchTargets(page);
+
   const timelineSummary = page.locator("summary").filter({ hasText: "Timeline" });
   await timelineSummary.focus();
   await expect(timelineSummary).toHaveCSS("outline-style", "solid");
@@ -94,10 +111,12 @@ test("prioritizes planned targets and readiness without overflow at 320px", asyn
 
   const navigation = page.getByRole("navigation", { name: "Primary" });
   await expect(navigation).toHaveCSS("position", "fixed");
-  for (const link of await navigation.getByRole("link").all()) {
-    expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-  }
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+
+  for (const fixture of ["loading", "error", "empty"]) {
+    await page.goto(`/plan?fixture=${fixture}`);
+    await expectPlanTouchTargets(page);
+  }
 });
 
 test("operates nested add, remove, and reorder controls by keyboard with safe boundaries", async ({ page }) => {
@@ -109,9 +128,12 @@ test("operates nested add, remove, and reorder controls by keyboard with safe bo
 
   const roastPhase = page.locator('[data-phase-id="phase-roast"]');
   const roastSteps = roastPhase.locator("[data-step-id]");
+  await expect(roastPhase.locator('[data-step-id="step-sear"]')).toContainText("Starts at 95 min");
   await page.getByRole("button", { name: "Move Sear and rest up" }).focus();
   await page.keyboard.press("Enter");
   await expect(roastSteps.first()).toHaveAttribute("data-step-id", "step-sear");
+  await expect(roastSteps.first()).toContainText("Starts at 45 min");
+  await expect(roastSteps.last()).toContainText("Starts at 57 min");
 
   const addStep = page.getByRole("button", { name: "Add step to phase 1" });
   await addStep.focus();

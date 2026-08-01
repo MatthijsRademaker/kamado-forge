@@ -55,7 +55,7 @@ Frontend state follows these ownership rules:
 
 - **Pinia** owns shared state controlled by the browser application.
 - **Pinia Colada** owns remote query and mutation state. Install it only after Pinia.
-- Components and feature code consume domain composables such as `frontend/src/api/health.ts`; they do not import `frontend/src/api/generated/` or call `fetch` directly.
+- Components and feature code consume domain composables such as `frontend/src/api/health.ts`; they do not import generated runtime clients or call `fetch` directly. Type-only imports of standalone generated contract models are allowed.
 - Domain query keys live in `frontend/src/api/queryKeys.ts` and remain stable so cache operations do not depend on component-local arrays.
 - Future successful mutation composables invalidate their related centralized keys through Pinia Colada's query cache. Do not move server responses into Pinia or add mutation endpoints solely to demonstrate invalidation.
 

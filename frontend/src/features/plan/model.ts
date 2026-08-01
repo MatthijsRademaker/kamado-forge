@@ -58,21 +58,18 @@ export function validateReadiness(plan: SessionPlan): ReadinessResult {
     }
   };
 
-  if (plan.id.length === 0) errors.push({ path: "id", message: "Plan identity is required." });
-
-  const phaseIds = new Set<string>();
+  const identities = new Set<string>();
+  requireUniqueIdentity("id", plan.id, "Plan", identities);
   plan.phases.forEach((phase, phaseIndex) => {
-    requireUniqueIdentity(`phases.${phaseIndex}.id`, phase.id, `Phase ${phaseIndex + 1}`, phaseIds);
+    requireUniqueIdentity(`phases.${phaseIndex}.id`, phase.id, `Phase ${phaseIndex + 1}`, identities);
   });
-
-  const stepIds = new Set<string>();
   plan.phases.forEach((phase, phaseIndex) => {
     phase.steps.forEach((step, stepIndex) => {
       requireUniqueIdentity(
         `phases.${phaseIndex}.steps.${stepIndex}.id`,
         step.id,
         `Step ${stepIndex + 1} in phase ${phaseIndex + 1}`,
-        stepIds,
+        identities,
       );
     });
   });
@@ -140,9 +137,7 @@ export function validateReadiness(plan: SessionPlan): ReadinessResult {
 }
 
 export function addPhase(plan: SessionPlan, phase: SessionPlanPhase): SessionPlan {
-  if (plan.phases.some(({ id }) => id === phase.id)) {
-    throw new Error(`Duplicate phase: ${phase.id}`);
-  }
+  requireAvailableIdentity(plan, phase.id);
   return { ...plan, phases: [...plan.phases, phase] };
 }
 
@@ -159,9 +154,7 @@ export function movePhase(plan: SessionPlan, phaseId: string, direction: "up" | 
 
 export function addStep(plan: SessionPlan, phaseId: string, step: SessionPlanStep): SessionPlan {
   const phaseIndex = findPhaseIndex(plan, phaseId);
-  if (plan.phases.some((phase) => phase.steps.some(({ id }) => id === step.id))) {
-    throw new Error(`Duplicate step: ${step.id}`);
-  }
+  requireAvailableIdentity(plan, step.id);
   return updatePhase(plan, phaseIndex, (phase) => ({ ...phase, steps: [...phase.steps, step] }));
 }
 
@@ -185,6 +178,15 @@ export function moveStep(plan: SessionPlan, phaseId: string, stepId: string, dir
   if (stepIndex === -1) throw new Error(`Unknown step: ${stepId}`);
   const steps = moveItem(phase.steps, stepIndex, direction);
   return steps === phase.steps ? plan : updatePhase(plan, phaseIndex, (current) => ({ ...current, steps }));
+}
+
+function requireAvailableIdentity(plan: SessionPlan, identity: string): void {
+  if (
+    identity === plan.id ||
+    plan.phases.some((phase) => phase.id === identity || phase.steps.some((step) => step.id === identity))
+  ) {
+    throw new Error(`Duplicate identity: ${identity}`);
+  }
 }
 
 function findPhaseIndex(plan: SessionPlan, phaseId: string): number {

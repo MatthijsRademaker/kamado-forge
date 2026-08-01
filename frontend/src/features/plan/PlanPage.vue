@@ -40,7 +40,7 @@ export default defineComponent({
 <template>
   <div class="plan-page">
     <header class="plan-masthead">
-      <a class="plan-brand" href="/" aria-label="Kamado Mastery showcase">
+      <a class="plan-brand plan-touch-action" href="/" aria-label="Kamado Mastery showcase">
         <span aria-hidden="true">▲</span>
         <span>KAMADO<br />MASTERY</span>
       </a>
@@ -58,26 +58,26 @@ export default defineComponent({
         label="Preparing local plan"
         description="This fixture stays local and does not request a session."
       >
-        <template #action><Button @click="returnToDefault">Return to complete fixture</Button></template>
+        <template #action><Button class="plan-touch-action" @click="returnToDefault">Return to complete fixture</Button></template>
       </LoadingState>
       <ErrorState
         v-else-if="state.kind === 'error'"
         title="Local fixture unavailable"
         description="No server request failed. This deterministic state exists for interface review."
       >
-        <template #action><Button @click="retry">Retry locally</Button></template>
+        <template #action><Button class="plan-touch-action" @click="retry">Retry locally</Button></template>
       </ErrorState>
       <EmptyState
         v-else-if="state.kind === 'empty'"
         title="Build a local plan"
         description="Start with a contract-typed empty draft. Nothing will be saved or started."
       >
-        <template #action><Button @click="createDraft">Create local draft</Button></template>
+        <template #action><Button class="plan-touch-action" @click="createDraft">Create local draft</Button></template>
       </EmptyState>
       <section v-else aria-label="Plan workspace">
         <div class="plan-workspace-actions">
           <p>Editing a local clone. Refresh or reset discards changes.</p>
-          <Button type="button" variant="outline" class="plan-reset" @click="reset">Reset local draft</Button>
+          <Button type="button" variant="outline" class="plan-touch-action" @click="reset">Reset local draft</Button>
         </div>
         <PlanEditor v-model="state.draft" />
       </section>
@@ -164,7 +164,8 @@ export default defineComponent({
   font-size: var(--text-small);
 }
 
-.plan-reset {
+.plan-touch-action {
+  min-width: 44px;
   min-height: 44px;
 }
 

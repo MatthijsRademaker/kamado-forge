@@ -117,19 +117,31 @@ describe("Plan readiness", () => {
     expect(validateReadiness(plan)).toEqual({ ready: true, errors: [], firstInvalidPath: null });
   });
 
-  test("requires non-empty and unique plan item identities", () => {
+  test("requires non-empty identities that are unique across the draft", () => {
+    const missing: SessionPlan = structuredClone(plan);
+    missing.id = "";
+    phaseAt(missing, 1).id = phaseAt(missing, 0).id;
+    stepAt(missing, 0, 0).id = "";
+    stepAt(missing, 1, 0).id = stepAt(missing, 0, 1).id;
+
+    expect(validateReadiness(missing).errors.map(({ path }) => path)).toEqual([
+      "id",
+      "phases.1.id",
+      "phases.0.steps.0.id",
+      "phases.1.steps.0.id",
+    ]);
+
     const invalid: SessionPlan = structuredClone(plan);
-    invalid.id = "";
-    phaseAt(invalid, 1).id = phaseAt(invalid, 0).id;
-    stepAt(invalid, 0, 0).id = "";
-    stepAt(invalid, 1, 0).id = stepAt(invalid, 0, 1).id;
+    phaseAt(invalid, 0).id = invalid.id;
+    phaseAt(invalid, 1).id = "shared-item";
+    stepAt(invalid, 0, 0).id = "shared-item";
+    stepAt(invalid, 1, 0).id = invalid.id;
 
     const readiness = validateReadiness(invalid);
 
     expect(readiness.ready).toBe(false);
     expect(readiness.errors.map(({ path }) => path)).toEqual([
-      "id",
-      "phases.1.id",
+      "phases.0.id",
       "phases.0.steps.0.id",
       "phases.1.steps.0.id",
     ]);
@@ -162,5 +174,26 @@ describe("Plan nested operations", () => {
     expect(phaseAt(removeStep(withStep, "phase-rest", "step-rest"), 1).steps).toEqual([]);
     expect(removePhase(withStep, "phase-rest").phases.map(({ id }) => id)).toEqual(["phase-low", "phase-sear"]);
     expect(() => removePhase(plan, "missing-phase")).toThrow("Unknown phase: missing-phase");
+  });
+
+  test("rejects phase and step identities already used anywhere in the draft", () => {
+    const phase = {
+      id: plan.id,
+      title: "Rest",
+      technique: "Resting",
+      transitionGuidance: "Slice across the grain.",
+      steps: [],
+    };
+    const step = {
+      id: plan.id,
+      title: "Rest",
+      durationMinutes: 10,
+      instructions: "Rest uncovered.",
+    };
+
+    expect(() => addPhase(plan, phase)).toThrow(`Duplicate identity: ${plan.id}`);
+    expect(() => addPhase(plan, { ...phase, id: "step-light" })).toThrow("Duplicate identity: step-light");
+    expect(() => addStep(plan, "phase-low", step)).toThrow(`Duplicate identity: ${plan.id}`);
+    expect(() => addStep(plan, "phase-low", { ...step, id: "phase-sear" })).toThrow("Duplicate identity: phase-sear");
   });
 });

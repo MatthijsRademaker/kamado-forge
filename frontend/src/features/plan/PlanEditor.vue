@@ -96,6 +96,7 @@ export default defineComponent({
     };
     const nextId = (prefix: "phase" | "step") => {
       const used = new Set([
+        draft.value.id,
         ...draft.value.phases.map(({ id }) => id),
         ...draft.value.phases.flatMap(({ steps }) => steps.map(({ id }) => id)),
       ]);
@@ -130,15 +131,17 @@ export default defineComponent({
     const controlId = (path: string) => `plan-field-${path.replaceAll(".", "-")}`;
     const errorId = (path: string) => `${controlId(path)}-error`;
     const phaseTiming = (phaseId: string) => timeline.value.phases.find(({ id }) => id === phaseId);
+    const stepTiming = (phaseId: string, stepId: string) => phaseTiming(phaseId)?.steps.find(({ id }) => id === stepId);
     const completePlan = async () => {
       if (!readiness.value.ready) {
         const invalidPath = readiness.value.firstInvalidPath;
         if (invalidPath === null) throw new Error("Invalid Plan readiness result has no focus target");
         await nextTick();
         const invalidControl = document.getElementById(controlId(invalidPath));
-        const disclosure = invalidControl?.closest("details");
+        if (invalidControl === null) throw new Error(`No Plan control found for invalid path: ${invalidPath}`);
+        const disclosure = invalidControl.closest("details");
         if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
-        invalidControl?.focus();
+        invalidControl.focus();
         return;
       }
       completed.value = true;
@@ -166,6 +169,7 @@ export default defineComponent({
       setStepField,
       setTarget,
       setText,
+      stepTiming,
       timeline,
     };
   },
@@ -367,6 +371,7 @@ function formatMinutes(minutes: number): string {
               <li v-for="(step, stepIndex) in phase.steps" :key="step.id" class="step-card" :data-step-id="step.id">
                 <div class="step-marker" aria-hidden="true"></div>
                 <div class="step-fields form-grid">
+                  <p class="step-timing wide-field">Starts at {{ stepTiming(phase.id, step.id)?.offsetMinutes ?? 0 }} min</p>
                   <label :for="controlId(`phases.${phaseIndex}.steps.${stepIndex}.title`)">
                     <span>Step {{ stepIndex + 1 }} title</span>
                     <Input
@@ -471,6 +476,7 @@ function formatMinutes(minutes: number): string {
 .section-kicker { color: var(--color-accent) !important; font-family: var(--font-label); font-size: var(--text-small) !important; letter-spacing: .1em; text-transform: uppercase; }
 .readiness-errors { display: grid; gap: 6px; padding-left: 20px; color: var(--color-warning); font-size: var(--text-small); }
 .target-grid, .form-grid { display: grid; gap: 16px; }
+.plan-editor input { min-width: 44px; min-height: 44px; }
 .target-field, .form-grid label, .guidance-fields label { display: grid; min-width: 0; gap: 8px; color: var(--color-neutral-smoke); font-family: var(--font-label); font-size: var(--text-ui); letter-spacing: .03em; text-transform: uppercase; }
 .target-field { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-default); padding: 16px; background: var(--color-core); }
 .target-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
@@ -495,6 +501,7 @@ function formatMinutes(minutes: number): string {
 .step-list { display: grid; gap: 12px; margin: 0; padding: 0 12px 12px; list-style: none; }
 .step-card { position: relative; display: grid; min-width: 0; gap: 12px; border-left: 1px solid var(--color-accent); padding: 12px 0 12px 16px; }
 .step-marker { position: absolute; top: 28px; left: -5px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-accent); box-shadow: 0 0 14px rgb(228 81 26 / 55%); }
+.step-timing { color: var(--color-accent); font-family: var(--font-label); font-size: var(--text-small); letter-spacing: .06em; text-transform: uppercase; }
 .step-actions { justify-content: flex-start; }
 .field-error { color: var(--color-feedback-danger); font-family: var(--font-body); font-size: var(--text-small); letter-spacing: 0; text-transform: none; }
 .guidance-fields { display: grid; gap: 16px; }
