@@ -3,6 +3,61 @@ import { z, type ZodError } from "zod";
 
 extendZodWithOpenApi(z);
 
+const identitySchema = z.string().min(1);
+const draftDateSchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
+
+const plannedDomeTargetSchema = z
+  .object({
+    value: z.number().int().min(150).max(700).nullable(),
+    unit: z.literal("F"),
+  })
+  .strict()
+  .openapi("PlannedDomeTarget");
+
+const plannedFoodTargetSchema = z
+  .object({
+    value: z.number().int().min(32).max(212).nullable(),
+    unit: z.literal("F"),
+  })
+  .strict()
+  .openapi("PlannedFoodTarget");
+
+const sessionPlanStepSchema = z
+  .object({
+    id: identitySchema,
+    title: z.string(),
+    durationMinutes: z.number().int().min(1).max(1440),
+    instructions: z.string(),
+  })
+  .strict()
+  .openapi("SessionPlanStep");
+
+const sessionPlanPhaseSchema = z
+  .object({
+    id: identitySchema,
+    title: z.string(),
+    technique: z.string(),
+    transitionGuidance: z.string(),
+    steps: z.array(sessionPlanStepSchema),
+  })
+  .strict()
+  .openapi("SessionPlanPhase");
+
+export const sessionPlanSchema = z
+  .object({
+    id: identitySchema,
+    title: z.string(),
+    date: draftDateSchema,
+    phases: z.array(sessionPlanPhaseSchema),
+    plannedDomeTarget: plannedDomeTargetSchema,
+    plannedFoodTarget: plannedFoodTargetSchema,
+    setup: z.string(),
+    ventFireGuidance: z.string(),
+    prepNotes: z.string(),
+  })
+  .strict()
+  .openapi("SessionPlan");
+
 const healthQuerySchema = z.object({}).strict().openapi("HealthQuery");
 
 const databaseHealthSchema = z

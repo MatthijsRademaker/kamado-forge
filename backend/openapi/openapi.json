@@ -11,6 +11,145 @@
   ],
   "components": {
     "schemas": {
+      "SessionPlanStep": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "instructions": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "title", "durationMinutes", "instructions"],
+        "additionalProperties": false
+      },
+      "SessionPlanPhase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string"
+          },
+          "transitionGuidance": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionPlanStep"
+            }
+          }
+        },
+        "required": ["id", "title", "technique", "transitionGuidance", "steps"],
+        "additionalProperties": false
+      },
+      "PlannedDomeTarget": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 150,
+            "maximum": 700
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["F"]
+          }
+        },
+        "required": ["value", "unit"],
+        "additionalProperties": false
+      },
+      "PlannedFoodTarget": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 32,
+            "maximum": 212
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["F"]
+          }
+        },
+        "required": ["value", "unit"],
+        "additionalProperties": false
+      },
+      "SessionPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [""]
+              },
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              }
+            ]
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionPlanPhase"
+            }
+          },
+          "plannedDomeTarget": {
+            "$ref": "#/components/schemas/PlannedDomeTarget"
+          },
+          "plannedFoodTarget": {
+            "$ref": "#/components/schemas/PlannedFoodTarget"
+          },
+          "setup": {
+            "type": "string"
+          },
+          "ventFireGuidance": {
+            "type": "string"
+          },
+          "prepNotes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "date",
+          "phases",
+          "plannedDomeTarget",
+          "plannedFoodTarget",
+          "setup",
+          "ventFireGuidance",
+          "prepNotes"
+        ],
+        "additionalProperties": false
+      },
       "DatabaseHealth": {
         "type": "object",
         "properties": {

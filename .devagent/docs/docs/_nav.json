@@ -16,7 +16,8 @@
   {
     "text": "Development",
     "items": [
-      { "text": "Compose Development", "link": "/compose-development" }
+      { "text": "Compose Development", "link": "/compose-development" },
+      { "text": "Local Plan Page", "link": "/local-plan" }
     ]
   }
 ]

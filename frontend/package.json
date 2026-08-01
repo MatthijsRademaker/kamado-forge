@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@fontsource/anton": "latest",
-    "@hey-api/client-fetch": "0.13.1",
-    "@pinia/colada": "1.4.2",
     "@fontsource/bebas-neue": "latest",
     "@fontsource/inter": "latest",
+    "@hey-api/client-fetch": "0.13.1",
+    "@pinia/colada": "1.4.2",
     "@tailwindcss/vite": "latest",
     "@vitejs/plugin-vue": "latest",
     "@vueuse/core": "^14.4.0",
@@ -26,7 +26,8 @@
     "tailwind-merge": "latest",
     "tailwindcss": "^4.0.0",
     "vite": "latest",
-    "vue": "latest"
+    "vue": "latest",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@types/node": "latest",
