@@ -105,7 +105,7 @@ model {
       }
 
       coachService = component 'Coach service' {
-        description 'Read-only orchestrator that assembles immutable active-session context, supplies the server prompt and advisory tools, and validates provider output.'
+        description 'Read-only orchestrator that reduces immutable active-session context and validates structured provider output.'
       }
 
       coachProvider = component 'Coach provider boundary' {
@@ -155,6 +155,7 @@ model {
   kamadoCoach.frontend.planner -> kamadoCoach.frontend.sessionQueries 'saves complete ordered drafts'
   kamadoCoach.frontend.today -> kamadoCoach.frontend.sessionQueries 'queries active and eligible sessions'
   kamadoCoach.frontend.live -> kamadoCoach.frontend.sessionQueries 'queries detail and submits pessimistic actions'
+  kamadoCoach.frontend.coach -> kamadoCoach.frontend.sessionQueries 'queries displayed active-session context'
   kamadoCoach.frontend.sessionQueries -> kamadoCoach.frontend.generatedClient 'uses generated session operations and types'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.sessionApi 'calls relative durable session routes'
   kamadoCoach.frontend.coach -> kamadoCoach.frontend.coachMutation 'submits and retries one local turn'

@@ -79,9 +79,9 @@ function createConfiguredCoachService({
   readonly environment: CoachEnvironment;
   readonly provider?: CoachProvider;
 }): CoachService {
+  const providerMode = resolveCoachProviderMode(environment);
   if (provider) return createCoachService({ contextSource, provider });
-  const configuredProvider =
-    resolveCoachProviderMode(environment) === "fake" ? createFakeCoachProvider() : createDisabledCoachProvider();
+  const configuredProvider = providerMode === "fake" ? createFakeCoachProvider() : createDisabledCoachProvider();
   return createCoachService({ contextSource, provider: configuredProvider });
 }
 

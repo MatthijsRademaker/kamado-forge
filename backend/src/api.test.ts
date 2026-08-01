@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { startApi } from "./api";
 import { createFakeCoachProvider } from "./fake-coach-provider";
+import { createLiveCookRepository } from "./persistence/live-cook-repository";
 import { createTemporaryPersistence } from "./persistence/test-support";
 
 describe("API startup", () => {
@@ -150,6 +151,124 @@ describe("API startup", () => {
     }
   });
 
+  test("returns the exact persisted active context through an inspectable fake without mutating it", async () => {
+    const fixture = createTemporaryPersistence();
+    const provider = createFakeCoachProvider();
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
+
+    try {
+      const api = startApi({
+        port: 3000,
+        databasePath: fixture.databasePath,
+        coachProvider: provider,
+        bootstrap: fixture.bootstrap,
+        serve(options) {
+          fetchHandler = options.fetch;
+        },
+      });
+      const createResponse = await fetchHandler?.(
+        new Request("http://api.test/api/sessions", {
+          method: "POST",
+          body: JSON.stringify({
+            title: "  Sunday cook  ",
+            cookingDate: "2026-08-09",
+            plannedDomeRange: { minF: 225, maxF: 275 },
+            setupGuidance: "Set up for two zones.",
+            deflectorGuidance: "Install the half-moon deflector.",
+            heatZoneGuidance: "Leave a direct finishing zone.",
+            ventGuidance: "Settle both vents before cooking.",
+            prepNotes: "Dry brine overnight.",
+            phases: [
+              {
+                title: "  Cook  ",
+                technique: "Indirect roast",
+                transitionGuidance: "Remove the deflector before searing.",
+                steps: [{ title: "  Roast  ", instructions: "Roast indirectly.", durationMinutes: 45 }],
+              },
+            ],
+          }),
+        }),
+      );
+      expect(createResponse?.status).toBe(201);
+      if (!createResponse) throw new Error("Create-session response was not returned");
+      const createdBody = await createResponse.json();
+      if (!isRecord(createdBody) || !isRecord(createdBody.data) || typeof createdBody.data.id !== "string") {
+        throw new Error("Create-session response did not contain a session ID");
+      }
+      const sessionId = createdBody.data.id;
+      const activateResponse = await fetchHandler?.(
+        new Request(`http://api.test/api/sessions/${sessionId}/activate`, {
+          method: "POST",
+          body: JSON.stringify({}),
+        }),
+      );
+      expect(activateResponse?.status).toBe(200);
+      const stateReader = createLiveCookRepository(api.persistence, {
+        now: () => new Date("2026-08-09T12:00:00.000Z"),
+      });
+      const persistenceBefore = stateReader.getActive();
+
+      const response = await fetchHandler?.(
+        new Request("http://api.test/api/coach", {
+          method: "POST",
+          body: JSON.stringify({ question: "Should I wait?" }),
+        }),
+      );
+      const body = await response?.json();
+      if (!isRecord(body) || !isRecord(body.data)) throw new Error("Coach response did not contain data");
+
+      expect(response?.status).toBe(200);
+      expect(provider.inputs).toHaveLength(1);
+      expect(provider.inputs[0]).toMatchObject({
+        question: "Should I wait?",
+        context: {
+          kind: "active",
+          sessionId,
+          sessionTitle: "  Sunday cook  ",
+          sessionStatus: "ACTIVE",
+          phaseTitle: "  Cook  ",
+          stepOrdinal: 0,
+          stepTitle: "  Roast  ",
+        },
+      });
+      expect(body.data.contextUsed).toEqual(provider.inputs[0]?.context);
+      expect(stateReader.getActive()).toEqual(persistenceBefore);
+      api.persistence.close();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("captures exact no-active context for an injected successful fake", async () => {
+    const fixture = createTemporaryPersistence();
+    const provider = createFakeCoachProvider();
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
+
+    try {
+      const api = startApi({
+        port: 3000,
+        databasePath: fixture.databasePath,
+        coachProvider: provider,
+        serve(options) {
+          fetchHandler = options.fetch;
+        },
+      });
+      const response = await fetchHandler?.(
+        new Request("http://api.test/api/coach", {
+          method: "POST",
+          body: JSON.stringify({ question: "How should I light the fire?" }),
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      expect(provider.inputs).toEqual([{ question: "How should I light the fire?", context: { kind: "none" } }]);
+      expect(await response?.json()).toMatchObject({ data: { contextUsed: { kind: "none" } } });
+      api.persistence.close();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   test("maps an injected fake-provider failure through the HTTP boundary", async () => {
     const fixture = createTemporaryPersistence();
     const provider = createFakeCoachProvider({ mode: "timeout" });
@@ -214,6 +333,29 @@ describe("API startup", () => {
     }
   });
 
+  test("rejects unsupported coach configuration even with an injected provider", () => {
+    const fixture = createTemporaryPersistence();
+    let served = false;
+
+    try {
+      expect(() =>
+        startApi({
+          port: 3000,
+          databasePath: fixture.databasePath,
+          coachProvider: createFakeCoachProvider(),
+          environment: { COACH_PROVIDER: "openai" },
+          bootstrap: fixture.bootstrap,
+          serve() {
+            served = true;
+          },
+        }),
+      ).toThrow("Unsupported COACH_PROVIDER: openai");
+      expect(served).toBe(false);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   test("does not serve HTTP when persistence bootstrap fails", () => {
     const bootstrapFailure = new Error("bootstrap failed");
     let served = false;
@@ -233,3 +375,7 @@ describe("API startup", () => {
     expect(served).toBe(false);
   });
 });
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}

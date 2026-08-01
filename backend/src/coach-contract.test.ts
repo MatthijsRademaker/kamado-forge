@@ -40,6 +40,18 @@ describe("coach contract", () => {
   test("pins the discriminated context allowlist", () => {
     expect(coachContextSchema.parse({ kind: "none" })).toEqual({ kind: "none" });
     expect(coachContextSchema.parse(activeContext)).toEqual(activeContext);
+    expect(
+      coachContextSchema.parse({
+        ...activeContext,
+        sessionTitle: "  Brisket practice  ",
+        phaseTitle: "  Build the bark  ",
+        stepTitle: "  Hold clean smoke  ",
+      }),
+    ).toMatchObject({
+      sessionTitle: "  Brisket practice  ",
+      phaseTitle: "  Build the bark  ",
+      stepTitle: "  Hold clean smoke  ",
+    });
 
     for (const context of [
       {},

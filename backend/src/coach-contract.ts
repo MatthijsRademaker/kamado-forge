@@ -2,6 +2,10 @@ import { apiErrorSchema } from "./api-error";
 import { z } from "./schema";
 
 const requiredTextSchema = z.string().trim().min(1);
+const contextTextSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim().length > 0);
 const questionSchema = requiredTextSchema.max(2_000);
 const utcTimestampSchema = z.string().datetime({ offset: false });
 
@@ -12,11 +16,11 @@ const activeCoachContextSchema = z
   .object({
     kind: z.literal("active"),
     sessionId: z.string().uuid(),
-    sessionTitle: requiredTextSchema,
+    sessionTitle: contextTextSchema,
     sessionStatus: z.enum(["ACTIVE", "PAUSED"]),
-    phaseTitle: requiredTextSchema,
+    phaseTitle: contextTextSchema,
     stepOrdinal: z.number().int().min(0),
-    stepTitle: requiredTextSchema,
+    stepTitle: contextTextSchema,
     projectedAt: utcTimestampSchema,
   })
   .strict();
