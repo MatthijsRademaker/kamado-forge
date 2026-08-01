@@ -16,7 +16,7 @@
     "check:api": "./scripts/check-api",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "biome lint backend/src frontend/src/main.ts frontend/src/env.d.ts frontend/vite.config.ts tests e2e playwright.config.ts",
+    "lint": "biome lint backend/src frontend/src/App.vue frontend/src/features frontend/src/main.ts frontend/src/env.d.ts frontend/vite.config.ts tests e2e playwright.config.ts",
     "typecheck": "bun run --cwd backend typecheck && bun run --cwd frontend typecheck",
     "deadcode": "knip",
     "test": "bun test tests backend/src frontend/src",

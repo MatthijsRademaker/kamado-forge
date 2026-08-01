@@ -19,14 +19,31 @@ model {
 
     frontend = container 'Vue SPA' {
       description '''
-        Vite-powered Vue 3 application. Currently mounts the route-thin primitive
-        showcase at `/` and `/showcase` and contains a generated API transport plus
-        Pinia Colada domain-query boundary; planned navigation areas are Today, Plan,
-        Coach, Learn, and Logbook.
+        Vite-powered Vue 3 application with Vue Router history routes, a responsive
+        ProductShell for Today, Live, Plan, Coach, Learn, and Logbook, and an isolated
+        primitive showcase at `/showcase`. Today and Live share a mounted local session-flow
+        controller. The SPA also contains a generated API transport
+        plus Pinia Colada domain-query boundary.
       '''
 
-      appShell = component 'Application shell' {
-        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`; currently renders the route-thin primitive showcase.'
+      appShell = component 'Application root' {
+        description 'Top-level Vue bootstrap and RouterView mounted from `frontend/src/main.ts` and `frontend/src/App.vue`.'
+      }
+
+      router = component 'Vue Router' {
+        description 'History-mode router with five primary product destinations, a nested Live route, a canonical root redirect to Today, and standalone `/showcase`.'
+      }
+
+      productShell = component 'ProductShell' {
+        description 'Shared responsive layout with desktop and mobile navigation; owns the mounted local session-flow controller shared by Today and Live.'
+      }
+
+      sessionFlow = component 'Local session flow' {
+        description 'Fixture-driven mounted controller for draft start, elapsed timing, pause/resume, ordered steps, notes, and confirmed terminal transitions without API calls or persistence.'
+      }
+
+      showcase = component 'Primitive showcase' {
+        description 'Standalone internal component gallery mounted directly at `/showcase`, outside ProductShell and product navigation.'
       }
 
       healthQueries = component 'Health domain query' {
@@ -34,34 +51,39 @@ model {
       }
 
       generatedClient = component 'Generated API client' {
-        description 'Hey API fetch transport generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
+        description 'Hey API fetch transport and standalone SessionPlan type generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
       }
 
-      today = component 'Today live mode' {
-        description 'Planned outdoor-friendly active cook screen with current step, targets, and next actions.'
+      today = component 'Today route' {
+        description 'Implemented fixture-driven `/today` lifecycle entry for no-session, draft, running, and paused cook states.'
+      }
+
+      live = component 'Live cook route' {
+        description 'Implemented `/live` outdoor guidance view with planned targets, timing, steps, notes, and accessible terminal confirmations.'
       }
 
       planner = component 'Session planner' {
-        description 'Planned timeline builder for multi-phase kamado cooking days.'
+        description 'Implemented local fixture-driven timeline editor rendered at `/plan` through ProductShell; derives timing and readiness in memory without API calls or persistence.'
       }
 
-      coach = component 'Coach chat' {
-        description 'Planned chat interface that sends active-session and memory context with user questions.'
+      coach = component 'Coach route' {
+        description 'Shipped `/coach` orientation placeholder; context-aware chat behavior remains planned.'
       }
 
-      learn = component 'Learning library' {
-        description 'Planned kamado-first guide and book-style learning area.'
+      learn = component 'Learn route' {
+        description 'Shipped `/learn` orientation placeholder; the kamado learning library remains planned.'
       }
 
-      logbook = component 'Logbook' {
-        description 'Planned cook history, notes, outcomes, and lessons learned interface.'
+      logbook = component 'Logbook route' {
+        description 'Shipped `/logbook` orientation placeholder; cook history and lessons behavior remain planned.'
       }
     }
 
     backend = container 'Bun API' {
       description '''
-        Bun TypeScript HTTP API. Currently exposes `/api/health`, initializes SQLite,
-        applies CORS when configured, and owns future domain and LLM boundaries.
+        Bun TypeScript HTTP API. Exposes contract-validated health and durable draft
+        cooking-session CRUD routes, initializes SQLite, applies CORS when configured,
+        and owns future live-cook and LLM boundaries.
       '''
 
       healthApi = component 'Health API' {
@@ -69,7 +91,7 @@ model {
       }
 
       sessionApi = component 'Session API' {
-        description 'Planned endpoints for cook plans, live sessions, current step state, and timeline adjustments.'
+        description 'Shipped create/get/list/full-replacement/delete endpoints for complete ordered cooking-day drafts; live state transitions remain planned.'
       }
 
       coachApi = component 'Coach API' {
@@ -91,9 +113,9 @@ model {
 
     sqlite = database 'SQLite database' {
       description '''
-        Local SQLite persistence configured by `DATABASE_PATH`. It contains runner-owned migration history
-        alongside `app_metadata`; planned product tables should keep sessions, logs, learning content, and
-        memory in one personal store.
+        Local SQLite persistence configured by `DATABASE_PATH`. It contains migration history,
+        `app_metadata`, and normalized ordered draft-session, phase, and step tables. Future logs,
+        learning content, and memory remain in the same personal store.
       '''
     }
   }
@@ -103,10 +125,24 @@ model {
   kamadoCoach.backend -[persist]-> kamadoCoach.sqlite 'stores application data'
   kamadoCoach.backend.coachApi -[llm]-> llmProvider 'requests context-aware coaching answers'
 
+  kamadoCoach.frontend.appShell -> kamadoCoach.frontend.router 'hosts router-rendered layouts'
+  kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders product routes through shared chrome'
+  kamadoCoach.frontend.router -> kamadoCoach.frontend.showcase 'renders standalone internal gallery'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.sessionFlow 'owns mounted fixture and interaction state'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.today 'renders session lifecycle entry'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.live 'renders outdoor cook guidance'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'renders local fixture-driven editor'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.coach 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.learn 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.logbook 'navigates to static route placeholder'
+
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
-  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'loads active cook and records progress'
-  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'creates and adjusts cooking-day timeline'
+  kamadoCoach.frontend.sessionFlow -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
+  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'future: loads active cook and records progress'
+  kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'future: persists live progress and notes'
+  kamadoCoach.frontend.planner -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
+  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: persists and adjusts cooking-day timeline'
   kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
   kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
   kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'

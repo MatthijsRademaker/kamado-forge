@@ -167,7 +167,7 @@ describe("SQLite persistence bootstrap", () => {
 
   test("rejects unknown, renamed, and non-prefix history before running a pending migration", () => {
     const pendingMigration: Migration = {
-      version: "0002",
+      version: "0003",
       name: "create_pending_marker",
       apply(database) {
         database.run("CREATE TABLE pending_marker (value TEXT NOT NULL)");
@@ -188,7 +188,7 @@ describe("SQLite persistence bootstrap", () => {
       },
       {
         reason: "non-prefix history",
-        history: [{ sequence: 1, version: "0002", name: "create_pending_marker" }],
+        history: [{ sequence: 1, version: "0003", name: "create_pending_marker" }],
       },
     ];
 
@@ -219,7 +219,7 @@ describe("SQLite persistence bootstrap", () => {
     const fixture = createTemporaryPersistence();
     const migrationFailure = new Error("migration failed");
     const failingMigration: Migration = {
-      version: "0002",
+      version: "0003",
       name: "create_failed_marker",
       apply(database) {
         database.run("CREATE TABLE failed_marker (value TEXT NOT NULL)");
@@ -246,6 +246,47 @@ describe("SQLite persistence bootstrap", () => {
           )
           .all(),
       ).toEqual(shippedMigrations.map(({ version, name }) => ({ version, name })));
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("applies the session migration to an existing compatible database", () => {
+    const fixture = createTemporaryPersistence();
+    writeAppliedHistory(fixture.databasePath, [{ sequence: 1, version: "0001", name: "create_app_metadata" }]);
+    const existing = new Database(fixture.databasePath);
+
+    try {
+      existing.run(`
+        CREATE TABLE app_metadata (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      existing.run("INSERT INTO app_metadata (key, value) VALUES (?, ?)", ["existing", "preserved"]);
+    } finally {
+      existing.close();
+    }
+
+    try {
+      const persistence = fixture.bootstrap();
+
+      expect(
+        persistence.database
+          .query<{ version: string }, []>("SELECT version FROM _persistence_migrations ORDER BY sequence")
+          .all(),
+      ).toEqual([{ version: "0001" }, { version: "0002" }]);
+      expect(
+        persistence.database
+          .query<{ value: string }, [string]>("SELECT value FROM app_metadata WHERE key = ?")
+          .get("existing"),
+      ).toEqual({ value: "preserved" });
+      expect(
+        persistence.database
+          .query<{ name: string }, [string]>("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+          .get("cooking_sessions"),
+      ).toEqual({ name: "cooking_sessions" });
     } finally {
       fixture.cleanup();
     }

@@ -8,7 +8,7 @@ The app is not a generic recipe site. It should help a learner become confident 
 
 ## Primary navigation model
 
-Future frontend work should converge on five areas:
+The responsive product shell uses exactly five authoritative areas:
 
 | Area | Purpose | Guardrail |
 | --- | --- | --- |
@@ -27,16 +27,20 @@ Future frontend work should converge on five areas:
 
 ## Current implementation status
 
-Current code is a scaffold:
+Current code is a routed frontend scaffold with one local product slice:
 
-- `frontend/src/App.vue` mounts the reusable primitive showcase at `/` and `/showcase`; generic primitives live under `frontend/src/components/ui` and Kamado-specific state/readout compositions live under `frontend/src/components/`.
-- `backend/src/index.ts` exposes `/api/health`, initializes SQLite, and configures CORS.
-- `.devagent/architecture/` contains the source-of-truth LikeC4 model for intended product boundaries.
+- `frontend/src/router.ts` defines history-mode routes for `/today`, `/plan`, `/coach`, `/learn`, and `/logbook`, with `/` redirecting to Today.
+- `frontend/src/components/ProductShell.vue` owns responsive product chrome. `frontend/src/views/PlanView.vue` renders the fixture-driven Plan editor; the remaining route components are orientation-only placeholders without product controls or data access.
+- `frontend/src/features/plan/` owns cloned local drafts, pure timeline/readiness logic, and the outdoor-responsive editor. Its completion state is in memory only.
+- `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; generic primitives live under `frontend/src/components/ui`.
+- `backend/src/contract.ts` owns the generated `SessionPlan` shape but exposes no session endpoint. `backend/src/index.ts` still exposes only `/api/health`, initializes SQLite, and configures CORS.
+- `.devagent/architecture/` contains the source-of-truth LikeC4 model for product boundaries.
 
-Planned product features are modeled as guardrails in the architecture diagrams, but their APIs, schema, UI routes, and LLM integration are not implemented yet.
+Today, Coach, Learn, Logbook, durable Plan persistence, session APIs, and LLM integration remain planned. The local Plan page must not imply that edits are saved or that completing a draft starts a cook.
 
 ## Related pages
 
 - [Vision & Goals](./vision.md) — product strategy and anti-goals.
 - [Architecture Diagrams](./architecture.mdx) — LikeC4 views for product boundaries and planned flow.
 - [Tech Stack](./tech-stack.md) — repository layout, scripts, and current tooling.
+- [Local Plan Page](./local-plan.md) — contract ownership, fixture states, and local-only lifecycle.

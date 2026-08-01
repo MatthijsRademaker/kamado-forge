@@ -1,4 +1,5 @@
 import { createApiDispatcher } from "./dispatcher";
+import { createSessionRepository } from "./persistence/session-repository";
 import {
   bootstrapPersistence,
   type BootstrapPersistenceOptions,
@@ -7,7 +8,7 @@ import {
 
 interface ApiServerOptions {
   readonly port: number;
-  fetch(request: Request): Response;
+  fetch(request: Request): Response | Promise<Response>;
 }
 
 type ApiServerFactory = (options: ApiServerOptions) => unknown;
@@ -31,6 +32,7 @@ export function startApi({
   const persistence = bootstrap({ databasePath });
   const dispatch = createApiDispatcher({
     getHealth: () => ({ ok: true, service: "api", database: { status: "ok" } }),
+    sessionRepository: createSessionRepository(persistence),
   });
   const server = serve({
     port,
@@ -39,7 +41,10 @@ export function startApi({
         return withCors(new Response(null, { status: 204 }), corsOrigin);
       }
 
-      return withCors(dispatch(request), corsOrigin);
+      const response = dispatch(request);
+      return response instanceof Response
+        ? withCors(response, corsOrigin)
+        : response.then((resolved) => withCors(resolved, corsOrigin));
     },
   });
 
@@ -51,7 +56,7 @@ const defaultServe: ApiServerFactory = (options) => Bun.serve(options);
 function withCors(response: Response, corsOrigin: string | undefined): Response {
   const headers = new Headers(response.headers);
   headers.set("Access-Control-Allow-Headers", "content-type, authorization");
-  headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
 
   if (corsOrigin) {
     headers.set("Access-Control-Allow-Origin", corsOrigin);
