@@ -4,6 +4,7 @@ import KamadoShowcase from "@/components/KamadoShowcase.vue";
 import CoachView from "@/views/CoachView.vue";
 import LearnView from "@/views/LearnView.vue";
 import LogbookView from "@/views/LogbookView.vue";
+import LiveView from "@/views/LiveView.vue";
 import PlanView from "@/views/PlanView.vue";
 import TodayView from "@/views/TodayView.vue";
 
@@ -16,6 +17,7 @@ export const router = createRouter({
       component: ProductShell,
       children: [
         { path: "today", name: "today", component: TodayView },
+        { path: "live", name: "live", component: LiveView },
         { path: "plan", name: "plan", component: PlanView },
         { path: "coach", name: "coach", component: CoachView },
         { path: "learn", name: "learn", component: LearnView },

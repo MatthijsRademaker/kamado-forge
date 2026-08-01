@@ -5,14 +5,14 @@ TBD - created by archiving change task-4f48b314-b41b-4fa3-914f-8e01b1dabcd1. Upd
 ## Requirements
 ### Requirement: Routed showcase preserves the normal application root
 
-The frontend SHALL use a Vue Router history-mode application shell with a normal application route at `/` and a named visual-development route at `/showcase`. The `/` route MUST preserve the current scaffold's role as the normal application root; the showcase MUST NOT replace it. The `/showcase` route MUST be directly navigable and refreshable when served by the Vite development server and by the built frontend preview.
+The frontend SHALL use an application shell with Today as the normal application route at `/` and `/today`, Live at `/live`, and a named visual-development route at `/showcase`. The showcase MUST NOT replace Today at the root. The `/showcase` route MUST remain directly navigable and refreshable when served by the Vite development server and by the built frontend preview.
 
 The route source MUST identify `/showcase` as an internal design-system surface and MUST provide a clear way back to `/`. This designation is informational and MUST NOT be treated as authentication or authorization.
 
-#### Scenario: Normal root remains the application entry point
+#### Scenario: Today owns the normal root
 
-- **WHEN** a user navigates to `/`
-- **THEN** the existing frontend scaffold is rendered as the normal application root rather than the showcase
+- **WHEN** a user navigates to `/` or `/today`
+- **THEN** the Today application view renders rather than the showcase
 
 #### Scenario: Showcase is reachable by direct URL
 

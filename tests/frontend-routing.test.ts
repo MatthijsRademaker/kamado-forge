@@ -24,7 +24,7 @@ describe("Vue Router application shell", () => {
     expect(mainSource).toContain('from "./router"');
     expect(routerSource).toContain("createWebHistory()");
 
-    for (const routeName of ["today", "plan", "coach", "learn", "logbook", "showcase"]) {
+    for (const routeName of ["today", "live", "plan", "coach", "learn", "logbook", "showcase"]) {
       expect(routerSource).toContain(`name: "${routeName}"`);
     }
 

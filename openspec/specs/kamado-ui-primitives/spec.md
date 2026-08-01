@@ -1,8 +1,11 @@
 # kamado-ui-primitives Specification
 
 ## Purpose
+
 TBD - created by archiving change task-367e0c64-cb00-4fab-9c2b-6d1c56209a66. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Semantic Kamado visual foundation
 
 The frontend MUST provide semantic Tailwind/CSS tokens for core, surface, text, border, accent, and feedback roles that express dark charcoal layered surfaces, ember-orange emphasis, restrained outlines, and semantic status colors. Primitive and composition classes MUST consume those semantic tokens rather than component-local raw feature color values, and visible focus treatment MUST remain perceptible on intended dark surfaces.
@@ -77,6 +80,11 @@ The application MUST make `/showcase` directly reachable through Vue Router hist
 
 - **WHEN** a visitor loads `/`
 - **THEN** the router replaces the URL with `/today` and renders the product shell rather than the primitive showcase
+
+#### Scenario: A visitor opens a product route
+
+- **WHEN** a visitor directly loads `/today` or `/live`
+- **THEN** the corresponding product view renders without moving session-flow behavior into generic UI primitives
 
 ### Requirement: Verification of the component contract
 
