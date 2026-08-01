@@ -20,8 +20,9 @@ model {
     frontend = container 'Vue SPA' {
       description '''
         Vite-powered Vue 3 application with Vue Router history routes, a responsive
-        ProductShell for Today, Plan, Coach, Learn, and Logbook, and an isolated
-        primitive showcase at `/showcase`. It also contains a generated API transport
+        ProductShell for Today, Live, Plan, Coach, Learn, and Logbook, and an isolated
+        primitive showcase at `/showcase`. Today and Live share a mounted local session-flow
+        controller. The SPA also contains a generated API transport
         plus Pinia Colada domain-query boundary.
       '''
 
@@ -30,11 +31,15 @@ model {
       }
 
       router = component 'Vue Router' {
-        description 'History-mode router with five named product routes, a canonical root redirect to Today, and standalone `/showcase`.'
+        description 'History-mode router with five primary product destinations, a nested Live route, a canonical root redirect to Today, and standalone `/showcase`.'
       }
 
       productShell = component 'ProductShell' {
-        description 'Shared responsive layout with desktop and mobile navigation, current-route orientation, and static active-cook continuation.'
+        description 'Shared responsive layout with desktop and mobile navigation; owns the mounted local session-flow controller shared by Today and Live.'
+      }
+
+      sessionFlow = component 'Local session flow' {
+        description 'Fixture-driven mounted controller for draft start, elapsed timing, pause/resume, ordered steps, notes, and confirmed terminal transitions without API calls or persistence.'
       }
 
       showcase = component 'Primitive showcase' {
@@ -50,7 +55,11 @@ model {
       }
 
       today = component 'Today route' {
-        description 'Shipped `/today` orientation placeholder; active-cook behavior, targets, and next actions remain planned.'
+        description 'Implemented fixture-driven `/today` lifecycle entry for no-session, draft, running, and paused cook states.'
+      }
+
+      live = component 'Live cook route' {
+        description 'Implemented `/live` outdoor guidance view with planned targets, timing, steps, notes, and accessible terminal confirmations.'
       }
 
       planner = component 'Session planner' {
@@ -116,9 +125,11 @@ model {
   kamadoCoach.backend.coachApi -[llm]-> llmProvider 'requests context-aware coaching answers'
 
   kamadoCoach.frontend.appShell -> kamadoCoach.frontend.router 'hosts router-rendered layouts'
-  kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders five product routes through shared chrome'
+  kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders product routes through shared chrome'
   kamadoCoach.frontend.router -> kamadoCoach.frontend.showcase 'renders standalone internal gallery'
-  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.today 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.sessionFlow 'owns mounted fixture and interaction state'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.today 'renders session lifecycle entry'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.live 'renders outdoor cook guidance'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'renders local fixture-driven editor'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.coach 'navigates to static route placeholder'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.learn 'navigates to static route placeholder'
@@ -126,7 +137,9 @@ model {
 
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
-  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'loads active cook and records progress'
+  kamadoCoach.frontend.sessionFlow -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
+  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'future: loads active cook and records progress'
+  kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'future: persists live progress and notes'
   kamadoCoach.frontend.planner -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
   kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: persists and adjusts cooking-day timeline'
   kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'

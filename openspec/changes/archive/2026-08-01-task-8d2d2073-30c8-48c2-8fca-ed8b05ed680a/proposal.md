@@ -2,9 +2,9 @@
 
 ## Why
 
-The current frontend is a component showcase, while the product's highest-value journey requires outdoor, glanceable guidance from Today into an active cook. A deterministic frontend-only slice can prove that journey before backend session wiring exists, provided fixture data stays coupled to the authoritative generated session contract and the internal showcase remains available.
+The application shell already establishes Today as the normal product entry, while the product's highest-value journey requires outdoor, glanceable guidance from Today into an active cook. A deterministic frontend-only slice proves that journey before backend session wiring exists while keeping fixture data coupled to the canonical generated `SessionPlan` contract and preserving the internal showcase.
 
-The authoritative session-flow blueprint and generated session type are not present in this checkout. Contract identification or an explicitly approved generated-type-derived boundary is therefore a prerequisite to fixture implementation; generated files must not be edited and an independent transport DTO must not be invented.
+The standalone `SessionPlan` schema in `backend/src/contract.ts` and its generated frontend type provide the durable fixture boundary. Lifecycle status, elapsed accounting, selected step, dialogs, and note text remain separate mounted UI state; generated files are not edited and no independent transport DTO is introduced.
 
 ## What Changes
 
@@ -19,4 +19,4 @@ The authoritative session-flow blueprint and generated session type are not pres
 
 The change is confined to the Vue frontend, local typed fixtures/controller, frontend tests, route resolution, and any directly affected architecture/docs source of truth. It adds no API request, persistence, backend route, database change, background execution, notification, probe integration, or chat behavior. Reloading restores the selected fixture baseline.
 
-Implementation is blocked until the authoritative session-flow blueprint and generated session contract/type are supplied or a contract-owner-approved generated-type-derived adapter is explicitly identified.
+The implementation uses the generated `SessionPlan` type directly for durable fixture data and adds no adapter or second session transport model.

@@ -1,8 +1,11 @@
 # today-live-cook Specification
 
 ## Purpose
-TBD - created by archiving change task-8d2d2073-30c8-48c2-8fca-ed8b05ed680a. Update Purpose after archive.
+
+Define the deterministic frontend-only Today and Live cook walkthrough, including generated-type-coupled fixtures, mounted session interactions, outdoor guidance hierarchy, accessible terminal actions, and responsive verification.
+
 ## Requirements
+
 ### Requirement: Canonical product routes and deterministic fixtures
 
 The frontend MUST resolve `/` and `/today` to Today, `/live` to Live, and `/showcase` to the preserved internal component showcase. The Today and Live routes MUST support direct navigation and refresh under the existing development and built-preview serving model.

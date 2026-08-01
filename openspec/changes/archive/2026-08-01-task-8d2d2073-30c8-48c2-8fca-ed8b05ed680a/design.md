@@ -2,7 +2,7 @@
 
 ## Context
 
-The Vue root currently renders a primitive showcase and has no Today or Live product view. Existing project guidance identifies Today as the application entry and `/showcase` as an internal surface, while an older primitive requirement still makes the showcase the root. The generated API and backend contract currently expose health types only, so the requested session contract coupling cannot yet be implemented honestly.
+The Vue application uses a responsive ProductShell with Today as the normal entry and `/showcase` as an isolated internal surface. Today is initially an orientation placeholder and no Live route exists. The backend contract now exposes a standalone generated `SessionPlan` type, which provides the durable fixture boundary without adding a session endpoint.
 
 This change is a bounded local interaction model. Durable session behavior remains a future backend concern; fixture selection, pause state, elapsed display, step position, and notes exist only while the application is mounted.
 
@@ -35,9 +35,9 @@ The application shell will resolve `/` and `/today` to Today, `/live` to Live, a
 
 A documented local `fixture` query selector will whitelist `no-session`, `draft`, `active-running`, and `active-paused`. Only combinations applicable to a view need render there, but every Today state and both Live running/paused variants must have a direct URL. Fixture seeds are immutable and cloned into mounted controller state, preventing state leakage between selections or tests.
 
-### Gate fixtures on the generated contract and blueprint
+### Couple fixtures to the generated contract
 
-Before authoring fixture fields, identify the authoritative session-flow blueprint and exact generated session type/version. Fixture durable fields must use `satisfies` or an imported generated-type-derived alias. If the generated session type remains unavailable, implementation stops unless the contract owner explicitly approves a generated-type-derived adapter. Generated output remains read-only. Local-only UI state such as selected fixture, mounted elapsed accounting, dialog visibility, and session-scoped note text stays separate from transport data.
+`backend/src/contract.ts` defines the standalone `SessionPlan` schema and `frontend/src/api/generated/types.gen.ts` exposes its generated type. Fixture durable fields use `satisfies SessionPlan`; generated output remains read-only. Local-only UI state such as selected fixture, lifecycle status, mounted elapsed accounting, current step, dialog visibility, and session-scoped note text stays separate from transport data.
 
 ### Centralize local transitions
 
@@ -59,7 +59,7 @@ Automated checks directly load every fixture, use controlled or bounded time ass
 
 ## Risks
 
-- **Missing contract or blueprint:** fixtures could become an unreviewed second model. Mitigation: make contract identification the first blocking task and do not implement fixtures without generated-type coupling or explicit contract-owner approval.
+- **Contract drift:** fixtures could become a second model if durable fields escape the canonical plan shape. Mitigation: statically check fixture seeds with the generated `SessionPlan` type and keep lifecycle-only state separate.
 - **Route regressions:** root reassignment or thin pathname handling could break direct refresh. Mitigation: centralize the route matrix and test direct loads for `/`, `/today`, `/live`, and `/showcase`.
 - **Timer flakiness:** wall-clock-only assertions can be unstable. Mitigation: isolate elapsed calculation behind a controllable clock seam, clear it on unmount, and avoid persistence claims.
 - **Small-screen overflow:** verbose guidance and dense controls can push required content below the fold or overlap. Mitigation: action/targets first, feature-level touch sizing, and measured browser bounds at 320 by 568.

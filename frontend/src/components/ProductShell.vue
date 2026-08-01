@@ -1,19 +1,44 @@
 <script setup lang="ts">
 import { useMediaQuery } from "@vueuse/core";
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, provide, ref, watch } from "vue";
 import { Flame, Menu } from "lucide-vue-next";
 import { useRoute } from "vue-router";
 import ProductNavigation from "@/components/ProductNavigation.vue";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { createSessionFlow } from "@/features/session/controller";
+import { sessionFlowKey } from "@/features/session/context";
 import { productNavigation } from "@/navigation";
+
+defineOptions({
+  components: {
+    Button,
+    Flame,
+    Menu,
+    ProductNavigation,
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+  },
+});
 
 const route = useRoute();
 const mobileMenuOpen = ref(false);
 const desktopLayoutActive = useMediaQuery("(min-width: 64rem)");
+const queryIndex = route.fullPath.indexOf("?");
+const sessionFlow = createSessionFlow(queryIndex === -1 ? "" : route.fullPath.slice(queryIndex));
+provide(sessionFlowKey, sessionFlow);
+onUnmounted(sessionFlow.dispose);
 
-const currentArea = computed(() => productNavigation.find((item) => item.routeName === route.name));
-const mainContentId = computed(() => `${String(route.name)}-main-content`);
+const _currentArea = computed(
+  () =>
+    productNavigation.find((item) => item.routeName === route.name) ??
+    (route.name === "live" ? { label: "Live Cook" } : undefined),
+);
+const _mainContentId = computed(() => `${String(route.name)}-main-content`);
 
 watch(
   () => route.fullPath,
@@ -32,7 +57,7 @@ watch(desktopLayoutActive, (isDesktop) => {
 <template>
   <div class="min-h-screen min-w-0 bg-canvas text-text">
     <a
-      :href="`#${mainContentId}`"
+      :href="`#${_mainContentId}`"
       class="fixed top-3 left-3 z-[100] -translate-y-24 rounded-tight bg-accent px-4 py-3 font-label text-label tracking-[0.08em] text-accent-foreground uppercase shadow-elevated transition-transform duration-fast focus:translate-y-0"
     >
       Skip to main content
@@ -85,7 +110,7 @@ watch(desktopLayoutActive, (isDesktop) => {
 
           <div class="min-w-0 flex-1">
             <p class="truncate font-heading text-heading-lg leading-none tracking-[0.08em] uppercase">
-              {{ currentArea?.label }}
+              {{ _currentArea?.label }}
             </p>
             <p class="truncate text-caption tracking-[0.12em] text-neutral-mist uppercase">Kamado Forge</p>
           </div>
@@ -126,7 +151,7 @@ watch(desktopLayoutActive, (isDesktop) => {
       <header class="hidden min-h-24 items-center justify-between gap-6 border-b border-border-subtle bg-neutral-obsidian/75 px-8 backdrop-blur lg:flex xl:px-12">
         <div>
           <p class="font-label text-caption tracking-[0.18em] text-accent uppercase">Product area</p>
-          <p class="font-heading text-heading-lg tracking-[0.08em] uppercase">{{ currentArea?.label }}</p>
+          <p class="font-heading text-heading-lg tracking-[0.08em] uppercase">{{ _currentArea?.label }}</p>
         </div>
         <p class="max-w-md text-right text-small tracking-[0.04em] text-neutral-mist">
           Learn the fire. Trust the process. Keep the lesson.
@@ -134,9 +159,9 @@ watch(desktopLayoutActive, (isDesktop) => {
       </header>
 
       <main
-        :id="mainContentId"
+        :id="_mainContentId"
         tabindex="-1"
-        :aria-label="currentArea?.label"
+        :aria-label="_currentArea?.label"
         class="min-w-0 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:px-8 lg:py-12 xl:px-12"
       >
         <RouterView />

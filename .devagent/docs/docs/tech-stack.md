@@ -27,7 +27,7 @@ scripts/              Verification guardrail entrypoints
 | Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the five product routes through `frontend/src/components/ProductShell.vue`; `frontend/src/views/PlanView.vue` mounts the local fixture-driven editor from `frontend/src/features/plan/`, while the other route components are orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the product routes through `frontend/src/components/ProductShell.vue`. Plan mounts the local editor from `frontend/src/features/plan/`; Today and Live share the mounted controller from `frontend/src/features/session/`; Coach, Learn, and Logbook remain orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
 
 ## Backend
 
@@ -50,7 +50,7 @@ The backend is the correct future boundary for domain APIs, memory reads/writes,
 
 Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
 
-The standalone `SessionPlan` schema in `backend/src/contract.ts` is registered as an OpenAPI component without a session route. The local Plan fixtures import its generated type from `frontend/src/api/generated/types.gen.ts`; the Plan feature does not call the API or declare parallel session, phase, or step DTOs. See [Local Plan Page](./local-plan.md) for the fixture and lifecycle rules.
+The standalone `SessionPlan` schema in `backend/src/contract.ts` is registered as an OpenAPI component without a session route. The local Plan and Today/Live fixtures import its generated type from `frontend/src/api/generated/types.gen.ts`; neither feature calls a session API or declares parallel session, phase, or step transport DTOs. See [Local Plan Page](./local-plan.md) and [Local Today and Live Cook](./local-live-cook.md) for their fixture and lifecycle rules.
 
 Frontend state follows these ownership rules:
 
@@ -96,3 +96,4 @@ Before claiming implementation work is complete, run `scripts/precommit-run` unl
 - [Product Guardrails](./product-guardrails.md) — product boundaries and navigation model.
 - [Architecture Diagrams](./architecture.mdx) — visual source of truth generated from LikeC4.
 - [Local Plan Page](./local-plan.md) — generated contract, fixture selector, and local editor lifecycle.
+- [Local Today and Live Cook](./local-live-cook.md) — mounted Today/Live fixture lifecycle and controller.
