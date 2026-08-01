@@ -24,7 +24,7 @@ Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. 
 
 ## Frontend navigation map
 
-Shows the intended product navigation from `vision.md`: Today, Plan, Coach, Learn, and Logbook. The mounted app currently exposes a route-thin primitive showcase at `/` and `/showcase`, plus the health domain-query and generated-client boundary; the product areas remain planned guardrails.
+Shows the intended product navigation from `vision.md`: Today, Plan, Coach, Learn, and Logbook. The mounted app exposes the primitive showcase at `/` and `/showcase` plus a route-thin local Plan editor at `/plan`. Plan consumes a generated contract type without calling a session endpoint; the other product areas remain planned guardrails.
 
 <ClientOnly>
   <likec4-view view-id="frontend-map" />
@@ -59,3 +59,4 @@ Shows the current developer runtime: browser, Vite dev server, Bun API process, 
 - [Vision & Goals](./vision.md) — product strategy, scope, and anti-goals.
 - [Product Guardrails](./product-guardrails.md) — written rules derived from the vision and architecture.
 - [Tech Stack](./tech-stack.md) — repository layout and current tooling.
+- [Local Plan Page](./local-plan.md) — generated contract boundary and local fixture lifecycle.

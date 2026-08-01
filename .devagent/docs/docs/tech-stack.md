@@ -26,7 +26,7 @@ scripts/              Verification guardrail entrypoints
 | Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`, which currently exposes the route-thin primitive showcase at `/` and `/showcase`; API access is established without adding UI scope. Reusable registry primitives live under `frontend/src/components/ui`; Kamado-specific state/readout compositions and the showcase composition live under `frontend/src/components/`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. Its pathname-based composition exposes the primitive showcase at `/` and `/showcase` and the local fixture-driven editor at `/plan`; the app does not use Vue Router. Reusable registry primitives live under `frontend/src/components/ui`, Kamado-specific state/readout compositions live under `frontend/src/components/`, and the Plan feature lives under `frontend/src/features/plan/`.
 
 ## Backend
 
@@ -48,6 +48,8 @@ The backend is the correct future boundary for domain APIs, memory reads/writes,
 `backend/src/contract.ts` is the executable source for route metadata and Zod request/response schemas. The dispatcher in `backend/src/dispatcher.ts` validates inputs and declared outputs. `backend/src/openapi.ts` converts the same registry to `backend/openapi/openapi.json`, which Hey API then converts to the fetch SDK in `frontend/src/api/generated/`.
 
 Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
+
+The standalone `SessionPlan` schema in `backend/src/contract.ts` is registered as an OpenAPI component without a session route. The local Plan fixtures import its generated type from `frontend/src/api/generated/types.gen.ts`; the Plan feature does not call the API or declare parallel session, phase, or step DTOs. See [Local Plan Page](./local-plan.md) for the fixture and lifecycle rules.
 
 Frontend state follows these ownership rules:
 
@@ -92,3 +94,4 @@ Before claiming implementation work is complete, run `scripts/precommit-run` unl
 
 - [Product Guardrails](./product-guardrails.md) — product boundaries and navigation model.
 - [Architecture Diagrams](./architecture.mdx) — visual source of truth generated from LikeC4.
+- [Local Plan Page](./local-plan.md) — generated contract, fixture selector, and local editor lifecycle.

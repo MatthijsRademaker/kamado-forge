@@ -19,14 +19,14 @@ model {
 
     frontend = container 'Vue SPA' {
       description '''
-        Vite-powered Vue 3 application. Currently mounts the route-thin primitive
-        showcase at `/` and `/showcase` and contains a generated API transport plus
-        Pinia Colada domain-query boundary; planned navigation areas are Today, Plan,
-        Coach, Learn, and Logbook.
+        Vite-powered Vue 3 application. Mounts the route-thin primitive showcase at
+        `/` and `/showcase` plus a local fixture-driven Plan editor at `/plan`. It contains
+        a generated API transport and contract types plus a Pinia Colada domain-query
+        boundary; navigation is Today, Plan, Coach, Learn, and Logbook.
       '''
 
       appShell = component 'Application shell' {
-        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`; currently renders the route-thin primitive showcase.'
+        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`; selects the showcase or local Plan page directly from the pathname.'
       }
 
       healthQueries = component 'Health domain query' {
@@ -34,7 +34,7 @@ model {
       }
 
       generatedClient = component 'Generated API client' {
-        description 'Hey API fetch transport generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
+        description 'Hey API fetch transport and standalone SessionPlan type generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
       }
 
       today = component 'Today live mode' {
@@ -42,7 +42,7 @@ model {
       }
 
       planner = component 'Session planner' {
-        description 'Planned timeline builder for multi-phase kamado cooking days.'
+        description 'Implemented local fixture-driven timeline editor at `/plan`; derives timing and readiness in memory without API calls or persistence.'
       }
 
       coach = component 'Coach chat' {
@@ -106,7 +106,8 @@ model {
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
   kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'loads active cook and records progress'
-  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'creates and adjusts cooking-day timeline'
+  kamadoCoach.frontend.planner -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
+  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: persists and adjusts cooking-day timeline'
   kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
   kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
   kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'

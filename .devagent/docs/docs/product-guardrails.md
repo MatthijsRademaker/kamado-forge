@@ -27,16 +27,18 @@ Future frontend work should converge on five areas:
 
 ## Current implementation status
 
-Current code is a scaffold:
+Current code implements the scaffold plus one local product slice:
 
-- `frontend/src/App.vue` mounts the reusable primitive showcase at `/` and `/showcase`; generic primitives live under `frontend/src/components/ui` and Kamado-specific state/readout compositions live under `frontend/src/components/`.
-- `backend/src/index.ts` exposes `/api/health`, initializes SQLite, and configures CORS.
+- `frontend/src/App.vue` mounts the reusable primitive showcase at `/` and `/showcase` and the fixture-driven Plan editor at `/plan` through direct pathname composition.
+- `frontend/src/features/plan/` owns cloned local drafts, pure timeline/readiness logic, and the outdoor-responsive editor. Its completion state is in memory only.
+- `backend/src/contract.ts` owns the generated `SessionPlan` shape but exposes no session endpoint. `backend/src/index.ts` still exposes only `/api/health`, initializes SQLite, and configures CORS.
 - `.devagent/architecture/` contains the source-of-truth LikeC4 model for intended product boundaries.
 
-Planned product features are modeled as guardrails in the architecture diagrams, but their APIs, schema, UI routes, and LLM integration are not implemented yet.
+Today, Coach, Learn, Logbook, durable Plan persistence, session APIs, and LLM integration remain planned. The local Plan page must not imply that edits are saved or that completing a draft starts a cook.
 
 ## Related pages
 
 - [Vision & Goals](./vision.md) — product strategy and anti-goals.
 - [Architecture Diagrams](./architecture.mdx) — LikeC4 views for product boundaries and planned flow.
 - [Tech Stack](./tech-stack.md) — repository layout, scripts, and current tooling.
+- [Local Plan Page](./local-plan.md) — contract ownership, fixture states, and local-only lifecycle.

@@ -27,9 +27,24 @@ The referenced session-flow blueprint is not present on the current branch. This
 
 ### Contract-first data boundary
 
-Before fixture or editor implementation, establish the canonical session-plan schema in the contract source and regenerate the committed OpenAPI/client artifacts through the repository generator. The contract must cover title, date, ordered phases and steps, canonical duration/timing values, technique, planned dome and food targets with units, setup, vent/fire guidance, transition guidance, and prep notes. Its accepted contract/readiness matrix must also settle field requiredness, empty-draft representation, date format, duration authority and range, temperature representation and range, and stable identity needs.
+`backend/src/contract.ts` is the authoritative schema location. It registers a standalone `SessionPlan` OpenAPI component, and the repository generator emits `SessionPlan` in `frontend/src/api/generated/types.gen.ts`; no route references or session endpoint are added. Plan feature code imports that generated type as a type-only dependency, uses `satisfies` or equivalent static checking for every data-bearing fixture, and does not declare duplicate session, phase, or step DTOs. Loading and error belong to a small UI fixture-state wrapper rather than malformed domain payloads. Generated files are never edited manually.
 
-No session endpoint is added. Plan feature code imports the generated session-plan type as a type-only dependency, uses `satisfies` or equivalent static checking for every data-bearing fixture, and does not declare duplicate session, phase, or step DTOs. Loading and error belong to a small UI fixture-state wrapper rather than malformed domain payloads. Generated files are never edited manually.
+The accepted contract/readiness matrix is:
+
+| Concern | Contract representation | Ready when |
+| --- | --- | --- |
+| Identity | Required opaque non-empty string `id` on the plan, every phase, and every step. IDs are local identity for keyed nested editing and error/control targeting; they are not editable fields or persistence claims. | IDs remain present and unique within their containing draft. Locally added items receive deterministic IDs. |
+| Title | Required string. | Trimmed length is 1–120 characters. |
+| Date | Required string containing either the editable empty value `""` or an ISO calendar date `YYYY-MM-DD`; no time zone or time-of-day is implied. | It is a real ISO calendar date in `YYYY-MM-DD` form. |
+| Order | Required `phases` and nested `steps` arrays; array position is canonical order. | At least one phase exists and every phase has at least one step. |
+| Duration and timing | Each step has required integer `durationMinutes` in the inclusive range 1–1440. Minutes are the only duration unit. Step duration is authoritative; phase offsets/totals and plan totals are derived by summing steps in array order and are never stored. | Every step has a valid duration. |
+| Technique and guidance | Every phase has required string `title`, `technique`, and `transitionGuidance`; every step has required string `title` and `instructions`. | Every trimmed value is non-empty. |
+| Planned targets | Required `plannedDomeTarget` and `plannedFoodTarget`, each `{ value: integer | null, unit: "F" }`.`null` is the typed draft value. Dome values have an inclusive 150–700 range; food values have an inclusive 32–212 range. These are manual targets, never readings or telemetry. | Both values are non-null and within their respective ranges. |
+| Setup and fire guidance | Required strings `setup` and `ventFireGuidance`. | Both trimmed values are non-empty. |
+| Prep notes | Required string `prepNotes`. | Trimmed value is non-empty. |
+| Empty draft | A structurally complete `SessionPlan`: deterministic plan ID, empty title/date/text values, both target values `null` with unit `F`, and an empty phases array. | It becomes ready only after all rules above pass. |
+
+The contract owns structural draft validity while the pure frontend readiness model owns completion rules. All listed fields are structurally required, including values which deliberately admit an editable empty state; no second draft DTO is introduced.
 
 ### Route-thin shell
 
@@ -57,7 +72,7 @@ At desktop widths, the ordered timeline is composed with readiness, planned targ
 
 The accepted recommendations converge on the existing no-router pathname strategy, so this design excludes Vue Router and keeps `/showcase` intact. The absent session-flow file is resolved as a delivery dependency by encoding its evidenced desktop/mobile hierarchy and state semantics directly in these normative artifacts. The future `Start Live Cook` affordance is resolved to a neutral local completion status because lifecycle transitions are explicitly out of scope.
 
-The canonical contract field representations, readiness matrix, and empty-draft representation remain unresolved by the room evidence. They are a contract-first gate: implementation must not invent them in frontend feature code or proceed to fixture/UI work until they are settled in the authoritative schema and change artifacts.
+The room evidence did not settle canonical field representations, so this design resolves them in the contract/readiness matrix above before fixture or Plan UI work begins. The schema remains the structural authority and the readiness model remains the completion authority.
 
 ## Risks
 

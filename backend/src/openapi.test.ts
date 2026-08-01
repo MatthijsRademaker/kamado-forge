@@ -58,4 +58,26 @@ describe("OpenAPI generation", () => {
     expect(document.paths?.["/health"]?.get?.operationId).toBe("getHealth");
     expect(Object.keys(document.paths?.["/health"]?.get?.responses ?? {})).toEqual(["200", "400", "404", "405"]);
   });
+
+  test("publishes the session plan schema without adding a session endpoint", () => {
+    const document = buildOpenApiDocument();
+    const sessionPlan = document.components?.schemas?.SessionPlan;
+
+    expect(sessionPlan).toBeDefined();
+    expect(sessionPlan).toMatchObject({
+      type: "object",
+      required: [
+        "id",
+        "title",
+        "date",
+        "phases",
+        "plannedDomeTarget",
+        "plannedFoodTarget",
+        "setup",
+        "ventFireGuidance",
+        "prepNotes",
+      ],
+    });
+    expect(Object.keys(document.paths ?? {})).toEqual(["/health"]);
+  });
 });
