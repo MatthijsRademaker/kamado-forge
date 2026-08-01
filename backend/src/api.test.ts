@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { startApi } from "./api";
+import { createFakeCoachProvider } from "./fake-coach-provider";
 import { createTemporaryPersistence } from "./persistence/test-support";
 
 describe("API startup", () => {
@@ -92,7 +93,7 @@ describe("API startup", () => {
       const coachResponse = await fetchHandler?.(
         new Request("http://api.test/api/coach", {
           method: "POST",
-          body: JSON.stringify({ messages: [{ role: "user", content: "Help" }] }),
+          body: JSON.stringify({ question: "Help" }),
         }),
       );
       const healthResponse = await fetchHandler?.(new Request("http://api.test/api/health"));
@@ -100,7 +101,7 @@ describe("API startup", () => {
       expect(coachResponse?.status).toBe(503);
       expect(await coachResponse?.json()).toEqual({
         error: {
-          code: "COACH_CONFIGURATION_ERROR",
+          code: "COACH_PROVIDER_DISABLED",
           message: "Coach provider is not configured",
           issues: [],
         },
@@ -112,7 +113,7 @@ describe("API startup", () => {
     }
   });
 
-  test("constructs the configured real coach provider entirely on the server", async () => {
+  test("constructs the deterministic fake only when explicitly selected", async () => {
     const fixture = createTemporaryPersistence();
     let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
 
@@ -120,20 +121,7 @@ describe("API startup", () => {
       const api = startApi({
         port: 3000,
         databasePath: fixture.databasePath,
-        environment: {
-          COACH_PROVIDER: "openai",
-          COACH_MODEL: "gpt-server-model",
-          OPENAI_API_KEY: "server-secret",
-        },
-        coachFetch: async () =>
-          Response.json({
-            output: [
-              {
-                type: "message",
-                content: [{ type: "output_text", text: "Make one small vent change." }],
-              },
-            ],
-          }),
+        environment: { COACH_PROVIDER: "fake" },
         serve(options) {
           fetchHandler = options.fetch;
         },
@@ -142,14 +130,53 @@ describe("API startup", () => {
       const response = await fetchHandler?.(
         new Request("http://api.test/api/coach", {
           method: "POST",
-          body: JSON.stringify({ messages: [{ role: "user", content: "What next?" }] }),
+          body: JSON.stringify({ question: "What next?" }),
         }),
       );
 
       expect(response?.status).toBe(200);
       expect(await response?.json()).toEqual({
-        data: { message: "Make one small vent change.", suggestions: [] },
+        data: {
+          answer: "Make one small vent adjustment and wait for the kamado to respond.",
+          guidance: ["Change only one vent at a time.", "Wait ten minutes before adjusting again."],
+          warnings: ["Avoid chasing short thermometer swings."],
+          suggestedFollowUps: ["How do I recognize a stable fire?"],
+          contextUsed: { kind: "none" },
+        },
       });
+      api.persistence.close();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("maps an injected fake-provider failure through the HTTP boundary", async () => {
+    const fixture = createTemporaryPersistence();
+    const provider = createFakeCoachProvider({ mode: "timeout" });
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
+
+    try {
+      const api = startApi({
+        port: 3000,
+        databasePath: fixture.databasePath,
+        coachProvider: provider,
+        serve(options) {
+          fetchHandler = options.fetch;
+        },
+      });
+
+      const response = await fetchHandler?.(
+        new Request("http://api.test/api/coach", {
+          method: "POST",
+          body: JSON.stringify({ question: "Should I wait?" }),
+        }),
+      );
+
+      expect(response?.status).toBe(504);
+      expect(await response?.json()).toEqual({
+        error: { code: "COACH_PROVIDER_TIMEOUT", message: "Coach provider timed out", issues: [] },
+      });
+      expect(provider.inputs).toEqual([{ question: "Should I wait?", context: { kind: "none" } }]);
       api.persistence.close();
     } finally {
       fixture.cleanup();

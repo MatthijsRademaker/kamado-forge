@@ -1,198 +1,184 @@
 import { describe, expect, test } from "bun:test";
-import { createApiDispatcher } from "./dispatcher";
-import { createFakeCoachProvider } from "./fake-coach-provider";
+import { CoachProviderError, type CoachProviderFailureKind } from "./coach-provider";
 import { createCoachService } from "./coach-service";
+import { createApiDispatcher } from "./dispatcher";
 
 const health = () => ({ ok: true, service: "api", database: { status: "ok" } }) as const;
+const coachRequest = (question = "Should I adjust the vents?") =>
+  new Request("http://api.test/api/coach", {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
 
 describe("coach dispatch", () => {
-  test("rejects invalid chat before context lookup or provider invocation", async () => {
+  test("rejects caller-owned context before reading context or invoking the provider", async () => {
     let contextReads = 0;
-    const provider = createFakeCoachProvider({
-      result: { message: "This must not be returned.", suggestions: [] },
-    });
-    const coachService = createCoachService({
-      contextSource: {
-        findActive() {
-          contextReads += 1;
-          return undefined;
+    let providerCalls = 0;
+    const dispatch = createApiDispatcher({
+      getHealth: health,
+      coachService: createCoachService({
+        contextSource: {
+          findActive() {
+            contextReads += 1;
+            return undefined;
+          },
         },
-      },
-      model: "gpt-test",
-      provider,
+        provider: {
+          async complete() {
+            providerCalls += 1;
+            return {};
+          },
+        },
+      }),
     });
-    const dispatch = createApiDispatcher({ getHealth: health, coachService });
 
     const response = await dispatch(
       new Request("http://api.test/api/coach", {
         method: "POST",
         body: JSON.stringify({
-          messages: [
-            { role: "user", content: "" },
-            { role: "assistant", content: "No final user question", extra: true },
-          ],
+          question: "Should I wrap?",
           sessionId: "caller-owned",
+          context: { kind: "none" },
         }),
       }),
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    expect(await response.json()).toMatchObject({
       error: {
         code: "VALIDATION_ERROR",
-        message: "Request validation failed",
         issues: [
-          { path: "body.messages", code: "invalid_body_field", message: "Invalid body value" },
-          { path: "body.messages.0.content", code: "invalid_body_field", message: "Invalid body value" },
-          {
-            path: "body.messages.1.extra",
-            code: "unexpected_body_field",
-            message: "Unexpected body field: extra",
-          },
-          {
-            path: "body.sessionId",
-            code: "unexpected_body_field",
-            message: "Unexpected body field: sessionId",
-          },
+          { path: "body.context", code: "unexpected_body_field" },
+          { path: "body.sessionId", code: "unexpected_body_field" },
         ],
       },
     });
     expect(contextReads).toBe(0);
-    expect(provider.requests).toEqual([]);
+    expect(providerCalls).toBe(0);
   });
 
-  test("trims chat content before enforcing bounds and invoking the provider", async () => {
-    const provider = createFakeCoachProvider();
-    const coachService = createCoachService({
-      contextSource: { findActive: () => undefined },
-      model: "gpt-test",
-      provider,
-    });
-    const dispatch = createApiDispatcher({ getHealth: health, coachService });
-    const boundedContent = "x".repeat(2_000);
-
-    const response = await dispatch(
-      new Request("http://api.test/api/coach", {
-        method: "POST",
-        body: JSON.stringify({ messages: [{ role: "user", content: `  ${boundedContent}  ` }] }),
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(provider.requests[0]?.chat).toEqual([{ role: "user", content: boundedContent }]);
-  });
-
-  test("awaits provider execution and returns only the validated public result", async () => {
-    const coachService = createCoachService({
-      contextSource: { findActive: () => undefined },
-      model: "gpt-test",
-      provider: {
-        async complete() {
-          await Promise.resolve();
-          return {
-            message: "Wait for clean smoke before adding food.",
-            suggestions: [
-              {
-                kind: "caution",
-                title: "Avoid dirty smoke",
-                rationale: "Thick white smoke can make food bitter.",
-              },
-            ],
-          };
+  test("returns validated structured output with the exact no-active snapshot", async () => {
+    const dispatch = createApiDispatcher({
+      getHealth: health,
+      coachService: createCoachService({
+        contextSource: { findActive: () => undefined },
+        provider: {
+          async complete() {
+            return {
+              answer: "Build a small clean fire.",
+              guidance: ["Light one starter.", "Wait for clean smoke."],
+              warnings: ["Do not add food over thick white smoke."],
+              suggestedFollowUps: ["What does clean smoke look like?"],
+            };
+          },
         },
-      },
-    });
-    const dispatch = createApiDispatcher({ getHealth: health, coachService });
-
-    const response = await dispatch(
-      new Request("http://api.test/api/coach", {
-        method: "POST",
-        body: JSON.stringify({ messages: [{ role: "user", content: "Can I add the food now?" }] }),
       }),
-    );
+    });
+
+    const response = await dispatch(coachRequest("How should I light the kamado?"));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       data: {
-        message: "Wait for clean smoke before adding food.",
-        suggestions: [
-          {
-            kind: "caution",
-            title: "Avoid dirty smoke",
-            rationale: "Thick white smoke can make food bitter.",
-          },
-        ],
+        answer: "Build a small clean fire.",
+        guidance: ["Light one starter.", "Wait for clean smoke."],
+        warnings: ["Do not add food over thick white smoke."],
+        suggestedFollowUps: ["What does clean smoke look like?"],
+        contextUsed: { kind: "none" },
       },
     });
   });
 
-  test("maps invalid provider output instead of returning it", async () => {
-    const provider = createFakeCoachProvider({ mode: "malformed_output" });
-    const coachService = createCoachService({
-      contextSource: { findActive: () => undefined },
-      model: "gpt-test",
-      provider,
-    });
-    const dispatch = createApiDispatcher({ getHealth: health, coachService });
-
-    const response = await dispatch(
-      new Request("http://api.test/api/coach", {
-        method: "POST",
-        body: JSON.stringify({ messages: [{ role: "user", content: "Help" }] }),
-      }),
-    );
-
-    expect(response.status).toBe(502);
-    expect(await response.json()).toEqual({
-      error: {
-        code: "COACH_PROVIDER_INVALID_RESPONSE",
-        message: "Coach provider returned an invalid response",
-        issues: [],
-      },
-    });
-  });
-
-  test("returns exact safe rejection and unavailable errors", async () => {
-    for (const fixture of [
+  test("maps every declared provider failure to a sanitized public error", async () => {
+    const fixtures: Array<{
+      kind: CoachProviderFailureKind;
+      status: number;
+      code: string;
+      message: string;
+    }> = [
       {
-        mode: "rejected" as const,
-        status: 502,
-        error: {
-          code: "COACH_PROVIDER_REJECTED",
-          message: "Coach provider rejected the request",
-          issues: [],
-        },
-      },
-      ...(["network", "timeout"] as const).map((mode) => ({
-        mode,
+        kind: "disabled",
         status: 503,
-        error: {
-          code: "COACH_PROVIDER_UNAVAILABLE",
-          message: "Coach provider is unavailable",
-          issues: [],
-        },
-      })),
-    ]) {
-      const provider = createFakeCoachProvider({ mode: fixture.mode });
-      const coachService = createCoachService({
-        contextSource: { findActive: () => undefined },
-        model: "secret-model-value",
-        provider,
-      });
-      const dispatch = createApiDispatcher({ getHealth: health, coachService });
+        code: "COACH_PROVIDER_DISABLED",
+        message: "Coach provider is not configured",
+      },
+      { kind: "timeout", status: 504, code: "COACH_PROVIDER_TIMEOUT", message: "Coach provider timed out" },
+      {
+        kind: "unavailable",
+        status: 503,
+        code: "COACH_PROVIDER_UNAVAILABLE",
+        message: "Coach provider is unavailable",
+      },
+      {
+        kind: "rate_limited",
+        status: 429,
+        code: "COACH_PROVIDER_RATE_LIMITED",
+        message: "Coach provider rate limit reached",
+      },
+      {
+        kind: "invalid_output",
+        status: 502,
+        code: "COACH_PROVIDER_INVALID_OUTPUT",
+        message: "Coach provider returned invalid output",
+      },
+    ];
 
-      const response = await dispatch(
-        new Request("http://api.test/api/coach", {
-          method: "POST",
-          body: JSON.stringify({ messages: [{ role: "user", content: "Help" }] }),
+    for (const fixture of fixtures) {
+      const dispatch = createApiDispatcher({
+        getHealth: health,
+        coachService: createCoachService({
+          contextSource: { findActive: () => undefined },
+          provider: {
+            async complete() {
+              const error = new CoachProviderError(fixture.kind);
+              error.message = "secret prompt, credential, and provider payload";
+              throw error;
+            },
+          },
         }),
-      );
+      });
+
+      const response = await dispatch(coachRequest());
       const body = await response.json();
 
       expect(response.status).toBe(fixture.status);
-      expect(body).toEqual({ error: fixture.error });
-      expect(JSON.stringify(body)).not.toContain("secret-model-value");
-      expect(provider.requests).toHaveLength(1);
+      expect(body).toEqual({
+        error: { code: fixture.code, message: fixture.message, issues: [] },
+      });
+      expect(JSON.stringify(body)).not.toContain("secret");
     }
+  });
+
+  test("maps schema-invalid provider output and leaves unknown failures fail-loud", async () => {
+    const invalidOutputDispatch = createApiDispatcher({
+      getHealth: health,
+      coachService: createCoachService({
+        contextSource: { findActive: () => undefined },
+        provider: {
+          async complete() {
+            return { answer: "partial" };
+          },
+        },
+      }),
+    });
+    const invalidOutputResponse = await invalidOutputDispatch(coachRequest());
+    expect(invalidOutputResponse.status).toBe(502);
+    expect(await invalidOutputResponse.json()).toMatchObject({
+      error: { code: "COACH_PROVIDER_INVALID_OUTPUT", issues: [] },
+    });
+
+    const programmingFailure = new Error("programming failure");
+    const unknownFailureDispatch = createApiDispatcher({
+      getHealth: health,
+      coachService: createCoachService({
+        contextSource: { findActive: () => undefined },
+        provider: {
+          async complete() {
+            throw programmingFailure;
+          },
+        },
+      }),
+    });
+    await expect(unknownFailureDispatch(coachRequest())).rejects.toBe(programmingFailure);
   });
 });

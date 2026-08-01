@@ -1,4 +1,3 @@
-import { CoachConfigurationError } from "./coach-config";
 import { coachRequestSchema, coachRoute, coachSuccessSchema } from "./coach-contract";
 import { CoachProviderError } from "./coach-provider";
 import type { CoachService } from "./coach-service";
@@ -118,7 +117,7 @@ async function dispatchCoach(request: Request, url: URL, service: CoachService):
   if (body instanceof Response) return body;
 
   try {
-    return validatedJson(coachSuccessSchema, { data: await service.ask(body.messages) }, 200);
+    return validatedJson(coachSuccessSchema, { data: await service.ask(body.question) }, 200);
   } catch (error) {
     return coachProviderErrorResponse(error);
   }
@@ -334,15 +333,18 @@ async function parseBody<T>(
 }
 
 function coachProviderErrorResponse(error: unknown): Response {
-  if (error instanceof CoachConfigurationError) return errorResponse(503, API_ERRORS.coachConfiguration);
   if (!(error instanceof CoachProviderError)) throw error;
   switch (error.kind) {
-    case "rejected":
-      return errorResponse(502, API_ERRORS.coachProviderRejected);
+    case "disabled":
+      return errorResponse(503, API_ERRORS.coachProviderDisabled);
+    case "timeout":
+      return errorResponse(504, API_ERRORS.coachProviderTimeout);
     case "unavailable":
       return errorResponse(503, API_ERRORS.coachProviderUnavailable);
-    case "malformed_output":
-      return errorResponse(502, API_ERRORS.coachProviderInvalidResponse);
+    case "rate_limited":
+      return errorResponse(429, API_ERRORS.coachProviderRateLimited);
+    case "invalid_output":
+      return errorResponse(502, API_ERRORS.coachProviderInvalidOutput);
     default:
       throw new Error(`Unhandled coach provider failure: ${error.kind}`);
   }
@@ -365,7 +367,7 @@ function liveCookErrorResponse(error: unknown): Response {
 }
 
 function errorResponse(
-  status: 400 | 404 | 405 | 409 | 502 | 503,
+  status: 400 | 404 | 405 | 409 | 429 | 502 | 503 | 504,
   error: { readonly code: string; readonly message: string },
   issues: { readonly path: string; readonly code: string; readonly message: string }[] = [],
 ): Response {
@@ -375,7 +377,7 @@ function errorResponse(
 function validatedJson(
   schema: { parse(value: unknown): unknown },
   body: unknown,
-  status: 200 | 201 | 400 | 404 | 405 | 409 | 502 | 503,
+  status: 200 | 201 | 400 | 404 | 405 | 409 | 429 | 502 | 503 | 504,
 ): Response {
   return Response.json(schema.parse(body), { status, headers: { "content-type": "application/json" } });
 }

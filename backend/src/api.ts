@@ -1,7 +1,8 @@
-import { CoachConfigurationError, resolveCoachConfiguration, type CoachEnvironment } from "./coach-config";
+import { resolveCoachProviderMode, type CoachEnvironment } from "./coach-config";
+import { createDisabledCoachProvider, type CoachProvider } from "./coach-provider";
 import { createCoachService, type CoachService } from "./coach-service";
 import { createApiDispatcher } from "./dispatcher";
-import { createOpenAiCoachProvider, type CoachFetch } from "./openai-coach-provider";
+import { createFakeCoachProvider } from "./fake-coach-provider";
 import { createLiveCookRepository } from "./persistence/live-cook-repository";
 import { createSessionRepository } from "./persistence/session-repository";
 import {
@@ -21,7 +22,7 @@ type PersistenceBootstrap = (options: BootstrapPersistenceOptions) => Persistenc
 interface StartApiOptions {
   readonly port: number;
   readonly databasePath: string;
-  readonly coachFetch?: CoachFetch;
+  readonly coachProvider?: CoachProvider;
   readonly corsOrigin?: string;
   readonly environment?: CoachEnvironment;
   readonly bootstrap?: PersistenceBootstrap;
@@ -31,22 +32,18 @@ interface StartApiOptions {
 export function startApi({
   port,
   databasePath,
-  coachFetch = globalThis.fetch,
+  coachProvider,
   corsOrigin,
-  environment = {
-    COACH_PROVIDER: process.env.COACH_PROVIDER,
-    COACH_MODEL: process.env.COACH_MODEL,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  },
+  environment = { COACH_PROVIDER: process.env.COACH_PROVIDER },
   bootstrap = bootstrapPersistence,
   serve = defaultServe,
 }: StartApiOptions) {
   const persistence = bootstrap({ databasePath });
   const liveCookRepository = createLiveCookRepository(persistence);
   const coachService = createConfiguredCoachService({
-    coachFetch,
     contextSource: Object.freeze({ findActive: () => liveCookRepository.findActive() }),
     environment,
+    provider: coachProvider,
   });
   const dispatch = createApiDispatcher({
     coachService,
@@ -74,29 +71,18 @@ export function startApi({
 const defaultServe: ApiServerFactory = (options) => Bun.serve(options);
 
 function createConfiguredCoachService({
-  coachFetch,
   contextSource,
   environment,
+  provider,
 }: {
-  readonly coachFetch: CoachFetch;
   readonly contextSource: { findActive: ReturnType<typeof createLiveCookRepository>["findActive"] };
   readonly environment: CoachEnvironment;
+  readonly provider?: CoachProvider;
 }): CoachService {
-  try {
-    const configuration = resolveCoachConfiguration(environment);
-    return createCoachService({
-      contextSource,
-      model: configuration.model,
-      provider: createOpenAiCoachProvider({ apiKey: configuration.apiKey, fetch: coachFetch }),
-    });
-  } catch (error) {
-    if (!(error instanceof CoachConfigurationError)) throw error;
-    return {
-      async ask() {
-        throw error;
-      },
-    };
-  }
+  if (provider) return createCoachService({ contextSource, provider });
+  const configuredProvider =
+    resolveCoachProviderMode(environment) === "fake" ? createFakeCoachProvider() : createDisabledCoachProvider();
+  return createCoachService({ contextSource, provider: configuredProvider });
 }
 
 function withCors(response: Response, corsOrigin: string | undefined): Response {

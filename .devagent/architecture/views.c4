@@ -1,29 +1,27 @@
 views {
   view system-context {
     title 'System context'
-    description 'The kamado learner uses one personal SPA; coaching calls leave the app only through the delivered backend LLM boundary.'
+    description 'The kamado learner uses one personal SPA. Coach is delivered behind a backend-only provider boundary; a future external production provider is shown but no vendor is selected.'
     include learner
     include kamadoCoach
     include llmProvider
     include learner -> kamadoCoach.frontend
-    include kamadoCoach.backend.openAiAdapter -> llmProvider
     autoLayout LeftRight
   }
 
   view containers of kamadoCoach {
     title 'Containers and ownership boundaries'
-    description 'The product is a Vue SPA, Bun API, and local SQLite store. The API owns persistence and server-only LLM access.'
+    description 'The product is a Vue SPA, Bun API, and local SQLite store. The API owns persistence and the server-only Coach provider boundary.'
     include *
     include learner -> kamadoCoach.frontend
     include kamadoCoach.frontend -> kamadoCoach.backend
     include kamadoCoach.backend -> kamadoCoach.sqlite
-    include kamadoCoach.backend.openAiAdapter -> llmProvider
     autoLayout LeftRight
   }
 
   view frontend-map of kamadoCoach.frontend {
     title 'Frontend navigation map'
-    description 'Vue Router sends five primary destinations plus ID-addressed Live through ProductShell and keeps `/showcase` standalone. Plan, Today, and Live use the generated-client Pinia Colada session layer; Coach, Learn, and Logbook remain orientation-only placeholders.'
+    description 'Vue Router sends five primary destinations plus ID-addressed Live through ProductShell and keeps `/showcase` standalone. Plan, Today, Live, and Coach use generated operations through Pinia Colada domain modules; Learn and Logbook remain orientation-only.'
     include *
     include -> kamadoCoach.frontend.*
     autoLayout TopBottom
@@ -34,9 +32,8 @@ views {
     description 'The Bun API keeps session endpoints separate from the delivered read-only coach orchestration and future learning, logbook, and memory boundaries.'
     include *
     include kamadoCoach.sqlite
-    include llmProvider
     include kamadoCoach.backend.* -> kamadoCoach.sqlite
-    include kamadoCoach.backend.* -> llmProvider
+    include kamadoCoach.backend.* -> kamadoCoach.backend.*
     include kamadoCoach.backend.* -> kamadoCoach.backend.memoryService
     autoLayout LeftRight
   }
@@ -50,11 +47,12 @@ views {
     learner -> kamadoCoach.frontend.live 'follows live outdoor guidance'
     kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'records progress, transitions, and current-step notes'
     learner -> kamadoCoach.frontend.coach 'asks context-aware question'
-    kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'planned UI sends bounded chat only'
-    kamadoCoach.backend.coachApi -> kamadoCoach.backend.coachService 'delegates validated chat'
-    kamadoCoach.backend.coachService -> kamadoCoach.sqlite 'reads authoritative active-session context'
-    kamadoCoach.backend.coachService -> kamadoCoach.backend.openAiAdapter 'invokes one selected provider'
-    kamadoCoach.backend.openAiAdapter -> llmProvider 'requests coaching answer'
+    kamadoCoach.frontend.coach -> kamadoCoach.frontend.coachMutation 'submits or retries the same local turn'
+    kamadoCoach.frontend.coachMutation -> kamadoCoach.frontend.generatedClient 'uses generated Coach operation'
+    kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.coachApi 'sends one strict question'
+    kamadoCoach.backend.coachApi -> kamadoCoach.backend.coachService 'delegates validated question'
+    kamadoCoach.backend.coachService -> kamadoCoach.sqlite 'reads and allowlists active-session context'
+    kamadoCoach.backend.coachService -> kamadoCoach.backend.coachProvider 'invokes configured fake or disabled provider'
     learner -> kamadoCoach.frontend.logbook 'logs outcome and lessons'
     kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'persists actuals and notes'
     kamadoCoach.backend.logbookApi -> kamadoCoach.backend.memoryService 'updates durable learning memory'

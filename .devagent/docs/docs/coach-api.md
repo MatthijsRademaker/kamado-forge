@@ -1,64 +1,71 @@
-# Context-Aware Coach API
+# Context-Aware Coach
 
-The Bun backend owns the complete coaching boundary: it validates bounded chat, reads authoritative active-session state from SQLite, invokes OpenAI through a vendor-neutral adapter, and returns advisory-only data. Browser code never supplies trusted cook context or receives provider credentials and metadata.
+The Coach slice connects the session-local `/coach` transcript to a read-only Bun orchestration boundary. The browser sends one question through the generated client; the server resolves authoritative live context, invokes an injected provider, validates structured output, and returns the exact context snapshot used.
 
-## Executable boundary
+## Executable contract
 
-`backend/src/coach-contract.ts` registers `POST /api/coach` in the executable route registry. Requests contain 1–20 `user` or `assistant` messages, end with a user message, limit each message to 2,000 characters, and limit total content to 12,000 characters. The public response contains one validated message and up to four `next_action` or `caution` suggestions.
+`backend/src/coach-contract.ts` registers `POST /api/coach`. Its strict request accepts only:
 
-The request has no session ID, status, step, target, note, model, provider, or credential fields. `backend/src/dispatcher.ts` rejects invalid input before the service can read context or invoke a provider, and the generated OpenAPI/client artifacts expose only this public contract.
+```json
+{ "question": "Should I adjust the top vent?" }
+```
 
-## Read-only orchestration
+Questions are trimmed and limited to 2,000 characters. Blank or over-limit questions and browser-supplied session, phase, step, prompt, model, or provider fields are rejected before context lookup. A success contains a concise `answer`, ordered `guidance`, separate `warnings`, `suggestedFollowUps`, and `contextUsed`.
 
-`backend/src/coach-service.ts` performs one context read and one provider call. `backend/src/coach-context.ts` projects the existing SQLite-backed active session into immutable `ContextSnapshotV1`:
+`contextUsed` is one of two strict shapes:
 
-- no active session is exactly `activeSession: null`;
-- active context includes session identity/status/title, the current step, planned dome and food targets, and at most five newest persisted notes;
-- timing, progress, next-step data, setup fields, and other session state are excluded;
-- context comes only from the read-only `findActive` projection exposed by `backend/src/persistence/live-cook-repository.ts`.
+- `{ "kind": "none" }` when no active session exists;
+- an active snapshot containing only `kind`, `sessionId`, `sessionTitle`, `sessionStatus`, `phaseTitle`, `stepOrdinal`, `stepTitle`, and `projectedAt`.
 
-The system prompt and two typed advisory tools live beside the service. Neither tool accepts a session ID or exposes an executor, so returned suggestions cannot advance steps, change targets, write notes, alter timing, or change session status.
+`backend/src/coach-context.ts` reduces one active live projection per attempt. Notes, instructions, targets, setup, vent guidance, timing, execution history, and the rest of the live DTO never cross the provider boundary.
 
-## Provider ownership and configuration
+## Provider boundary and selection
 
-`backend/src/coach-provider.ts` is the vendor-neutral boundary. `backend/src/openai-coach-provider.ts` implements one non-streaming OpenAI Responses API call and maps vendor output and failures into provider-owned types. Provider IDs, response bodies, request URLs, and token metadata do not cross the public API.
+`backend/src/coach-provider.ts` defines the vendor-neutral `CoachProvider`. Calls are backend-only and non-streaming. This slice deliberately selects no production LLM vendor, model, credential contract, or automatic provider retry policy.
 
-Configure the backend process with non-VITE variables:
+`COACH_PROVIDER` has two supported values:
 
-| Variable | Required value |
+| Value | Behavior |
 | --- | --- |
-| `COACH_PROVIDER` | `openai` |
-| `COACH_MODEL` | Exact non-blank OpenAI model identifier sent by the adapter |
-| `OPENAI_API_KEY` | Server-only OpenAI credential |
+| `disabled` | Deliberately rejects Coach questions with `COACH_PROVIDER_DISABLED`. This is also the behavior when the variable is absent. |
+| `fake` | Selects the deterministic provider in `backend/src/fake-coach-provider.ts` for tests and controlled development. |
 
-`.env.example` contains non-secret placeholders. Missing, blank, or unsupported configuration keeps health and session routes available but makes valid coach requests return HTTP 503 `COACH_CONFIGURATION_ERROR`. Never place these values in `VITE_` variables; Vite-prefixed values are browser-readable.
+Unsupported values fail API startup instead of silently falling back. The fake returns stable structured guidance, one warning, and a follow-up; it also records exact provider inputs when injected by backend tests. It is never an implicit production fallback.
 
-## Safe failures
+## Failures and user retry
 
-| Condition | HTTP | Public code |
-| --- | ---: | --- |
-| Invalid public request | 400 | `VALIDATION_ERROR` |
-| Provider rejection | 502 | `COACH_PROVIDER_REJECTED` |
-| Malformed provider output | 502 | `COACH_PROVIDER_INVALID_RESPONSE` |
-| Network or timeout failure | 503 | `COACH_PROVIDER_UNAVAILABLE` |
-| Missing or invalid configuration | 503 | `COACH_CONFIGURATION_ERROR` |
+Known provider failures use the shared API error envelope with an empty safe `issues` list. Messages are project-owned and omit prompts, credentials, raw payloads, provider diagnostics, and stack traces.
 
-Every provider/configuration failure uses the shared error envelope with an empty `issues` array and omits upstream bodies, stack traces, URLs, credentials, model values, and vendor details.
+| Condition | HTTP | Public code | User retry |
+| --- | ---: | --- | --- |
+| Disabled or unconfigured | 503 | `COACH_PROVIDER_DISABLED` | No; server configuration is required |
+| Timeout | 504 | `COACH_PROVIDER_TIMEOUT` | Yes |
+| Unavailable | 503 | `COACH_PROVIDER_UNAVAILABLE` | Yes |
+| Rate limited | 429 | `COACH_PROVIDER_RATE_LIMITED` | Yes |
+| Invalid structured output | 502 | `COACH_PROVIDER_INVALID_OUTPUT` | Yes |
+
+Unknown programming failures are rethrown through the existing server error path. `frontend/src/api/coach.ts` separately classifies a declared API envelope and a no-response transport failure while preserving the original cause.
+
+## Browser behavior
+
+`frontend/src/views/CoachView.vue` renders inside `ProductShell`. It shows the currently displayed active/no-active context, but each answer labels its returned `contextUsed` because context can change during a send or retry. Active answer context includes the exact session ID and projection timestamp alongside its session, phase, and step summary.
+
+The transcript is local to the loaded page. Each question has a stable client-only identity; retry updates the same failed turn and sends the same question through a fresh server attempt. Suggestions populate and focus the multiline composer without sending. Enter inserts a newline, Ctrl+Enter or Command+Enter sends, and pending state blocks duplicates.
 
 ## Generation and verification
 
-`backend/openapi/openapi.json` and `frontend/src/api/generated/` are generated from the executable route registry. Do not hand-edit them.
+The executable schemas generate `backend/openapi/openapi.json` and `frontend/src/api/generated/`. `frontend/src/api/coach.ts` is the only Coach domain transport wrapper; feature code does not call `fetch` or import a provider SDK.
 
 ```bash
 bun run generate:api
 bun run check:api
 ```
 
-`backend/src/coach-service.test.ts` proves exact active and absent context plus persistence non-mutation. `backend/src/coach-dispatcher.test.ts`, `backend/src/coach-config.test.ts`, and `backend/src/openai-coach-provider.test.ts` cover boundary ordering, safe failures, configuration, and adapter mapping without network calls.
+Backend contract/service/dispatcher tests cover exact context, fake and disabled modes, sanitized failures, invalid output, and non-mutation. `frontend/src/api/coach.test.ts` covers generated routing and error classification. `e2e/coach.spec.ts` covers context disclosure, transcript and retry behavior, keyboard access, structured warnings, and 320px operation.
 
 ## Related pages
 
-- [Architecture Diagrams](./architecture.mdx) — product boundaries and the delivered backend coach flow.
-- [Durable Cooking-Session API](./cooking-session-api.md) — authoritative live-session projection used for coach context.
-- [Tech Stack](./tech-stack.md) — repository layout, generated API workflow, and verification commands.
-- [Product Guardrails](./product-guardrails.md) — advisory-only product and backend ownership rules.
+- [Architecture Diagrams](./architecture.mdx) — frontend, orchestration, context, and provider ownership.
+- [Durable Cooking-Session API](./cooking-session-api.md) — authoritative live projection reduced for Coach.
+- [Today and Live Cook](./local-live-cook.md) — the active session Coach reads without mutating.
+- [Product Guardrails](./product-guardrails.md) — five-area shell and advisory-only product rules.
