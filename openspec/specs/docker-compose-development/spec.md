@@ -77,4 +77,3 @@ Project developer documentation MUST contain a dedicated Compose guide, register
 
 - **WHEN** developer reads Compose guide
 - **THEN** guide provides exact isolated project-scoped command to run E2E tests and exact teardown command that removes only E2E state
-

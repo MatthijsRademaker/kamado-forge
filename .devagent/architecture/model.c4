@@ -19,14 +19,26 @@ model {
 
     frontend = container 'Vue SPA' {
       description '''
-        Vite-powered Vue 3 application. Currently mounts the route-thin primitive
-        showcase at `/` and `/showcase` and contains a generated API transport plus
-        Pinia Colada domain-query boundary; planned navigation areas are Today, Plan,
-        Coach, Learn, and Logbook.
+        Vite-powered Vue 3 application with Vue Router history routes, a responsive
+        ProductShell for Today, Plan, Coach, Learn, and Logbook, and an isolated
+        primitive showcase at `/showcase`. It also contains a generated API transport
+        plus Pinia Colada domain-query boundary.
       '''
 
-      appShell = component 'Application shell' {
-        description 'Top-level Vue application mounted from `frontend/src/main.ts` and `frontend/src/App.vue`; currently renders the route-thin primitive showcase.'
+      appShell = component 'Application root' {
+        description 'Top-level Vue bootstrap and RouterView mounted from `frontend/src/main.ts` and `frontend/src/App.vue`.'
+      }
+
+      router = component 'Vue Router' {
+        description 'History-mode router with five named product routes, a canonical root redirect to Today, and standalone `/showcase`.'
+      }
+
+      productShell = component 'ProductShell' {
+        description 'Shared responsive layout with desktop and mobile navigation, current-route orientation, and static active-cook continuation.'
+      }
+
+      showcase = component 'Primitive showcase' {
+        description 'Standalone internal component gallery mounted directly at `/showcase`, outside ProductShell and product navigation.'
       }
 
       healthQueries = component 'Health domain query' {
@@ -37,24 +49,24 @@ model {
         description 'Hey API fetch transport generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
       }
 
-      today = component 'Today live mode' {
-        description 'Planned outdoor-friendly active cook screen with current step, targets, and next actions.'
+      today = component 'Today route' {
+        description 'Shipped `/today` orientation placeholder; active-cook behavior, targets, and next actions remain planned.'
       }
 
-      planner = component 'Session planner' {
-        description 'Planned timeline builder for multi-phase kamado cooking days.'
+      planner = component 'Plan route' {
+        description 'Shipped `/plan` orientation placeholder; the multi-phase cooking-day planner remains planned.'
       }
 
-      coach = component 'Coach chat' {
-        description 'Planned chat interface that sends active-session and memory context with user questions.'
+      coach = component 'Coach route' {
+        description 'Shipped `/coach` orientation placeholder; context-aware chat behavior remains planned.'
       }
 
-      learn = component 'Learning library' {
-        description 'Planned kamado-first guide and book-style learning area.'
+      learn = component 'Learn route' {
+        description 'Shipped `/learn` orientation placeholder; the kamado learning library remains planned.'
       }
 
-      logbook = component 'Logbook' {
-        description 'Planned cook history, notes, outcomes, and lessons learned interface.'
+      logbook = component 'Logbook route' {
+        description 'Shipped `/logbook` orientation placeholder; cook history and lessons behavior remain planned.'
       }
     }
 
@@ -102,6 +114,15 @@ model {
   kamadoCoach.frontend -[sync]-> kamadoCoach.backend 'calls JSON API via `/api/*`'
   kamadoCoach.backend -[persist]-> kamadoCoach.sqlite 'stores application data'
   kamadoCoach.backend.coachApi -[llm]-> llmProvider 'requests context-aware coaching answers'
+
+  kamadoCoach.frontend.appShell -> kamadoCoach.frontend.router 'hosts router-rendered layouts'
+  kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders five product routes through shared chrome'
+  kamadoCoach.frontend.router -> kamadoCoach.frontend.showcase 'renders standalone internal gallery'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.today 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.coach 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.learn 'navigates to static route placeholder'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.logbook 'navigates to static route placeholder'
 
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
