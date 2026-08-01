@@ -67,7 +67,89 @@ const createCookingSessions: Migration = Object.freeze({
   },
 });
 
-export const shippedMigrations: readonly Migration[] = Object.freeze([createAppMetadata, createCookingSessions]);
+const createLiveCookSessions: Migration = Object.freeze({
+  version: "0003",
+  name: "create_live_cook_sessions",
+  apply(database: Database) {
+    database.run(`
+      CREATE TABLE live_cook_drafts (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        activated_at TEXT
+      );
+
+      CREATE TABLE live_cook_draft_steps (
+        id TEXT PRIMARY KEY,
+        draft_id TEXT NOT NULL REFERENCES live_cook_drafts(id) ON DELETE CASCADE,
+        ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
+        title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+        instructions TEXT NOT NULL CHECK (length(trim(instructions)) > 0),
+        duration_minutes INTEGER NOT NULL CHECK (duration_minutes BETWEEN 1 AND 1440),
+        UNIQUE (draft_id, ordinal)
+      );
+
+      CREATE TABLE live_cook_sessions (
+        id TEXT PRIMARY KEY,
+        draft_id TEXT NOT NULL UNIQUE REFERENCES live_cook_drafts(id) ON DELETE RESTRICT,
+        status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED')),
+        current_step_id TEXT REFERENCES live_cook_session_steps(id) ON DELETE RESTRICT,
+        activated_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE live_cook_session_steps (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES live_cook_sessions(id) ON DELETE CASCADE,
+        ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
+        title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+        instructions TEXT NOT NULL CHECK (length(trim(instructions)) > 0),
+        duration_minutes INTEGER NOT NULL CHECK (duration_minutes BETWEEN 1 AND 1440),
+        UNIQUE (session_id, ordinal)
+      );
+
+      CREATE TABLE live_cook_transitions (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES live_cook_sessions(id) ON DELETE CASCADE,
+        ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
+        action TEXT NOT NULL CHECK (action IN ('ACTIVATE', 'PAUSE', 'RESUME', 'ADVANCE', 'RETURN', 'COMPLETE', 'CANCEL')),
+        from_status TEXT CHECK (from_status IN ('ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED')),
+        to_status TEXT NOT NULL CHECK (to_status IN ('ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED')),
+        occurred_at TEXT NOT NULL,
+        UNIQUE (session_id, ordinal)
+      );
+
+      CREATE TABLE live_cook_execution_visits (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES live_cook_sessions(id) ON DELETE CASCADE,
+        session_step_id TEXT NOT NULL REFERENCES live_cook_session_steps(id) ON DELETE RESTRICT,
+        ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
+        actual_started_at TEXT NOT NULL,
+        actual_finished_at TEXT,
+        cancelled_at TEXT,
+        UNIQUE (session_id, ordinal)
+      );
+
+      CREATE TABLE live_cook_step_notes (
+        id TEXT PRIMARY KEY,
+        execution_visit_id TEXT NOT NULL REFERENCES live_cook_execution_visits(id) ON DELETE CASCADE,
+        ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
+        content TEXT NOT NULL CHECK (length(trim(content)) > 0),
+        created_at TEXT NOT NULL,
+        UNIQUE (execution_visit_id, ordinal)
+      );
+
+      CREATE UNIQUE INDEX one_live_cook_session
+      ON live_cook_sessions ((1))
+      WHERE status IN ('ACTIVE', 'PAUSED');
+    `);
+  },
+});
+
+export const shippedMigrations: readonly Migration[] = Object.freeze([
+  createAppMetadata,
+  createCookingSessions,
+  createLiveCookSessions,
+]);
 
 export function validateMigrationRegistry(migrations: readonly Migration[]): void {
   const versions = new Set<string>();

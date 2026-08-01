@@ -231,26 +231,13 @@
         "required": ["error"],
         "additionalProperties": false
       },
-      "PlannedDomeRange": {
+      "LiveCookPlannedStepWrite": {
         "type": "object",
         "properties": {
-          "minF": {
+          "ordinal": {
             "type": "integer",
-            "minimum": 150,
-            "maximum": 700
+            "minimum": 0
           },
-          "maxF": {
-            "type": "integer",
-            "minimum": 150,
-            "maximum": 700
-          }
-        },
-        "required": ["minF", "maxF"],
-        "additionalProperties": false
-      },
-      "CookingSessionStep": {
-        "type": "object",
-        "properties": {
           "title": {
             "type": "string",
             "minLength": 1
@@ -263,252 +250,266 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 1440
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
           }
         },
-        "required": ["title", "instructions", "durationMinutes", "id"],
+        "required": ["ordinal", "title", "instructions", "durationMinutes"],
         "additionalProperties": false
       },
-      "CookingSessionPhase": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1
+      "LiveCookPlannedStep": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LiveCookPlannedStepWrite"
           },
-          "technique": {
-            "type": "string",
-            "minLength": 1
-          },
-          "transitionGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "steps": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CookingSessionStep"
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
             },
-            "minItems": 1
+            "required": ["id"],
+            "additionalProperties": false
           }
-        },
-        "required": ["title", "technique", "transitionGuidance", "id", "steps"],
-        "additionalProperties": false
+        ]
       },
-      "CookingSession": {
+      "LiveCookDraft": {
         "type": "object",
         "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1
-          },
-          "cookingDate": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-          },
-          "plannedDomeRange": {
-            "$ref": "#/components/schemas/PlannedDomeRange"
-          },
-          "plannedFoodTargetF": {
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 212
-          },
-          "setupGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "deflectorGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "heatZoneGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "ventGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "prepNotes": {
-            "type": "string",
-            "minLength": 1
-          },
           "id": {
             "type": "string",
             "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["draft"]
           },
           "createdAt": {
             "type": "string",
             "format": "date-time"
           },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "phases": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CookingSessionPhase"
-            },
-            "minItems": 1
-          }
-        },
-        "required": [
-          "title",
-          "cookingDate",
-          "plannedDomeRange",
-          "setupGuidance",
-          "deflectorGuidance",
-          "heatZoneGuidance",
-          "ventGuidance",
-          "prepNotes",
-          "id",
-          "status",
-          "createdAt",
-          "updatedAt",
-          "phases"
-        ],
-        "additionalProperties": false
-      },
-      "CookingSessionSuccess": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/CookingSession"
-          }
-        },
-        "required": ["data"],
-        "additionalProperties": false
-      },
-      "CookingSessionStepWrite": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1
-          },
-          "instructions": {
-            "type": "string",
-            "minLength": 1
-          },
-          "durationMinutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1440
-          }
-        },
-        "required": ["title", "instructions", "durationMinutes"],
-        "additionalProperties": false
-      },
-      "CookingSessionPhaseWrite": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1
-          },
-          "technique": {
-            "type": "string",
-            "minLength": 1
-          },
-          "transitionGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
           "steps": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CookingSessionStepWrite"
+              "$ref": "#/components/schemas/LiveCookPlannedStep"
             },
             "minItems": 1
           }
         },
-        "required": ["title", "technique", "transitionGuidance", "steps"],
+        "required": ["id", "createdAt", "steps"],
         "additionalProperties": false
       },
-      "CookingSessionWrite": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1
-          },
-          "cookingDate": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-          },
-          "plannedDomeRange": {
-            "$ref": "#/components/schemas/PlannedDomeRange"
-          },
-          "plannedFoodTargetF": {
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 212
-          },
-          "setupGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "deflectorGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "heatZoneGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "ventGuidance": {
-            "type": "string",
-            "minLength": 1
-          },
-          "prepNotes": {
-            "type": "string",
-            "minLength": 1
-          },
-          "phases": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CookingSessionPhaseWrite"
-            },
-            "minItems": 1
-          }
-        },
-        "required": [
-          "title",
-          "cookingDate",
-          "plannedDomeRange",
-          "setupGuidance",
-          "deflectorGuidance",
-          "heatZoneGuidance",
-          "ventGuidance",
-          "prepNotes",
-          "phases"
-        ],
-        "additionalProperties": false
-      },
-      "CookingSessionListSuccess": {
+      "LiveCookDraftSuccess": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CookingSession"
-            }
+            "$ref": "#/components/schemas/LiveCookDraft"
           }
         },
         "required": ["data"],
+        "additionalProperties": false
+      },
+      "CreateLiveDraftRequest": {
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LiveCookPlannedStepWrite"
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["steps"],
+        "additionalProperties": false
+      },
+      "LiveCookSessionStatus": {
+        "type": "string",
+        "enum": ["ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"]
+      },
+      "LiveCookStepNote": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "ordinal", "content", "createdAt"],
+        "additionalProperties": false
+      },
+      "LiveCookExecution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "actualStartedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actualFinishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LiveCookStepNote"
+            }
+          }
+        },
+        "required": ["id", "ordinal", "actualStartedAt", "actualFinishedAt", "cancelledAt", "notes"],
+        "additionalProperties": false
+      },
+      "LiveCookSessionStep": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LiveCookPlannedStepWrite"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": ["id"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "LiveCookCurrentStep": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LiveCookSessionStep"
+          },
+          {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "execution": {
+                "$ref": "#/components/schemas/LiveCookExecution"
+              }
+            },
+            "required": ["execution"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "LiveCookExecutionVisit": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LiveCookExecution"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step": {
+                "$ref": "#/components/schemas/LiveCookSessionStep"
+              }
+            },
+            "required": ["step"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "LiveCookSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveCookSessionStatus"
+          },
+          "activatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentStep": {
+            "$ref": "#/components/schemas/LiveCookCurrentStep"
+          },
+          "nextStep": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveCookSessionStep"
+              },
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LiveCookPlannedStepWrite"
+                  },
+                  {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "required": ["id"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            ]
+          },
+          "executionHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LiveCookExecutionVisit"
+            }
+          }
+        },
+        "required": ["id", "status", "activatedAt", "currentStep", "nextStep", "executionHistory"],
+        "additionalProperties": false
+      },
+      "LiveCookSessionSuccess": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LiveCookSession"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "LiveCookCommandRequest": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "LiveCookStatusCommandRequest": {
+        "type": "object",
+        "properties": {},
         "additionalProperties": false
       }
     },
@@ -563,16 +564,16 @@
         }
       }
     },
-    "/sessions": {
+    "/drafts": {
       "post": {
-        "operationId": "createCookingSession",
-        "summary": "Create a draft cooking session",
+        "operationId": "createLiveCookDraft",
+        "summary": "Create an ordered live-cook draft",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CookingSessionWrite"
+                "$ref": "#/components/schemas/CreateLiveDraftRequest"
               }
             }
           }
@@ -583,7 +584,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CookingSessionSuccess"
+                  "$ref": "#/components/schemas/LiveCookDraftSuccess"
                 }
               }
             }
@@ -593,92 +594,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "operationId": "listCookingSessions",
-        "summary": "List draft cooking sessions",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookingSessionListSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Malformed request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/sessions/{sessionId}": {
-      "get": {
-        "operationId": "getCookingSession",
-        "summary": "Get a draft cooking session",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "sessionId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookingSessionSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Malformed request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -688,7 +644,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -698,16 +694,108 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
           }
         }
-      },
-      "put": {
-        "operationId": "updateCookingSession",
-        "summary": "Replace a draft cooking session",
+      }
+    },
+    "/drafts/{draftId}/activate": {
+      "post": {
+        "operationId": "activateLiveCookDraft",
+        "summary": "Activate a live-cook draft",
         "parameters": [
           {
             "schema": {
@@ -715,7 +803,7 @@
               "format": "uuid"
             },
             "required": true,
-            "name": "sessionId",
+            "name": "draftId",
             "in": "path"
           }
         ],
@@ -724,7 +812,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CookingSessionWrite"
+                "$ref": "#/components/schemas/LiveCookCommandRequest"
               }
             }
           }
@@ -735,7 +823,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CookingSessionSuccess"
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
                 }
               }
             }
@@ -745,7 +833,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -755,7 +883,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -765,37 +933,165 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
           }
         }
-      },
-      "delete": {
-        "operationId": "deleteCookingSession",
-        "summary": "Delete a draft cooking session",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "sessionId",
-            "in": "path"
-          }
-        ],
+      }
+    },
+    "/live-session": {
+      "get": {
+        "operationId": "getActiveLiveCookSession",
+        "summary": "Get the active live-cook session",
         "responses": {
-          "204": {
-            "description": "Draft cooking session deleted"
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
           },
           "400": {
             "description": "Malformed request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -805,7 +1101,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -815,7 +1151,1465 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-session/advance": {
+      "post": {
+        "operationId": "advanceLiveCookSession",
+        "summary": "Advance the live-cook session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCookCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-session/return": {
+      "post": {
+        "operationId": "returnLiveCookSession",
+        "summary": "Return the live-cook session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCookCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-session/pause": {
+      "post": {
+        "operationId": "pauseLiveCookSession",
+        "summary": "Pause the live-cook session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCookStatusCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-session/resume": {
+      "post": {
+        "operationId": "resumeLiveCookSession",
+        "summary": "Resume the live-cook session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCookStatusCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-session/complete": {
+      "post": {
+        "operationId": "completeLiveCookSession",
+        "summary": "Complete the live-cook session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCookCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-session/cancel": {
+      "post": {
+        "operationId": "cancelLiveCookSession",
+        "summary": "Cancel the live-cook session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveCookCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCookSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Response 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["path", "code", "message"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["code", "message", "issues"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }

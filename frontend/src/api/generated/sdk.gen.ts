@@ -5,21 +5,33 @@ import type {
   GetHealthData,
   GetHealthResponses,
   GetHealthErrors,
-  ListCookingSessionsData,
-  ListCookingSessionsResponses,
-  ListCookingSessionsErrors,
-  CreateCookingSessionData,
-  CreateCookingSessionResponses,
-  CreateCookingSessionErrors,
-  DeleteCookingSessionData,
-  DeleteCookingSessionResponses,
-  DeleteCookingSessionErrors,
-  GetCookingSessionData,
-  GetCookingSessionResponses,
-  GetCookingSessionErrors,
-  UpdateCookingSessionData,
-  UpdateCookingSessionResponses,
-  UpdateCookingSessionErrors,
+  CreateLiveCookDraftData,
+  CreateLiveCookDraftResponses,
+  CreateLiveCookDraftErrors,
+  ActivateLiveCookDraftData,
+  ActivateLiveCookDraftResponses,
+  ActivateLiveCookDraftErrors,
+  GetActiveLiveCookSessionData,
+  GetActiveLiveCookSessionResponses,
+  GetActiveLiveCookSessionErrors,
+  AdvanceLiveCookSessionData,
+  AdvanceLiveCookSessionResponses,
+  AdvanceLiveCookSessionErrors,
+  ReturnLiveCookSessionData,
+  ReturnLiveCookSessionResponses,
+  ReturnLiveCookSessionErrors,
+  PauseLiveCookSessionData,
+  PauseLiveCookSessionResponses,
+  PauseLiveCookSessionErrors,
+  ResumeLiveCookSessionData,
+  ResumeLiveCookSessionResponses,
+  ResumeLiveCookSessionErrors,
+  CompleteLiveCookSessionData,
+  CompleteLiveCookSessionResponses,
+  CompleteLiveCookSessionErrors,
+  CancelLiveCookSessionData,
+  CancelLiveCookSessionResponses,
+  CancelLiveCookSessionErrors,
 } from "./types.gen";
 import { client } from "./client.gen";
 
@@ -51,25 +63,13 @@ export const getHealth = <ThrowOnError extends boolean = false>(options?: Option
 };
 
 /**
- * List draft cooking sessions
+ * Create an ordered live-cook draft
  */
-export const listCookingSessions = <ThrowOnError extends boolean = false>(
-  options?: Options<ListCookingSessionsData, ThrowOnError>,
+export const createLiveCookDraft = <ThrowOnError extends boolean = false>(
+  options: Options<CreateLiveCookDraftData, ThrowOnError>,
 ) => {
-  return (options?.client ?? client).get<ListCookingSessionsResponses, ListCookingSessionsErrors, ThrowOnError>({
-    url: "/sessions",
-    ...options,
-  });
-};
-
-/**
- * Create a draft cooking session
- */
-export const createCookingSession = <ThrowOnError extends boolean = false>(
-  options: Options<CreateCookingSessionData, ThrowOnError>,
-) => {
-  return (options.client ?? client).post<CreateCookingSessionResponses, CreateCookingSessionErrors, ThrowOnError>({
-    url: "/sessions",
+  return (options.client ?? client).post<CreateLiveCookDraftResponses, CreateLiveCookDraftErrors, ThrowOnError>({
+    url: "/drafts",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -79,37 +79,127 @@ export const createCookingSession = <ThrowOnError extends boolean = false>(
 };
 
 /**
- * Delete a draft cooking session
+ * Activate a live-cook draft
  */
-export const deleteCookingSession = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteCookingSessionData, ThrowOnError>,
+export const activateLiveCookDraft = <ThrowOnError extends boolean = false>(
+  options: Options<ActivateLiveCookDraftData, ThrowOnError>,
 ) => {
-  return (options.client ?? client).delete<DeleteCookingSessionResponses, DeleteCookingSessionErrors, ThrowOnError>({
-    url: "/sessions/{sessionId}",
+  return (options.client ?? client).post<ActivateLiveCookDraftResponses, ActivateLiveCookDraftErrors, ThrowOnError>({
+    url: "/drafts/{draftId}/activate",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Get the active live-cook session
+ */
+export const getActiveLiveCookSession = <ThrowOnError extends boolean = false>(
+  options?: Options<GetActiveLiveCookSessionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetActiveLiveCookSessionResponses,
+    GetActiveLiveCookSessionErrors,
+    ThrowOnError
+  >({
+    url: "/live-session",
     ...options,
   });
 };
 
 /**
- * Get a draft cooking session
+ * Advance the live-cook session
  */
-export const getCookingSession = <ThrowOnError extends boolean = false>(
-  options: Options<GetCookingSessionData, ThrowOnError>,
+export const advanceLiveCookSession = <ThrowOnError extends boolean = false>(
+  options: Options<AdvanceLiveCookSessionData, ThrowOnError>,
 ) => {
-  return (options.client ?? client).get<GetCookingSessionResponses, GetCookingSessionErrors, ThrowOnError>({
-    url: "/sessions/{sessionId}",
+  return (options.client ?? client).post<AdvanceLiveCookSessionResponses, AdvanceLiveCookSessionErrors, ThrowOnError>({
+    url: "/live-session/advance",
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 };
 
 /**
- * Replace a draft cooking session
+ * Return the live-cook session
  */
-export const updateCookingSession = <ThrowOnError extends boolean = false>(
-  options: Options<UpdateCookingSessionData, ThrowOnError>,
+export const returnLiveCookSession = <ThrowOnError extends boolean = false>(
+  options: Options<ReturnLiveCookSessionData, ThrowOnError>,
 ) => {
-  return (options.client ?? client).put<UpdateCookingSessionResponses, UpdateCookingSessionErrors, ThrowOnError>({
-    url: "/sessions/{sessionId}",
+  return (options.client ?? client).post<ReturnLiveCookSessionResponses, ReturnLiveCookSessionErrors, ThrowOnError>({
+    url: "/live-session/return",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Pause the live-cook session
+ */
+export const pauseLiveCookSession = <ThrowOnError extends boolean = false>(
+  options: Options<PauseLiveCookSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<PauseLiveCookSessionResponses, PauseLiveCookSessionErrors, ThrowOnError>({
+    url: "/live-session/pause",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Resume the live-cook session
+ */
+export const resumeLiveCookSession = <ThrowOnError extends boolean = false>(
+  options: Options<ResumeLiveCookSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<ResumeLiveCookSessionResponses, ResumeLiveCookSessionErrors, ThrowOnError>({
+    url: "/live-session/resume",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Complete the live-cook session
+ */
+export const completeLiveCookSession = <ThrowOnError extends boolean = false>(
+  options: Options<CompleteLiveCookSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<CompleteLiveCookSessionResponses, CompleteLiveCookSessionErrors, ThrowOnError>(
+    {
+      url: "/live-session/complete",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    },
+  );
+};
+
+/**
+ * Cancel the live-cook session
+ */
+export const cancelLiveCookSession = <ThrowOnError extends boolean = false>(
+  options: Options<CancelLiveCookSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<CancelLiveCookSessionResponses, CancelLiveCookSessionErrors, ThrowOnError>({
+    url: "/live-session/cancel",
     ...options,
     headers: {
       "Content-Type": "application/json",

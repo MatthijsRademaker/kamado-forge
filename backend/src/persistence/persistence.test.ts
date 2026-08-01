@@ -167,7 +167,7 @@ describe("SQLite persistence bootstrap", () => {
 
   test("rejects unknown, renamed, and non-prefix history before running a pending migration", () => {
     const pendingMigration: Migration = {
-      version: "0003",
+      version: "0004",
       name: "create_pending_marker",
       apply(database) {
         database.run("CREATE TABLE pending_marker (value TEXT NOT NULL)");
@@ -219,7 +219,7 @@ describe("SQLite persistence bootstrap", () => {
     const fixture = createTemporaryPersistence();
     const migrationFailure = new Error("migration failed");
     const failingMigration: Migration = {
-      version: "0003",
+      version: "0004",
       name: "create_failed_marker",
       apply(database) {
         database.run("CREATE TABLE failed_marker (value TEXT NOT NULL)");
@@ -276,7 +276,7 @@ describe("SQLite persistence bootstrap", () => {
         persistence.database
           .query<{ version: string }, []>("SELECT version FROM _persistence_migrations ORDER BY sequence")
           .all(),
-      ).toEqual([{ version: "0001" }, { version: "0002" }]);
+      ).toEqual([{ version: "0001" }, { version: "0002" }, { version: "0003" }]);
       expect(
         persistence.database
           .query<{ value: string }, [string]>("SELECT value FROM app_metadata WHERE key = ?")

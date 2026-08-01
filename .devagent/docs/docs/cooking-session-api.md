@@ -1,59 +1,31 @@
-# Draft Cooking-Session API
+# Live Cook Session API
 
-The backend persists complete single-owner cooking-day drafts through `/api/sessions`. The API owns durable session, phase, and step identities while callers own the full editable plan submitted on create or replacement.
+The Bun API turns a minimal ordered draft into one resumable live cook. It owns command validation and transactional persistence; the existing Vue Today and Live views remain local fixtures and do not call this API.
 
-## Aggregate boundary
+## API boundary
 
-```text
-Vue/generated client
-        │ JSON under /api/sessions
-        ▼
-Bun contract dispatcher
-        │ validated complete aggregate
-        ▼
-Session repository transaction
-        │ normalized ordered rows
-        ▼
-SQLite session → phases → steps
-```
+`backend/src/contract.ts` registers `POST /api/drafts`, `POST /api/drafts/{draftId}/activate`, `GET /api/live-session`, and the live-session commands `advance`, `return`, `pause`, `resume`, `complete`, and `cancel`. All payloads are runtime-validated by `backend/src/dispatcher.ts` and use `{ "data": ... }` successes or the shared `{ "error": { "code", "message", "issues" } }` envelope.
 
-The central rule is **complete aggregate replacement**. `POST /api/sessions` creates a draft, while `PUT /api/sessions/{sessionId}` atomically replaces all editable values and nested items. PUT preserves the session ID and creation timestamp, generates fresh phase and step IDs, and advances the update timestamp. Failed replacements leave the prior aggregate unchanged.
+A draft is a non-empty sequence of contiguous, zero-based ordered steps. Activation can happen once: it snapshots those steps, creates the first execution visit, and returns the active projection. The projection exposes the current step and execution, nullable next step, and execution history in deterministic visit/note order.
 
-| Method | Path | Behavior |
-| --- | --- | --- |
-| `POST` | `/api/sessions` | Create a complete draft and return `201` |
-| `GET` | `/api/sessions` | List complete drafts by update time descending, then ID |
-| `GET` | `/api/sessions/{sessionId}` | Retrieve one complete draft |
-| `PUT` | `/api/sessions/{sessionId}` | Atomically replace and reorder the complete draft |
-| `DELETE` | `/api/sessions/{sessionId}` | Delete the draft and nested rows, returning `204` |
+## Transactional state
 
-JSON successes use `{ "data": ... }`. Unknown well-formed session IDs use the shared error envelope with `SESSION_NOT_FOUND`; malformed path, query, or body input uses deterministic contextual validation issues.
+`backend/src/persistence/live-cook-repository.ts` captures one UTC clock value per accepted command and commits status, cursor, history, visit, and note effects together. SQLite migration `0003` supplies drafts, immutable snapshot steps, transitions, visits, notes, and the partial unique `one_live_cook_session` index. The index permits at most one `ACTIVE` or `PAUSED` session.
 
-## Planning semantics
+| State | Commands |
+| --- | --- |
+| `ACTIVE` | pause, advance, return, complete at final step, cancel |
+| `PAUSED` | resume, cancel |
+| `COMPLETED` / `CANCELLED` | none |
 
-`backend/src/session-contract.ts` is the executable write/read contract. A complete draft contains at least one phase and each phase contains at least one step. Array order is authoritative; SQLite ordinals are internal and responses reproduce explicit phase and step order.
-
-Step `durationMinutes` is integral from 1 through 1440. Offsets and totals are derived from ordered durations and are not persisted. `cookingDate` is a real `YYYY-MM-DD` calendar date without time-zone conversion.
-
-Temperatures are manual planned Fahrenheit guidance, never probe readings or telemetry:
-
-- `plannedDomeRange.minF` and `maxF` are integers from 150°F through 700°F, with minimum not exceeding maximum.
-- `plannedFoodTargetF` is omitted when absent and otherwise is an integer from 32°F through 212°F.
-
-Setup, deflector, heat-zone, vent, and prep guidance are distinct required session-level fields. Phase technique and transition guidance and step title, instructions, and duration are also required.
-
-## Persistence and generated contracts
-
-Migration `0002` in `backend/src/persistence/migrations.ts` creates normalized `cooking_sessions`, `cooking_session_phases`, and `cooking_session_steps` tables. Foreign-key cascades remove nested rows, and per-parent ordinal uniqueness protects ordering.
-
-`backend/src/openapi.ts` generates the canonical OpenAPI document and the Hey API client under `frontend/src/api/generated/`. The generated client exposes the transport operations, but the current Plan and Today/Live interfaces remain fixture-driven and do not call them.
+Advance and return close the outgoing visit and create a new visit. Completion closes the final visit. Cancellation records `cancelledAt` without inventing an actual finish. Invalid state or boundary commands return `409 INVALID_TRANSITION`; a second live activation returns `409 ACTIVE_SESSION_CONFLICT`.
 
 ## Verification
 
-Repository behavior is covered in `backend/src/persistence/session-repository.test.ts`; route and validation behavior is covered in `backend/src/dispatcher.test.ts` and `backend/src/session-contract.test.ts`. Generated drift is checked by `bun run check:api`, and the complete repository gate is `scripts/precommit-run`.
+`backend/src/live-cook-dispatcher.test.ts` and `backend/src/live-cook-state.test.ts` exercise draft, activation, conflict, transitions, history, and terminal query behavior. Generated OpenAPI and the fetch client come from the executable registry via `scripts/generate-api`; `scripts/check-api` detects drift.
 
 ## Related pages
 
-- [Local Plan Page](./local-plan.md) — fixture-driven Plan UI and its separate local `SessionPlan` model.
-- [Tech Stack](./tech-stack.md) — backend, SQLite, OpenAPI, and generated-client ownership.
-- [Architecture Diagrams](./architecture.mdx) — product containers and API/persistence boundaries.
+- [Local Today and Live Cook](./local-live-cook.md) — current fixture-only frontend boundary.
+- [Tech Stack](./tech-stack.md) — API, persistence, and generated-contract ownership.
+- [Architecture Diagrams](./architecture.mdx) — system ownership boundaries.

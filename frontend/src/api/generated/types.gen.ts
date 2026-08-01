@@ -65,75 +65,85 @@ export type ApiError = {
   };
 };
 
-export type PlannedDomeRange = {
-  minF: number;
-  maxF: number;
-};
-
-export type CookingSessionStep = {
+export type LiveCookPlannedStepWrite = {
+  ordinal: number;
   title: string;
   instructions: string;
   durationMinutes: number;
+};
+
+export type LiveCookPlannedStep = LiveCookPlannedStepWrite & {
   id: string;
 };
 
-export type CookingSessionPhase = {
-  title: string;
-  technique: string;
-  transitionGuidance: string;
+export type LiveCookDraft = {
   id: string;
-  steps: Array<CookingSessionStep>;
-};
-
-export type CookingSession = {
-  title: string;
-  cookingDate: string;
-  plannedDomeRange: PlannedDomeRange;
-  plannedFoodTargetF?: number;
-  setupGuidance: string;
-  deflectorGuidance: string;
-  heatZoneGuidance: string;
-  ventGuidance: string;
-  prepNotes: string;
-  id: string;
-  status: "draft";
   createdAt: string;
-  updatedAt: string;
-  phases: Array<CookingSessionPhase>;
+  steps: Array<LiveCookPlannedStep>;
 };
 
-export type CookingSessionSuccess = {
-  data: CookingSession;
+export type LiveCookDraftSuccess = {
+  data: LiveCookDraft;
 };
 
-export type CookingSessionStepWrite = {
-  title: string;
-  instructions: string;
-  durationMinutes: number;
+export type CreateLiveDraftRequest = {
+  steps: Array<LiveCookPlannedStepWrite>;
 };
 
-export type CookingSessionPhaseWrite = {
-  title: string;
-  technique: string;
-  transitionGuidance: string;
-  steps: Array<CookingSessionStepWrite>;
+export type LiveCookSessionStatus = "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
+
+export type LiveCookStepNote = {
+  id: string;
+  ordinal: number;
+  content: string;
+  createdAt: string;
 };
 
-export type CookingSessionWrite = {
-  title: string;
-  cookingDate: string;
-  plannedDomeRange: PlannedDomeRange;
-  plannedFoodTargetF?: number;
-  setupGuidance: string;
-  deflectorGuidance: string;
-  heatZoneGuidance: string;
-  ventGuidance: string;
-  prepNotes: string;
-  phases: Array<CookingSessionPhaseWrite>;
+export type LiveCookExecution = {
+  id: string;
+  ordinal: number;
+  actualStartedAt: string;
+  actualFinishedAt: string | null;
+  cancelledAt: string | null;
+  notes: Array<LiveCookStepNote>;
 };
 
-export type CookingSessionListSuccess = {
-  data: Array<CookingSession>;
+export type LiveCookSessionStep = LiveCookPlannedStepWrite & {
+  id: string;
+};
+
+export type LiveCookCurrentStep = LiveCookSessionStep &
+  ({
+    execution: LiveCookExecution;
+  } | null);
+
+export type LiveCookExecutionVisit = LiveCookExecution & {
+  step: LiveCookSessionStep;
+};
+
+export type LiveCookSession = {
+  id: string;
+  status: LiveCookSessionStatus;
+  activatedAt: string;
+  currentStep: LiveCookCurrentStep;
+  nextStep: LiveCookSessionStep &
+    LiveCookPlannedStepWrite &
+    ({
+      id: string;
+    } | null);
+  executionHistory: Array<LiveCookExecutionVisit>;
+};
+
+export type LiveCookSessionSuccess = {
+  data: LiveCookSession;
+};
+
+export type LiveCookCommandRequest = {
+  note?: string;
+};
+
+export type LiveCookStatusCommandRequest = {
+  [key: string]: never;
 };
 
 export type GetHealthData = {
@@ -169,168 +179,701 @@ export type GetHealthResponses = {
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
 
-export type ListCookingSessionsData = {
-  body?: never;
+export type CreateLiveCookDraftData = {
+  body: CreateLiveDraftRequest;
   path?: never;
   query?: never;
-  url: "/sessions";
+  url: "/drafts";
 };
 
-export type ListCookingSessionsErrors = {
+export type CreateLiveCookDraftErrors = {
   /**
    * Malformed request
    */
-  400: ApiError;
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
   /**
    * Method not allowed
    */
-  405: ApiError;
-};
-
-export type ListCookingSessionsError = ListCookingSessionsErrors[keyof ListCookingSessionsErrors];
-
-export type ListCookingSessionsResponses = {
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
   /**
-   * Successful response
+   * Response 409
    */
-  200: CookingSessionListSuccess;
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
 };
 
-export type ListCookingSessionsResponse = ListCookingSessionsResponses[keyof ListCookingSessionsResponses];
+export type CreateLiveCookDraftError = CreateLiveCookDraftErrors[keyof CreateLiveCookDraftErrors];
 
-export type CreateCookingSessionData = {
-  body: CookingSessionWrite;
-  path?: never;
-  query?: never;
-  url: "/sessions";
-};
-
-export type CreateCookingSessionErrors = {
-  /**
-   * Malformed request
-   */
-  400: ApiError;
-  /**
-   * Method not allowed
-   */
-  405: ApiError;
-};
-
-export type CreateCookingSessionError = CreateCookingSessionErrors[keyof CreateCookingSessionErrors];
-
-export type CreateCookingSessionResponses = {
+export type CreateLiveCookDraftResponses = {
   /**
    * Draft cooking session created
    */
-  201: CookingSessionSuccess;
+  201: LiveCookDraftSuccess;
 };
 
-export type CreateCookingSessionResponse = CreateCookingSessionResponses[keyof CreateCookingSessionResponses];
+export type CreateLiveCookDraftResponse = CreateLiveCookDraftResponses[keyof CreateLiveCookDraftResponses];
 
-export type DeleteCookingSessionData = {
-  body?: never;
+export type ActivateLiveCookDraftData = {
+  body: LiveCookCommandRequest;
   path: {
-    sessionId: string;
+    draftId: string;
   };
   query?: never;
-  url: "/sessions/{sessionId}";
+  url: "/drafts/{draftId}/activate";
 };
 
-export type DeleteCookingSessionErrors = {
+export type ActivateLiveCookDraftErrors = {
   /**
    * Malformed request
    */
-  400: ApiError;
-  /**
-   * Resource not found
-   */
-  404: ApiError;
-  /**
-   * Method not allowed
-   */
-  405: ApiError;
-};
-
-export type DeleteCookingSessionError = DeleteCookingSessionErrors[keyof DeleteCookingSessionErrors];
-
-export type DeleteCookingSessionResponses = {
-  /**
-   * Draft cooking session deleted
-   */
-  204: void;
-};
-
-export type DeleteCookingSessionResponse = DeleteCookingSessionResponses[keyof DeleteCookingSessionResponses];
-
-export type GetCookingSessionData = {
-  body?: never;
-  path: {
-    sessionId: string;
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
   };
-  query?: never;
-  url: "/sessions/{sessionId}";
-};
-
-export type GetCookingSessionErrors = {
-  /**
-   * Malformed request
-   */
-  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError;
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
   /**
    * Method not allowed
    */
-  405: ApiError;
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
 };
 
-export type GetCookingSessionError = GetCookingSessionErrors[keyof GetCookingSessionErrors];
+export type ActivateLiveCookDraftError = ActivateLiveCookDraftErrors[keyof ActivateLiveCookDraftErrors];
 
-export type GetCookingSessionResponses = {
+export type ActivateLiveCookDraftResponses = {
   /**
    * Successful response
    */
-  200: CookingSessionSuccess;
+  200: LiveCookSessionSuccess;
 };
 
-export type GetCookingSessionResponse = GetCookingSessionResponses[keyof GetCookingSessionResponses];
+export type ActivateLiveCookDraftResponse = ActivateLiveCookDraftResponses[keyof ActivateLiveCookDraftResponses];
 
-export type UpdateCookingSessionData = {
-  body: CookingSessionWrite;
-  path: {
-    sessionId: string;
-  };
+export type GetActiveLiveCookSessionData = {
+  body?: never;
+  path?: never;
   query?: never;
-  url: "/sessions/{sessionId}";
+  url: "/live-session";
 };
 
-export type UpdateCookingSessionErrors = {
+export type GetActiveLiveCookSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError;
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
   /**
    * Resource not found
    */
-  404: ApiError;
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
   /**
    * Method not allowed
    */
-  405: ApiError;
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
 };
 
-export type UpdateCookingSessionError = UpdateCookingSessionErrors[keyof UpdateCookingSessionErrors];
+export type GetActiveLiveCookSessionError = GetActiveLiveCookSessionErrors[keyof GetActiveLiveCookSessionErrors];
 
-export type UpdateCookingSessionResponses = {
+export type GetActiveLiveCookSessionResponses = {
   /**
    * Successful response
    */
-  200: CookingSessionSuccess;
+  200: LiveCookSessionSuccess;
 };
 
-export type UpdateCookingSessionResponse = UpdateCookingSessionResponses[keyof UpdateCookingSessionResponses];
+export type GetActiveLiveCookSessionResponse =
+  GetActiveLiveCookSessionResponses[keyof GetActiveLiveCookSessionResponses];
+
+export type AdvanceLiveCookSessionData = {
+  body: LiveCookCommandRequest;
+  path?: never;
+  query?: never;
+  url: "/live-session/advance";
+};
+
+export type AdvanceLiveCookSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Method not allowed
+   */
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+};
+
+export type AdvanceLiveCookSessionError = AdvanceLiveCookSessionErrors[keyof AdvanceLiveCookSessionErrors];
+
+export type AdvanceLiveCookSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: LiveCookSessionSuccess;
+};
+
+export type AdvanceLiveCookSessionResponse = AdvanceLiveCookSessionResponses[keyof AdvanceLiveCookSessionResponses];
+
+export type ReturnLiveCookSessionData = {
+  body: LiveCookCommandRequest;
+  path?: never;
+  query?: never;
+  url: "/live-session/return";
+};
+
+export type ReturnLiveCookSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Method not allowed
+   */
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+};
+
+export type ReturnLiveCookSessionError = ReturnLiveCookSessionErrors[keyof ReturnLiveCookSessionErrors];
+
+export type ReturnLiveCookSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: LiveCookSessionSuccess;
+};
+
+export type ReturnLiveCookSessionResponse = ReturnLiveCookSessionResponses[keyof ReturnLiveCookSessionResponses];
+
+export type PauseLiveCookSessionData = {
+  body: LiveCookStatusCommandRequest;
+  path?: never;
+  query?: never;
+  url: "/live-session/pause";
+};
+
+export type PauseLiveCookSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Method not allowed
+   */
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+};
+
+export type PauseLiveCookSessionError = PauseLiveCookSessionErrors[keyof PauseLiveCookSessionErrors];
+
+export type PauseLiveCookSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: LiveCookSessionSuccess;
+};
+
+export type PauseLiveCookSessionResponse = PauseLiveCookSessionResponses[keyof PauseLiveCookSessionResponses];
+
+export type ResumeLiveCookSessionData = {
+  body: LiveCookStatusCommandRequest;
+  path?: never;
+  query?: never;
+  url: "/live-session/resume";
+};
+
+export type ResumeLiveCookSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Method not allowed
+   */
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+};
+
+export type ResumeLiveCookSessionError = ResumeLiveCookSessionErrors[keyof ResumeLiveCookSessionErrors];
+
+export type ResumeLiveCookSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: LiveCookSessionSuccess;
+};
+
+export type ResumeLiveCookSessionResponse = ResumeLiveCookSessionResponses[keyof ResumeLiveCookSessionResponses];
+
+export type CompleteLiveCookSessionData = {
+  body: LiveCookCommandRequest;
+  path?: never;
+  query?: never;
+  url: "/live-session/complete";
+};
+
+export type CompleteLiveCookSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Method not allowed
+   */
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+};
+
+export type CompleteLiveCookSessionError = CompleteLiveCookSessionErrors[keyof CompleteLiveCookSessionErrors];
+
+export type CompleteLiveCookSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: LiveCookSessionSuccess;
+};
+
+export type CompleteLiveCookSessionResponse = CompleteLiveCookSessionResponses[keyof CompleteLiveCookSessionResponses];
+
+export type CancelLiveCookSessionData = {
+  body: LiveCookCommandRequest;
+  path?: never;
+  query?: never;
+  url: "/live-session/cancel";
+};
+
+export type CancelLiveCookSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Resource not found
+   */
+  404: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Method not allowed
+   */
+  405: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+  /**
+   * Response 409
+   */
+  409: ApiError & {
+    error?: {
+      code: string;
+      message: string;
+      issues: Array<{
+        path: string;
+        code: string;
+        message: string;
+      }>;
+    };
+  };
+};
+
+export type CancelLiveCookSessionError = CancelLiveCookSessionErrors[keyof CancelLiveCookSessionErrors];
+
+export type CancelLiveCookSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: LiveCookSessionSuccess;
+};
+
+export type CancelLiveCookSessionResponse = CancelLiveCookSessionResponses[keyof CancelLiveCookSessionResponses];
 
 export type ClientOptions = {
   baseUrl: `${string}://${string}/api` | (string & {});
