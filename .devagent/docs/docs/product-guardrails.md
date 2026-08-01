@@ -27,20 +27,24 @@ The responsive product shell uses exactly five authoritative areas:
 
 ## Current implementation status
 
-Current code is a routed frontend scaffold with one local product slice:
+Current code ships the durable plan-to-cook slice inside the routed product shell:
 
-- `frontend/src/router.ts` defines history-mode routes for `/today`, `/plan`, `/coach`, `/learn`, and `/logbook`, with `/` redirecting to Today.
-- `frontend/src/components/ProductShell.vue` owns responsive product chrome. `frontend/src/views/PlanView.vue` renders the fixture-driven Plan editor; the remaining route components are orientation-only placeholders without product controls or data access.
-- `frontend/src/features/plan/` owns cloned local drafts, pure timeline/readiness logic, and the outdoor-responsive editor. Its completion state is in memory only.
-- `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; generic primitives live under `frontend/src/components/ui`.
-- `backend/src/contract.ts` owns the generated `SessionPlan` shape but exposes no session endpoint. `backend/src/index.ts` still exposes only `/api/health`, initializes SQLite, and configures CORS.
+- `frontend/src/router.ts` defines history-mode routes for `/today`, `/plan`, ID-addressed `/live/{sessionId}`, `/coach`, `/learn`, and `/logbook`, with `/` redirecting to Today.
+- `frontend/src/features/plan/` owns the local ordered editing buffer. Explicit create and update actions persist the complete plan, and `/plan?sessionId={sessionId}` retains the selected server draft across reloads.
+- `frontend/src/views/TodayView.vue` checks active state first, then offers eligible saved plans for explicit activation. It never treats an API failure as ordinary absence or silently chooses a draft.
+- `frontend/src/views/LiveView.vue` renders backend-owned progress, timing, notes, and transitions for one session ID. Completed and cancelled detail remains read-only and reloadable at the same URL.
+- `frontend/src/api/sessions.ts` centralizes generated-client queries, keys, mutation reconciliation, and background refetches. Production Plan, Today, and Live code no longer imports selectable fixtures or a mounted session controller.
+- `backend/src/contract.ts`, `backend/src/session-contract.ts`, and `backend/src/live-cook-contract.ts` expose durable `/api/sessions` and `/api/live-sessions` routes backed by SQLite.
+- `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; Coach, Learn, and Logbook remain orientation-only placeholders.
 - `.devagent/architecture/` contains the source-of-truth LikeC4 model for product boundaries.
 
-Today, Coach, Learn, Logbook, durable Plan persistence, session APIs, and LLM integration remain planned. The local Plan page must not imply that edits are saved or that completing a draft starts a cook.
+Coach, Learn, Logbook, durable learning memory, and LLM integration remain planned. Plan, Today, and Live are executable durable product flows rather than fixture-only previews.
 
 ## Related pages
 
 - [Vision & Goals](./vision.md) — product strategy and anti-goals.
-- [Architecture Diagrams](./architecture.mdx) — LikeC4 views for product boundaries and planned flow.
+- [Architecture Diagrams](./architecture.mdx) — LikeC4 views for product boundaries and current flow.
 - [Tech Stack](./tech-stack.md) — repository layout, scripts, and current tooling.
-- [Local Plan Page](./local-plan.md) — contract ownership, fixture states, and local-only lifecycle.
+- [Durable Cooking-Session API](./cooking-session-api.md) — planning, activation, live commands, and terminal detail.
+- [Durable Plan Page](./local-plan.md) — local editing and explicit persistence.
+- [Today and Live Cook](./local-live-cook.md) — active-first selection and ID-addressed execution.

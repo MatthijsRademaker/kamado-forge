@@ -345,89 +345,152 @@ describe("session generated-client composables", () => {
     }
   });
 
-  test("dispatches every declared invalidation after successful mutations", async () => {
+  test("refetches and reconciles mounted queries after successful draft mutations", async () => {
+    let confirmedSession = session;
+    const requestCounts = new Map<string, number>();
     client.setConfig({ baseUrl: "http://app.test/api" });
-    setControlledFetch(async (request) =>
-      Response.json({ data: request.url.endsWith("/sessions") && request.method === "POST" ? session : liveSession }),
-    );
-    const fixture = createComposableFixture(() => {
-      const queryCache = useQueryCache();
-      return {
-        queryCache,
-        create: useCreateSessionMutation(),
-        update: useUpdateSessionMutation(),
-        activate: useActivateSessionMutation(),
-        advance: useAdvanceSessionMutation(),
-        return: useReturnSessionMutation(),
-        pause: usePauseSessionMutation(),
-        resume: useResumeSessionMutation(),
-        note: useAddSessionNoteMutation(),
-        cancel: useCancelSessionMutation(),
-        complete: useCompleteSessionMutation(),
-      };
+    setControlledFetch(async (request) => {
+      const path = apiPath(request);
+      const key = `${request.method} ${path}`;
+      requestCounts.set(key, (requestCounts.get(key) ?? 0) + 1);
+      if (request.method === "POST") {
+        confirmedSession = { ...session, title: "Created server draft", updatedAt: "2026-08-08T12:10:00.000Z" };
+        return Response.json({ data: confirmedSession });
+      }
+      if (request.method === "PUT") {
+        confirmedSession = { ...session, title: "Updated server draft", updatedAt: "2026-08-08T12:20:00.000Z" };
+        return Response.json({ data: confirmedSession });
+      }
+      if (path.endsWith(`/sessions/${session.id}`)) return Response.json({ data: confirmedSession });
+      if (path.endsWith("/sessions/eligible") || path.endsWith("/sessions")) {
+        return Response.json({ data: [confirmedSession] });
+      }
+      throw new Error(`Unexpected request: ${key}`);
     });
-    const invalidations: unknown[][] = [];
-    const stopActionListener = fixture.value.queryCache.$onAction(({ name, args }) => {
-      if (name === "invalidateQueries") invalidations.push(args);
-    });
+    const fixture = createComposableFixture(() => ({
+      list: useSessionListQuery(),
+      draft: useSessionDetailQuery(() => session.id),
+      eligible: useEligibleSessionsQuery(),
+      create: useCreateSessionMutation(),
+      update: useUpdateSessionMutation(),
+    }));
 
     try {
+      await Promise.all([
+        fixture.value.list.refetch(true),
+        fixture.value.draft.refetch(true),
+        fixture.value.eligible.refetch(true),
+      ]);
       const mutations = [
-        { name: "create", variables: draftInput, expected: sessionMutationInvalidation.create() },
+        { name: "create", variables: draftInput, paths: ["/api/sessions", "/api/sessions/eligible"] },
         {
           name: "update",
           variables: { sessionId: session.id, input: draftInput },
-          expected: sessionMutationInvalidation.update(session.id),
-        },
-        {
-          name: "activate",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.activate(session.id),
-        },
-        {
-          name: "advance",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.advance(session.id),
-        },
-        {
-          name: "return",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.return(session.id),
-        },
-        {
-          name: "pause",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.pause(session.id),
-        },
-        {
-          name: "resume",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.resume(session.id),
-        },
-        {
-          name: "note",
-          variables: { sessionId: session.id, note: "Clean smoke." },
-          expected: sessionMutationInvalidation.note(session.id),
-        },
-        {
-          name: "cancel",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.cancel(session.id),
-        },
-        {
-          name: "complete",
-          variables: { sessionId: session.id },
-          expected: sessionMutationInvalidation.complete(session.id),
+          paths: ["/api/sessions", "/api/sessions/eligible", `/api/sessions/${session.id}`],
         },
       ] as const;
 
       for (const mutation of mutations) {
-        invalidations.length = 0;
+        const initialCounts = getRequestCounts(requestCounts, mutation.paths);
         await fixture.value[mutation.name].mutateAsync(mutation.variables as never);
-        expect(invalidations).toEqual(mutation.expected.map((key) => [{ key, exact: true }, "all"]));
+        await waitForRefetches(requestCounts, initialCounts);
+
+        expect(fixture.value.list.data.value).toEqual([confirmedSession]);
+        expect(fixture.value.eligible.data.value).toEqual([confirmedSession]);
+        if (mutation.name === "update") expect(fixture.value.draft.data.value).toEqual(confirmedSession);
       }
     } finally {
-      stopActionListener();
+      fixture.dispose();
+    }
+  });
+
+  test("refetches and reconciles every mounted query after each successful live mutation", async () => {
+    let projectedSession = liveSession;
+    let draftAvailable = true;
+    const requestCounts = new Map<string, number>();
+    client.setConfig({ baseUrl: "http://app.test/api" });
+    setControlledFetch(async (request) => {
+      const path = apiPath(request);
+      const key = `${request.method} ${path}`;
+      requestCounts.set(key, (requestCounts.get(key) ?? 0) + 1);
+      if (request.method === "POST") {
+        draftAvailable = false;
+        const action = path.split("/").at(-1);
+        let status: LiveCookSession["status"] = "ACTIVE";
+        if (action === "pause") status = "PAUSED";
+        if (action === "cancel") status = "CANCELLED";
+        if (action === "complete") status = "COMPLETED";
+        projectedSession = { ...liveSession, status };
+        return Response.json({ data: projectedSession });
+      }
+      if (path.endsWith("/live-sessions/active")) {
+        return projectedSession.status === "ACTIVE" || projectedSession.status === "PAUSED"
+          ? Response.json({ data: projectedSession })
+          : new Response(null, { status: 204 });
+      }
+      if (path.endsWith(`/live-sessions/${session.id}`)) return Response.json({ data: projectedSession });
+      if (path.endsWith(`/sessions/${session.id}`)) return Response.json({ data: session });
+      if (path.endsWith("/sessions/eligible") || path.endsWith("/sessions")) {
+        return Response.json({ data: draftAvailable ? [session] : [] });
+      }
+      throw new Error(`Unexpected request: ${key}`);
+    });
+    const fixture = createComposableFixture(() => ({
+      list: useSessionListQuery(),
+      draft: useSessionDetailQuery(() => session.id),
+      eligible: useEligibleSessionsQuery(),
+      active: useActiveSessionQuery(),
+      live: useLiveSessionQuery(() => session.id),
+      activate: useActivateSessionMutation(),
+      advance: useAdvanceSessionMutation(),
+      return: useReturnSessionMutation(),
+      pause: usePauseSessionMutation(),
+      resume: useResumeSessionMutation(),
+      note: useAddSessionNoteMutation(),
+      cancel: useCancelSessionMutation(),
+      complete: useCompleteSessionMutation(),
+    }));
+
+    try {
+      await Promise.all([
+        fixture.value.list.refetch(true),
+        fixture.value.draft.refetch(true),
+        fixture.value.eligible.refetch(true),
+        fixture.value.active.refetch(true),
+        fixture.value.live.refetch(true),
+      ]);
+      const paths = [
+        "/api/sessions",
+        "/api/sessions/eligible",
+        `/api/sessions/${session.id}`,
+        "/api/live-sessions/active",
+        `/api/live-sessions/${session.id}`,
+      ];
+      const mutations = [
+        { name: "activate", variables: { sessionId: session.id } },
+        { name: "advance", variables: { sessionId: session.id } },
+        { name: "return", variables: { sessionId: session.id } },
+        { name: "pause", variables: { sessionId: session.id } },
+        { name: "resume", variables: { sessionId: session.id } },
+        { name: "note", variables: { sessionId: session.id, note: "Clean smoke." } },
+        { name: "cancel", variables: { sessionId: session.id } },
+        { name: "complete", variables: { sessionId: session.id } },
+      ] as const;
+
+      for (const mutation of mutations) {
+        const initialCounts = getRequestCounts(requestCounts, paths);
+        await fixture.value[mutation.name].mutateAsync(mutation.variables as never);
+        await waitForRefetches(requestCounts, initialCounts);
+
+        expect(fixture.value.list.data.value).toEqual([]);
+        expect(fixture.value.eligible.data.value).toEqual([]);
+        expect(fixture.value.draft.data.value).toEqual(session);
+        expect(fixture.value.live.data.value).toEqual(projectedSession);
+        expect(fixture.value.active.data.value).toEqual(
+          projectedSession.status === "ACTIVE" || projectedSession.status === "PAUSED" ? projectedSession : null,
+        );
+      }
+    } finally {
       fixture.dispose();
     }
   });
@@ -439,6 +502,22 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     await Bun.sleep(1);
   }
   throw new Error("Timed out waiting for composable state");
+}
+
+function apiPath(request: Request): string {
+  const pathIndex = request.url.indexOf("/api");
+  if (pathIndex < 0) throw new Error(`Request has no API path: ${request.url}`);
+  return request.url.slice(pathIndex);
+}
+
+function getRequestCounts(requestCounts: Map<string, number>, paths: readonly string[]): Map<string, number> {
+  return new Map(paths.map((path) => [path, requestCounts.get(`GET ${path}`) ?? 0]));
+}
+
+async function waitForRefetches(requestCounts: Map<string, number>, initialCounts: Map<string, number>): Promise<void> {
+  await waitFor(() =>
+    [...initialCounts].every(([path, initialCount]) => (requestCounts.get(`GET ${path}`) ?? 0) > initialCount),
+  );
 }
 
 function setControlledFetch(handler: (request: Request) => Promise<Response>): void {
