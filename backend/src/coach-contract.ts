@@ -1,59 +1,46 @@
 import { apiErrorSchema } from "./api-error";
 import { z } from "./schema";
 
-const boundedText = (maximum: number) =>
-  z
-    .string()
-    .min(1)
-    .max(maximum)
-    .refine((value) => value.length === 0 || value.trim().length > 0, { message: "Text must not be blank" });
+const requiredTextSchema = z.string().trim().min(1);
+const contextTextSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim().length > 0);
+const questionSchema = requiredTextSchema.max(2_000);
+const utcTimestampSchema = z.string().datetime({ offset: false });
 
-const boundedChatContent = z.string().trim().min(1).max(2_000);
+export const coachRequestSchema = z.object({ question: questionSchema }).strict().openapi("CoachQuestionRequest");
 
-const coachMessageSchema = z
+const noCoachContextSchema = z.object({ kind: z.literal("none") }).strict();
+const activeCoachContextSchema = z
   .object({
-    role: z.enum(["user", "assistant"]),
-    content: boundedChatContent,
+    kind: z.literal("active"),
+    sessionId: z.string().uuid(),
+    sessionTitle: contextTextSchema,
+    sessionStatus: z.enum(["ACTIVE", "PAUSED"]),
+    phaseTitle: contextTextSchema,
+    stepOrdinal: z.number().int().min(0),
+    stepTitle: contextTextSchema,
+    projectedAt: utcTimestampSchema,
+  })
+  .strict();
+
+export const coachContextSchema = z
+  .discriminatedUnion("kind", [noCoachContextSchema, activeCoachContextSchema])
+  .openapi("CoachContext");
+
+export const coachProviderOutputSchema = z
+  .object({
+    answer: requiredTextSchema,
+    guidance: z.array(requiredTextSchema),
+    warnings: z.array(requiredTextSchema),
+    suggestedFollowUps: z.array(requiredTextSchema),
   })
   .strict()
-  .openapi("CoachChatMessage");
+  .openapi("CoachProviderOutput");
 
-export const coachRequestSchema = z
-  .object({ messages: z.array(coachMessageSchema).min(1).max(20) })
-  .strict()
-  .superRefine(({ messages }, context) => {
-    if (messages.at(-1)?.role !== "user") {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["messages"],
-        message: "The final chat message must be from the user",
-      });
-    }
-    if (messages.reduce((length, message) => length + message.content.length, 0) > 12_000) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["messages"],
-        message: "Chat content exceeds the total limit",
-      });
-    }
-  })
-  .openapi("CoachRequest");
-
-const suggestionFields = {
-  title: boundedText(120),
-  rationale: boundedText(500),
-};
-
-export const coachSuggestionSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("next_action"), ...suggestionFields }).strict(),
-  z.object({ kind: z.literal("caution"), ...suggestionFields }).strict(),
-]);
-
-export const coachResultSchema = z
-  .object({
-    message: boundedText(4_000),
-    suggestions: z.array(coachSuggestionSchema).max(4),
-  })
+const coachResultSchema = coachProviderOutputSchema
+  .extend({ contextUsed: coachContextSchema })
   .strict()
   .openapi("CoachResult");
 
@@ -73,11 +60,13 @@ export const coachRoute = {
     200: coachSuccessSchema,
     400: apiErrorSchema,
     405: apiErrorSchema,
+    429: apiErrorSchema,
     502: apiErrorSchema,
     503: apiErrorSchema,
+    504: apiErrorSchema,
   },
 } as const;
 
-export type CoachChat = z.infer<typeof coachRequestSchema>["messages"];
+export type CoachContext = z.infer<typeof coachContextSchema>;
+export type CoachProviderOutput = z.infer<typeof coachProviderOutputSchema>;
 export type CoachResult = z.infer<typeof coachResultSchema>;
-export type CoachSuggestion = z.infer<typeof coachSuggestionSchema>;

@@ -92,67 +92,117 @@
         "required": ["error"],
         "additionalProperties": false
       },
-      "CoachResult": {
+      "CoachContext": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["none"]
+              }
+            },
+            "required": ["kind"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["active"]
+              },
+              "sessionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "sessionTitle": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sessionStatus": {
+                "type": "string",
+                "enum": ["ACTIVE", "PAUSED"]
+              },
+              "phaseTitle": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stepOrdinal": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "stepTitle": {
+                "type": "string",
+                "minLength": 1
+              },
+              "projectedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "kind",
+              "sessionId",
+              "sessionTitle",
+              "sessionStatus",
+              "phaseTitle",
+              "stepOrdinal",
+              "stepTitle",
+              "projectedAt"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CoachProviderOutput": {
         "type": "object",
         "properties": {
-          "message": {
+          "answer": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 4000
+            "minLength": 1
           },
-          "suggestions": {
+          "guidance": {
             "type": "array",
             "items": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": ["next_action"]
-                    },
-                    "title": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 120
-                    },
-                    "rationale": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 500
-                    }
-                  },
-                  "required": ["kind", "title", "rationale"],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": ["caution"]
-                    },
-                    "title": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 120
-                    },
-                    "rationale": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 500
-                    }
-                  },
-                  "required": ["kind", "title", "rationale"],
-                  "additionalProperties": false
-                }
-              ]
-            },
-            "maxItems": 4
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "suggestedFollowUps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
-        "required": ["message", "suggestions"],
+        "required": ["answer", "guidance", "warnings", "suggestedFollowUps"],
         "additionalProperties": false
+      },
+      "CoachResult": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CoachProviderOutput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "contextUsed": {
+                "$ref": "#/components/schemas/CoachContext"
+              }
+            },
+            "required": ["contextUsed"],
+            "additionalProperties": false
+          }
+        ]
       },
       "CoachSuccess": {
         "type": "object",
@@ -164,35 +214,16 @@
         "required": ["data"],
         "additionalProperties": false
       },
-      "CoachChatMessage": {
+      "CoachQuestionRequest": {
         "type": "object",
         "properties": {
-          "role": {
-            "type": "string",
-            "enum": ["user", "assistant"]
-          },
-          "content": {
+          "question": {
             "type": "string",
             "minLength": 1,
             "maxLength": 2000
           }
         },
-        "required": ["role", "content"],
-        "additionalProperties": false
-      },
-      "CoachRequest": {
-        "type": "object",
-        "properties": {
-          "messages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CoachChatMessage"
-            },
-            "minItems": 1,
-            "maxItems": 20
-          }
-        },
-        "required": ["messages"],
+        "required": ["question"],
         "additionalProperties": false
       },
       "PlannedDomeRange": {
@@ -814,7 +845,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CoachRequest"
+                "$ref": "#/components/schemas/CoachQuestionRequest"
               }
             }
           }
@@ -850,6 +881,16 @@
               }
             }
           },
+          "429": {
+            "description": "Response 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "502": {
             "description": "Response 502",
             "content": {
@@ -862,6 +903,16 @@
           },
           "503": {
             "description": "Response 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Response 504",
             "content": {
               "application/json": {
                 "schema": {

@@ -27,7 +27,7 @@ scripts/              Verification guardrail entrypoints
 | Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the product routes through `frontend/src/components/ProductShell.vue`. Plan owns a local editable buffer under `frontend/src/features/plan/`; Plan, Today, and ID-addressed Live consume durable session operations through `frontend/src/api/sessions.ts`. Coach, Learn, and Logbook remain orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends product routes through `frontend/src/components/ProductShell.vue`. Plan owns a local editable buffer under `frontend/src/features/plan/`; Plan, Today, and ID-addressed Live consume durable session operations through `frontend/src/api/sessions.ts`. Coach uses `frontend/src/api/coach.ts` for question mutations while retaining transcript and retry state only in the loaded `/coach` view. Learn and Logbook remain orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
 
 ## Backend
 
@@ -42,7 +42,7 @@ The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vu
 | Current endpoints | Contract-validated health, planning `/api/sessions`, ID-addressed `/api/live-sessions`, and non-streaming `POST /api/coach` routes |
 | Type checking | `tsc -p backend/tsconfig.json --noEmit` |
 
-The backend owns durable session data, domain transitions, and the current LLM provider boundary. `backend/src/coach-service.ts` assembles read-only active-session context, while `backend/src/openai-coach-provider.ts` keeps OpenAI transport and credentials behind the vendor-neutral contract in `backend/src/coach-provider.ts`. Memory remains future work.
+The backend owns durable session data, domain transitions, and the Coach provider boundary. `backend/src/coach-service.ts` assembles an allowlisted read-only active-session snapshot and validates structured output behind the vendor-neutral contract in `backend/src/coach-provider.ts`. This slice supports deliberate disabled behavior and an explicitly selected deterministic fake; no production LLM vendor is selected. Memory remains future work.
 
 ## Typed API and frontend state ownership
 
@@ -50,13 +50,13 @@ The backend owns durable session data, domain transitions, and the current LLM p
 
 Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
 
-The strict cooking-session aggregate in `backend/src/session-contract.ts` drives planning and eligible-draft routes under `/api/sessions`. `backend/src/live-cook-contract.ts` joins activation to that aggregate and defines active, ID-addressed live/terminal detail, notes, and commands under `/api/live-sessions`. `backend/src/coach-contract.ts` defines bounded chat and advisory responses for `/api/coach`; its operation is generated for future frontend use, but the Coach view remains a placeholder. See [Durable Cooking-Session API](./cooking-session-api.md), [Context-Aware Coach API](./coach-api.md), [Durable Plan Page](./local-plan.md), and [Today and Live Cook](./local-live-cook.md).
+The strict cooking-session aggregate in `backend/src/session-contract.ts` drives planning and eligible-draft routes under `/api/sessions`. `backend/src/live-cook-contract.ts` joins activation to that aggregate and defines active, ID-addressed live/terminal detail, notes, and commands under `/api/live-sessions`. `backend/src/coach-contract.ts` defines the strict question-only request, structured guidance, warnings, follow-ups, and exact context snapshot for `/api/coach`; `frontend/src/api/coach.ts` exposes the generated operation to the shipped Coach view. See [Durable Cooking-Session API](./cooking-session-api.md), [Context-Aware Coach API](./coach-api.md), [Durable Plan Page](./local-plan.md), and [Today and Live Cook](./local-live-cook.md).
 
 Frontend state follows these ownership rules:
 
 - **Pinia** owns shared state controlled by the browser application.
 - **Pinia Colada** owns remote query and mutation state. Install it only after Pinia.
-- Components and feature code consume domain composables such as `frontend/src/api/health.ts` and `frontend/src/api/sessions.ts`; they do not import generated runtime clients or call `fetch` directly.
+- Components and feature code consume domain composables such as `frontend/src/api/health.ts`, `frontend/src/api/sessions.ts`, and `frontend/src/api/coach.ts`; they do not import generated runtime clients or call `fetch` directly.
 - Session query keys and the mutation invalidation matrix live together in `frontend/src/api/sessions.ts` so cache operations do not depend on component-local arrays.
 - Successful session mutations reconcile their authoritative response before asynchronously invalidating affected queries. A later refresh failure remains query state and does not turn the committed mutation into a rejection.
 
@@ -97,5 +97,5 @@ Before claiming implementation work is complete, run `scripts/precommit-run` unl
 - [Architecture Diagrams](./architecture.mdx) — visual source of truth generated from LikeC4.
 - [Cooking and Live-Cook APIs](./cooking-session-api.md) — durable draft aggregate and persistence behavior.
 - [Context-Aware Coach API](./coach-api.md) — read-only context, provider ownership, configuration, and safe failures.
-- [Local Plan Page](./local-plan.md) — generated contract, fixture selector, and local editor lifecycle.
-- [Local Today and Live Cook](./local-live-cook.md) — mounted Today/Live fixture lifecycle and controller.
+- [Local Plan Page](./local-plan.md) — durable local editor and explicit save lifecycle.
+- [Local Today and Live Cook](./local-live-cook.md) — active-first selection and ID-addressed live execution.

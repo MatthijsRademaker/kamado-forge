@@ -28,33 +28,38 @@ export type ApiError = {
   };
 };
 
-export type CoachResult = {
-  message: string;
-  suggestions: Array<
-    | {
-        kind: "next_action";
-        title: string;
-        rationale: string;
-      }
-    | {
-        kind: "caution";
-        title: string;
-        rationale: string;
-      }
-  >;
+export type CoachContext =
+  | {
+      kind: "none";
+    }
+  | {
+      kind: "active";
+      sessionId: string;
+      sessionTitle: string;
+      sessionStatus: "ACTIVE" | "PAUSED";
+      phaseTitle: string;
+      stepOrdinal: number;
+      stepTitle: string;
+      projectedAt: string;
+    };
+
+export type CoachProviderOutput = {
+  answer: string;
+  guidance: Array<string>;
+  warnings: Array<string>;
+  suggestedFollowUps: Array<string>;
+};
+
+export type CoachResult = CoachProviderOutput & {
+  contextUsed: CoachContext;
 };
 
 export type CoachSuccess = {
   data: CoachResult;
 };
 
-export type CoachChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-export type CoachRequest = {
-  messages: Array<CoachChatMessage>;
+export type CoachQuestionRequest = {
+  question: string;
 };
 
 export type PlannedDomeRange = {
@@ -244,7 +249,7 @@ export type GetHealthResponses = {
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
 
 export type AskCoachData = {
-  body: CoachRequest;
+  body: CoachQuestionRequest;
   path?: never;
   query?: never;
   url: "/coach";
@@ -260,6 +265,10 @@ export type AskCoachErrors = {
    */
   405: ApiError;
   /**
+   * Response 429
+   */
+  429: ApiError;
+  /**
    * Response 502
    */
   502: ApiError;
@@ -267,6 +276,10 @@ export type AskCoachErrors = {
    * Response 503
    */
   503: ApiError;
+  /**
+   * Response 504
+   */
+  504: ApiError;
 };
 
 export type AskCoachError = AskCoachErrors[keyof AskCoachErrors];

@@ -1,8 +1,7 @@
-# context-aware-coach-api Specification
+# context-aware-coach-api Specification Delta
 
-## Purpose
-TBD - created by archiving change task-54dffbbb-53a7-4259-a880-2b594d7f48bd. Update Purpose after archive.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: Contract-validated non-streaming coach endpoint
 
 The backend MUST register one non-streaming Coach endpoint whose strict public request accepts only one trimmed, nonblank question of at most 2,000 characters. Its structured success response and shared errors MUST be defined by runtime schemas. The endpoint MUST reject malformed or out-of-policy input before reading session context or invoking a provider, sort validation issues deterministically, and validate every response body before return.

@@ -5,6 +5,15 @@ source "$ROOT/scripts/.versions"
 source "$ROOT/scripts/lib/docker-verification.sh"
 
 WORKSPACE="$(verification_workspace_root)"
+GIT_DIR="$(git -C "$WORKSPACE" rev-parse --absolute-git-dir)"
+TEMP_INDEX="$GIT_DIR/precommit-run-$$.index"
+cleanup() {
+  rm -f "$TEMP_INDEX" "$TEMP_INDEX.lock"
+}
+trap cleanup EXIT INT TERM
+
+GIT_INDEX_FILE="$TEMP_INDEX" git -C "$WORKSPACE" read-tree HEAD
+GIT_INDEX_FILE="$TEMP_INDEX" git -C "$WORKSPACE" add -A
 
 "$ROOT/scripts/build-verifier-image"
 
@@ -18,6 +27,7 @@ verification_add_env PROJECT_WORK_DIR="$WORKSPACE"
 verification_add_env AGENT_PROJECT_WORK_DIR="$WORKSPACE"
 verification_add_env HOST_UID="$(verification_workspace_uid)"
 verification_add_env HOST_GID="$(verification_workspace_gid)"
+verification_add_env GIT_INDEX_FILE="$TEMP_INDEX"
 
 verification_run_container "$PRECOMMIT_VERIFIER_IMAGE" \
   sh -c 'git config --global --add safe.directory "$PWD" && pre-commit run "$@"' \

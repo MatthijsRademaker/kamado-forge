@@ -35,12 +35,16 @@ export const API_ERRORS = {
   invalidTransition: { code: "INVALID_TRANSITION", message: "Live-cook command is not permitted in the current state" },
   activeSessionConflict: { code: "ACTIVE_SESSION_CONFLICT", message: "Another live-cook session is already active" },
   sessionNotFound: { code: "SESSION_NOT_FOUND", message: "Cooking session not found" },
-  coachConfiguration: { code: "COACH_CONFIGURATION_ERROR", message: "Coach provider is not configured" },
-  coachProviderRejected: { code: "COACH_PROVIDER_REJECTED", message: "Coach provider rejected the request" },
+  coachProviderDisabled: { code: "COACH_PROVIDER_DISABLED", message: "Coach provider is not configured" },
+  coachProviderTimeout: { code: "COACH_PROVIDER_TIMEOUT", message: "Coach provider timed out" },
   coachProviderUnavailable: { code: "COACH_PROVIDER_UNAVAILABLE", message: "Coach provider is unavailable" },
-  coachProviderInvalidResponse: {
-    code: "COACH_PROVIDER_INVALID_RESPONSE",
-    message: "Coach provider returned an invalid response",
+  coachProviderRateLimited: {
+    code: "COACH_PROVIDER_RATE_LIMITED",
+    message: "Coach provider rate limit reached",
+  },
+  coachProviderInvalidOutput: {
+    code: "COACH_PROVIDER_INVALID_OUTPUT",
+    message: "Coach provider returned invalid output",
   },
 } as const;
 

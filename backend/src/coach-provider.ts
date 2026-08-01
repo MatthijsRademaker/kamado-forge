@@ -1,30 +1,11 @@
-import type { CoachChat, CoachResult, CoachSuggestion } from "./coach-contract";
-import type { ContextSnapshotV1 } from "./coach-context";
+import type { CoachContext, CoachProviderOutput } from "./coach-contract";
 
-export interface CoachTool {
-  readonly name: "recommend_next_action" | "highlight_cook_risk";
-  readonly description: string;
-  readonly inputSchema: {
-    readonly type: "object";
-    readonly additionalProperties: false;
-    readonly properties: {
-      readonly title: { readonly type: "string"; readonly minLength: 1; readonly maxLength: 120 };
-      readonly rationale: { readonly type: "string"; readonly minLength: 1; readonly maxLength: 500 };
-    };
-    readonly required: readonly ["title", "rationale"];
-  };
-  readonly outputKind: CoachSuggestion["kind"];
+export interface CoachProviderInput {
+  readonly question: string;
+  readonly context: CoachContext;
 }
 
-export interface CoachProviderRequest {
-  readonly model: string;
-  readonly chat: CoachChat;
-  readonly context: ContextSnapshotV1;
-  readonly systemPrompt: string;
-  readonly tools: readonly CoachTool[];
-}
-
-type CoachProviderFailureKind = "rejected" | "unavailable" | "malformed_output";
+export type CoachProviderFailureKind = "disabled" | "timeout" | "unavailable" | "rate_limited" | "invalid_output";
 
 export class CoachProviderError extends Error {
   constructor(readonly kind: CoachProviderFailureKind) {
@@ -34,5 +15,13 @@ export class CoachProviderError extends Error {
 }
 
 export interface CoachProvider {
-  complete(request: CoachProviderRequest): Promise<CoachResult>;
+  complete(input: CoachProviderInput): Promise<unknown>;
+}
+
+export function createDisabledCoachProvider(): CoachProvider {
+  return {
+    async complete(): Promise<CoachProviderOutput> {
+      throw new CoachProviderError("disabled");
+    },
+  };
 }

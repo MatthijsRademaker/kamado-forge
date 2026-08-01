@@ -1,44 +1,47 @@
-import type { CoachResult } from "./coach-contract";
-import { CoachProviderError, type CoachProvider, type CoachProviderRequest } from "./coach-provider";
+import type { CoachProviderOutput } from "./coach-contract";
+import { CoachProviderError, type CoachProvider, type CoachProviderInput } from "./coach-provider";
 
-type FakeCoachProviderMode = "success" | "rejected" | "network" | "timeout" | "malformed_output";
+type FakeCoachProviderMode = "success" | "timeout" | "unavailable" | "rate_limited" | "invalid_output";
 
 interface FakeCoachProviderOptions {
   readonly mode?: FakeCoachProviderMode;
-  readonly result?: CoachResult;
+  readonly output?: CoachProviderOutput;
 }
 
 interface FakeCoachProvider extends CoachProvider {
-  readonly requests: CoachProviderRequest[];
+  readonly inputs: CoachProviderInput[];
 }
 
-const stableResult: CoachResult = {
-  message: "Make one small adjustment and wait for the kamado to respond.",
-  suggestions: [],
+const deterministicOutput: CoachProviderOutput = {
+  answer: "Make one small vent adjustment and wait for the kamado to respond.",
+  guidance: ["Change only one vent at a time.", "Wait ten minutes before adjusting again."],
+  warnings: ["Avoid chasing short thermometer swings."],
+  suggestedFollowUps: ["How do I recognize a stable fire?"],
 };
 
 export function createFakeCoachProvider({
   mode = "success",
-  result = stableResult,
+  output = deterministicOutput,
 }: FakeCoachProviderOptions = {}): FakeCoachProvider {
-  const requests: CoachProviderRequest[] = [];
+  const inputs: CoachProviderInput[] = [];
 
   return {
-    requests,
-    async complete(request) {
-      requests.push(request);
+    inputs,
+    async complete(input) {
+      inputs.push(structuredClone(input));
       switch (mode) {
         case "success":
-          return structuredClone(result);
-        case "rejected":
-          throw new CoachProviderError("rejected");
-        case "network":
+          return structuredClone(output);
         case "timeout":
+          throw new CoachProviderError("timeout");
+        case "unavailable":
           throw new CoachProviderError("unavailable");
-        case "malformed_output":
-          return { message: "", suggestions: [] };
+        case "rate_limited":
+          throw new CoachProviderError("rate_limited");
+        case "invalid_output":
+          return { answer: "Incomplete fake output" };
         default:
-          throw new Error(`Unhandled fake coach provider mode: ${mode}`);
+          throw new Error(`Unhandled fake Coach provider mode: ${mode}`);
       }
     },
   };

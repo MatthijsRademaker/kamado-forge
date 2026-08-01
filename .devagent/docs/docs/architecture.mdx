@@ -4,11 +4,11 @@ import ClientOnly from '../theme/ClientOnly';
 
 The LikeC4 model in `.devagent/architecture/` is the source of truth for product architecture. These diagrams document the current scaffold and the intended boundaries for the kamado BBQ coach so future agents can add features without flattening the product into a generic recipe app.
 
-The key separation: the **Vue SPA** owns the user experience, the **Bun API** owns domain and LLM boundaries, and **SQLite** owns durable personal memory. The frontend should not call an LLM provider directly because coaching quality depends on active-session context, cook history, preferences, and prompt hygiene owned by the backend.
+The key separation: the **Vue SPA** owns the user experience, the **Bun API** owns domain and provider boundaries, and **SQLite** owns durable personal memory. Coach calls stay backend-only because the server resolves authoritative active-session context and controls disclosure. This slice ships explicit fake and disabled modes; no production LLM vendor is selected.
 
 ## System context
 
-Shows the one-user product boundary and the delivered server-only external LLM provider relationship.
+Shows the one-user product boundary, the backend-only Coach ownership rule, and the still-unselected future production provider.
 
 <ClientOnly>
   <likec4-view view-id="system-context" />
@@ -16,7 +16,7 @@ Shows the one-user product boundary and the delivered server-only external LLM p
 
 ## Containers and ownership boundaries
 
-Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. The API remains the only persistence and LLM boundary.
+Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. The API remains the only persistence and Coach provider boundary.
 
 <ClientOnly>
   <likec4-view view-id="containers" />
@@ -24,7 +24,7 @@ Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. 
 
 ## Frontend navigation map
 
-Shows the shipped Vue Router boundary: Today, ID-addressed Live, Plan, Coach, Learn, and Logbook render through the responsive `ProductShell`, while `/showcase` remains outside product chrome. Plan, Today, and Live consume generated session operations through the Pinia Colada domain layer; only Plan owns transient nested form state. Coach, Learn, and Logbook remain orientation-only placeholders.
+Shows the shipped Vue Router boundary: Today, ID-addressed Live, Plan, Coach, Learn, and Logbook render through the responsive `ProductShell`, while `/showcase` remains outside product chrome. Plan, Today, Live, and Coach consume generated operations through Pinia Colada domain modules. Coach owns only reload-cleared transcript/retry state; Learn and Logbook remain orientation-only.
 
 <ClientOnly>
   <likec4-view view-id="frontend-map" />
@@ -32,7 +32,7 @@ Shows the shipped Vue Router boundary: Today, ID-addressed Live, Plan, Coach, Le
 
 ## Backend service map
 
-Shows the delivered session and read-only coach/LLM slices alongside the planned learning, logbook, and memory boundaries.
+Shows the delivered session API, Coach orchestration, active-context read, and injected fake/disabled provider boundary alongside planned learning, logbook, memory, and production-provider work.
 
 <ClientOnly>
   <likec4-view view-id="backend-map" />
@@ -59,6 +59,6 @@ Shows the current developer runtime: browser, Vite dev server, Bun API process, 
 - [Vision & Goals](./vision.md) — product strategy, scope, and anti-goals.
 - [Product Guardrails](./product-guardrails.md) — written rules derived from the vision and architecture.
 - [Tech Stack](./tech-stack.md) — repository layout and current tooling.
-- [Context-Aware Coach API](./coach-api.md) — read-only context, provider configuration, and safe failures.
+- [Context-Aware Coach](./coach-api.md) — strict questions, allowlisted context, provider configuration, transcript, and retry.
 - [Durable Plan Page](./local-plan.md) — local editing buffer and explicit persistence.
 - [Today and Live Cook](./local-live-cook.md) — active-first selection and durable outdoor guidance.

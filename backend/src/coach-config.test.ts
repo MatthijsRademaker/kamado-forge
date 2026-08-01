@@ -1,31 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import { CoachConfigurationError, resolveCoachConfiguration } from "./coach-config";
+import { resolveCoachProviderMode } from "./coach-config";
 
 describe("coach configuration", () => {
-  test("requires the exact server-only provider, model, and credential variables", () => {
-    expect(
-      resolveCoachConfiguration({
-        COACH_PROVIDER: "openai",
-        COACH_MODEL: "gpt-4.1-mini",
-        OPENAI_API_KEY: "server-secret",
-      }),
-    ).toEqual({
-      provider: "openai",
-      model: "gpt-4.1-mini",
-      apiKey: "server-secret",
-    });
+  test("selects fake only when explicitly configured", () => {
+    expect(resolveCoachProviderMode({ COACH_PROVIDER: "fake" })).toBe("fake");
   });
 
-  test("rejects missing, blank, or unsupported configuration without defaults", () => {
-    const invalid = [
-      {},
-      { COACH_PROVIDER: "anthropic", COACH_MODEL: "model", OPENAI_API_KEY: "key" },
-      { COACH_PROVIDER: "openai", COACH_MODEL: " ", OPENAI_API_KEY: "key" },
-      { COACH_PROVIDER: "openai", COACH_MODEL: "model", OPENAI_API_KEY: " " },
-    ];
+  test("uses deliberate disabled behavior when missing or selected", () => {
+    expect(resolveCoachProviderMode({})).toBe("disabled");
+    expect(resolveCoachProviderMode({ COACH_PROVIDER: "disabled" })).toBe("disabled");
+  });
 
-    for (const environment of invalid) {
-      expect(() => resolveCoachConfiguration(environment)).toThrow(CoachConfigurationError);
+  test("fails loudly for unsupported provider values", () => {
+    for (const value of ["", "openai", "Fake"]) {
+      expect(() => resolveCoachProviderMode({ COACH_PROVIDER: value })).toThrow(`Unsupported COACH_PROVIDER: ${value}`);
     }
   });
 });
