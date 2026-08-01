@@ -5,13 +5,12 @@ import {
   type RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import type { ZodType } from "zod";
-import { apiRouteRegistry, sessionPlanSchema } from "./contract";
+import { apiRouteRegistry } from "./contract";
 
 const JSON_CONTENT_TYPE = "application/json" as const;
 const RESPONSE_DESCRIPTIONS: Readonly<Record<number, string>> = {
   200: "Successful response",
   201: "Draft cooking session created",
-  204: "Draft cooking session deleted",
   400: "Malformed request",
   404: "Resource not found",
   405: "Method not allowed",
@@ -29,12 +28,11 @@ interface DocumentedRoute {
   readonly paramsSchema?: RouteParameterSchema;
   readonly bodySchema?: ZodType;
   readonly responses: Readonly<Record<number, ZodType | null>>;
+  readonly responseDescriptions?: Readonly<Record<number, string>>;
 }
 
 export function buildOpenApiDocument() {
   const registry = new OpenAPIRegistry();
-
-  registry.register("SessionPlan", sessionPlanSchema);
 
   for (const route of apiRouteRegistry as readonly DocumentedRoute[]) {
     const request: RouteRequest = { query: route.querySchema };
@@ -52,7 +50,12 @@ export function buildOpenApiDocument() {
       responses: Object.fromEntries(
         Object.entries(route.responses).map(([status, schema]) => [
           status,
-          response(RESPONSE_DESCRIPTIONS[Number(status)] ?? `Response ${status}`, schema),
+          response(
+            route.responseDescriptions?.[Number(status)] ??
+              RESPONSE_DESCRIPTIONS[Number(status)] ??
+              `Response ${status}`,
+            schema,
+          ),
         ]),
       ),
     });

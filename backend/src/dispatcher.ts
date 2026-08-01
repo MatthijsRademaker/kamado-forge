@@ -6,20 +6,19 @@ import {
   getSessionRoute,
   healthRoute,
   healthSuccessSchema,
+  listEligibleSessionsRoute,
   listSessionsRoute,
   normalizeValidationIssues,
   updateSessionRoute,
   type HealthData,
 } from "./contract";
 import {
-  activateLiveDraftRoute,
-  createLiveDraftBodySchema,
-  createLiveDraftRoute,
-  getActiveLiveSessionRoute,
+  activateCookingSessionRoute,
+  addLiveCookingSessionNoteRoute,
+  cookingSessionCommandRoutes,
+  findActiveCookingSessionRoute,
+  getLiveCookingSessionRoute,
   liveCookSuccessSchema,
-  liveDraftSuccessSchema,
-  liveSessionCommandRoutes,
-  type CreateLiveDraft,
   type LiveCookAction,
 } from "./live-cook-contract";
 import { LiveCookError, type LiveCookRepository } from "./persistence/live-cook-repository";
@@ -39,6 +38,17 @@ export function createApiDispatcher({ getHealth, liveCookRepository, sessionRepo
     if (url.pathname === healthRoute.runtimePath) return dispatchHealth(request, url, getHealth);
     if (url.pathname === createSessionRoute.runtimePath)
       return dispatchSessionCollection(request, url, requireSessionRepository(sessionRepository));
+    if (url.pathname === listEligibleSessionsRoute.runtimePath)
+      return dispatchEligibleSessions(request, url, requireSessionRepository(sessionRepository));
+
+    const sessionActivationMatch = /^\/api\/sessions\/([^/]+)\/activate$/.exec(url.pathname);
+    if (sessionActivationMatch)
+      return dispatchSessionActivation(
+        request,
+        url,
+        decodePathSegment(sessionActivationMatch[1] ?? ""),
+        requireLiveCookRepository(liveCookRepository),
+      );
 
     const sessionMatch = /^\/api\/sessions\/([^/]+)$/.exec(url.pathname);
     if (sessionMatch)
@@ -48,28 +58,36 @@ export function createApiDispatcher({ getHealth, liveCookRepository, sessionRepo
         decodePathSegment(sessionMatch[1] ?? ""),
         requireSessionRepository(sessionRepository),
       );
-    if (url.pathname === createLiveDraftRoute.runtimePath)
-      return dispatchDraftCreation(request, url, requireLiveCookRepository(liveCookRepository));
+    if (url.pathname === findActiveCookingSessionRoute.runtimePath)
+      return dispatchOptionalActiveSession(request, url, requireLiveCookRepository(liveCookRepository));
 
-    const activationMatch = /^\/api\/drafts\/([^/]+)\/activate$/.exec(url.pathname);
-    if (activationMatch)
-      return dispatchActivation(
+    const cookingSessionNoteMatch = /^\/api\/live-sessions\/([^/]+)\/notes$/.exec(url.pathname);
+    if (cookingSessionNoteMatch)
+      return dispatchCookingSessionNote(
         request,
         url,
-        decodePathSegment(activationMatch[1] ?? ""),
+        decodePathSegment(cookingSessionNoteMatch[1] ?? ""),
         requireLiveCookRepository(liveCookRepository),
       );
-    if (url.pathname === getActiveLiveSessionRoute.runtimePath)
-      return dispatchActiveSession(request, url, requireLiveCookRepository(liveCookRepository));
-
-    const commandMatch = /^\/api\/live-session\/(advance|return|pause|resume|complete|cancel)$/.exec(url.pathname);
-    if (commandMatch)
-      return dispatchCommand(
+    const cookingSessionCommandMatch =
+      /^\/api\/live-sessions\/([^/]+)\/(advance|return|pause|resume|complete|cancel)$/.exec(url.pathname);
+    if (cookingSessionCommandMatch)
+      return dispatchCookingSessionCommand(
         request,
         url,
-        commandMatch[1] as LiveCookAction,
+        decodePathSegment(cookingSessionCommandMatch[1] ?? ""),
+        cookingSessionCommandMatch[2] as LiveCookAction,
         requireLiveCookRepository(liveCookRepository),
       );
+    const cookingSessionDetailMatch = /^\/api\/live-sessions\/([^/]+)$/.exec(url.pathname);
+    if (cookingSessionDetailMatch)
+      return dispatchCookingSessionDetail(
+        request,
+        url,
+        decodePathSegment(cookingSessionDetailMatch[1] ?? ""),
+        requireLiveCookRepository(liveCookRepository),
+      );
+
     return errorResponse(404, API_ERRORS.notFound);
   };
 }
@@ -96,6 +114,13 @@ async function dispatchSessionCollection(request: Request, url: URL, repository:
   }
 
   return errorResponse(405, API_ERRORS.methodNotAllowed);
+}
+
+async function dispatchEligibleSessions(request: Request, url: URL, repository: SessionRepository): Promise<Response> {
+  const queryError = validateQuery(url);
+  if (queryError) return queryError;
+  if (request.method !== listEligibleSessionsRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
+  return validatedJson(listEligibleSessionsRoute.responses[200], { data: await repository.listEligible() }, 200);
 }
 
 async function dispatchSessionItem(
@@ -133,68 +158,101 @@ async function dispatchSessionItem(
   return errorResponse(405, API_ERRORS.methodNotAllowed);
 }
 
-async function dispatchDraftCreation(request: Request, url: URL, repository: LiveCookRepository): Promise<Response> {
-  const queryError = validateQuery(url);
-  if (queryError) return queryError;
-  if (request.method !== createLiveDraftRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
-  const body = await parseDraftBody(request);
-  if (body instanceof Response) return body;
-  return validatedJson(liveDraftSuccessSchema, { data: repository.createDraft(body) }, 201);
-}
-
-async function dispatchActivation(
+async function dispatchSessionActivation(
   request: Request,
   url: URL,
-  draftId: string,
+  sessionId: string,
   repository: LiveCookRepository,
 ): Promise<Response> {
   const queryError = validateQuery(url);
   if (queryError) return queryError;
-  const params = activateLiveDraftRoute.paramsSchema.safeParse({ draftId });
+  const params = activateCookingSessionRoute.paramsSchema.safeParse({ sessionId });
   if (!params.success)
     return errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(params.error, "path"));
-  if (request.method !== activateLiveDraftRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
-  const body = await parseBody(request, activateLiveDraftRoute.bodySchema);
+  if (request.method !== activateCookingSessionRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
+  const body = await parseBody(request, activateCookingSessionRoute.bodySchema);
   if (body instanceof Response) return body;
   try {
-    return validatedJson(liveCookSuccessSchema, { data: repository.activateDraft(draftId, body) }, 200);
+    return validatedJson(liveCookSuccessSchema, { data: repository.activateSession(sessionId, body) }, 200);
   } catch (error) {
     return liveCookErrorResponse(error);
   }
 }
 
-function dispatchActiveSession(request: Request, url: URL, repository: LiveCookRepository): Response {
-  const queryError = validateQuery(url);
-  if (queryError) return queryError;
-  if (request.method !== getActiveLiveSessionRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
-  try {
-    return validatedJson(liveCookSuccessSchema, { data: repository.getActive() }, 200);
-  } catch (error) {
-    return liveCookErrorResponse(error);
-  }
-}
-
-async function dispatchCommand(
+function dispatchCookingSessionDetail(
   request: Request,
   url: URL,
+  sessionId: string,
+  repository: LiveCookRepository,
+): Response {
+  const queryError = validateQuery(url);
+  if (queryError) return queryError;
+  const params = getLiveCookingSessionRoute.paramsSchema.safeParse({ sessionId });
+  if (!params.success)
+    return errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(params.error, "path"));
+  if (request.method !== getLiveCookingSessionRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
+  try {
+    return validatedJson(liveCookSuccessSchema, { data: repository.get(sessionId) }, 200);
+  } catch (error) {
+    return liveCookErrorResponse(error);
+  }
+}
+
+async function dispatchCookingSessionNote(
+  request: Request,
+  url: URL,
+  sessionId: string,
+  repository: LiveCookRepository,
+): Promise<Response> {
+  const queryError = validateQuery(url);
+  if (queryError) return queryError;
+  const params = addLiveCookingSessionNoteRoute.paramsSchema.safeParse({ sessionId });
+  if (!params.success)
+    return errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(params.error, "path"));
+  if (request.method !== addLiveCookingSessionNoteRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
+  const body = await parseBody(request, addLiveCookingSessionNoteRoute.bodySchema);
+  if (body instanceof Response) return body;
+  if (!body.note) throw new Error("Validated live-cook note body has no note");
+  try {
+    return validatedJson(liveCookSuccessSchema, { data: repository.addNote(sessionId, body.note) }, 200);
+  } catch (error) {
+    return liveCookErrorResponse(error);
+  }
+}
+
+async function dispatchCookingSessionCommand(
+  request: Request,
+  url: URL,
+  sessionId: string,
   action: LiveCookAction,
   repository: LiveCookRepository,
 ): Promise<Response> {
   const queryError = validateQuery(url);
   if (queryError) return queryError;
-  const route = liveSessionCommandRoutes[action];
+  const route = cookingSessionCommandRoutes[action];
+  const params = route.paramsSchema.safeParse({ sessionId });
+  if (!params.success)
+    return errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(params.error, "path"));
   if (request.method !== route.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
   const body = await parseBody(request, route.bodySchema);
   if (body instanceof Response) return body;
   try {
-    return validatedJson(liveCookSuccessSchema, { data: repository.command(action, body) }, 200);
+    return validatedJson(liveCookSuccessSchema, { data: repository.command(action, body, sessionId) }, 200);
   } catch (error) {
     return liveCookErrorResponse(error);
   }
 }
 
+function dispatchOptionalActiveSession(request: Request, url: URL, repository: LiveCookRepository): Response {
+  const queryError = validateQuery(url);
+  if (queryError) return queryError;
+  if (request.method !== findActiveCookingSessionRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
+  const active = repository.findActive();
+  return active ? validatedJson(liveCookSuccessSchema, { data: active }, 200) : new Response(null, { status: 204 });
+}
+
 function validateQuery(url: URL): Response | undefined {
-  const query = getActiveLiveSessionRoute.querySchema.safeParse(Object.fromEntries(url.searchParams));
+  const query = findActiveCookingSessionRoute.querySchema.safeParse(Object.fromEntries(url.searchParams));
   return query.success
     ? undefined
     : errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(query.error, "query"));
@@ -225,29 +283,12 @@ function requireLiveCookRepository(repository: LiveCookRepository | undefined): 
   return repository;
 }
 
-async function parseDraftBody(request: Request): Promise<CreateLiveDraft | Response> {
-  let rawBody: unknown;
-  try {
-    rawBody = await request.json();
-  } catch {
-    return errorResponse(400, API_ERRORS.validation, [
-      { path: "body", code: "invalid_body", message: "Request body must be valid JSON" },
-    ]);
-  }
-  const result = createLiveDraftBodySchema.safeParse(rawBody);
-  return result.success
-    ? result.data
-    : errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(result.error, "body"));
-}
-
 async function parseBody(
   request: Request,
   schema: {
     safeParse(
       value: unknown,
-    ):
-      | { success: true; data: { note?: string; steps?: unknown[] } }
-      | { success: false; error: import("zod").ZodError };
+    ): { success: true; data: { note?: string } } | { success: false; error: import("zod").ZodError };
   },
 ) {
   let rawBody: unknown;

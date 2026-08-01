@@ -80,7 +80,7 @@ const sessionPhaseReadSchema = sessionPhaseWriteSchema
   .strict()
   .openapi("CookingSessionPhase");
 
-const sessionReadSchema = sessionWriteSchema
+export const sessionReadSchema = sessionWriteSchema
   .omit({ phases: true })
   .extend({
     id: opaqueIdSchema,

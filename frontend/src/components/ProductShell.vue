@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { useMediaQuery } from "@vueuse/core";
-import { computed, onUnmounted, provide, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { Flame, Menu } from "lucide-vue-next";
 import { useRoute } from "vue-router";
 import ProductNavigation from "@/components/ProductNavigation.vue";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { createSessionFlow } from "@/features/session/controller";
-import { sessionFlowKey } from "@/features/session/context";
 import { productNavigation } from "@/navigation";
 
 defineOptions({
@@ -28,11 +26,6 @@ defineOptions({
 const route = useRoute();
 const mobileMenuOpen = ref(false);
 const desktopLayoutActive = useMediaQuery("(min-width: 64rem)");
-const queryIndex = route.fullPath.indexOf("?");
-const sessionFlow = createSessionFlow(queryIndex === -1 ? "" : route.fullPath.slice(queryIndex));
-provide(sessionFlowKey, sessionFlow);
-onUnmounted(sessionFlow.dispose);
-
 const _currentArea = computed(
   () =>
     productNavigation.find((item) => item.routeName === route.name) ??

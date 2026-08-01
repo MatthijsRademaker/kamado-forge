@@ -17,7 +17,7 @@ export const router = createRouter({
       component: ProductShell,
       children: [
         { path: "today", name: "today", component: TodayView },
-        { path: "live", name: "live", component: LiveView },
+        { path: "live/:sessionId", name: "live", component: LiveView },
         { path: "plan", name: "plan", component: PlanView },
         { path: "coach", name: "coach", component: CoachView },
         { path: "learn", name: "learn", component: LearnView },

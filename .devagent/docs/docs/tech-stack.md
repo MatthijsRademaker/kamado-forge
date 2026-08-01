@@ -27,7 +27,7 @@ scripts/              Verification guardrail entrypoints
 | Server state | Pinia Colada, installed after Pinia in `frontend/src/main.ts` |
 | Type checking | `vue-tsc -p frontend/tsconfig.json --noEmit` |
 
-The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the product routes through `frontend/src/components/ProductShell.vue`. Plan mounts the local editor from `frontend/src/features/plan/`; Today and Live share the mounted controller from `frontend/src/features/session/`; Coach, Learn, and Logbook remain orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
+The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vue`. `frontend/src/router.ts` sends the product routes through `frontend/src/components/ProductShell.vue`. Plan owns a local editable buffer under `frontend/src/features/plan/`; Plan, Today, and ID-addressed Live consume durable session operations through `frontend/src/api/sessions.ts`. Coach, Learn, and Logbook remain orientation-only. The internal showcase remains directly mounted at `/showcase` outside product chrome. Reusable registry primitives live under `frontend/src/components/ui`, while app-specific compositions live under `frontend/src/components/`.
 
 ## Backend
 
@@ -39,10 +39,10 @@ The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vu
 | HTTP server | Thin `Bun.serve` startup adapter in `backend/src/api.ts` |
 | Persistence | `bun:sqlite` bootstrap with WAL, foreign-key enforcement, and numbered migrations at `DATABASE_PATH` |
 | Current schema | Migration history, `app_metadata`, normalized planning tables, and live-cook drafts, snapshots, transitions, visits, and notes |
-| Current endpoints | Contract-validated health, planning `/api/sessions` CRUD, and live-cook draft/activation/session-command routes |
+| Current endpoints | Contract-validated health, planning `/api/sessions` routes, activation, and ID-addressed `/api/live-sessions` queries and commands |
 | Type checking | `tsc -p backend/tsconfig.json --noEmit` |
 
-The backend is the correct future boundary for domain APIs, memory reads/writes, and LLM provider requests.
+The backend is the current boundary for durable session data and domain transitions, and the future boundary for memory and LLM provider requests.
 
 ## Typed API and frontend state ownership
 
@@ -50,15 +50,15 @@ The backend is the correct future boundary for domain APIs, memory reads/writes,
 
 Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
 
-The standalone local `SessionPlan` schema in `backend/src/contract.ts` remains the fixture contract for Plan and Today/Live. The separate strict cooking-session aggregate in `backend/src/session-contract.ts` drives `/api/sessions`; `backend/src/live-cook-contract.ts` drives `/api/drafts` and `/api/live-session`. OpenAPI and generated transport models include both boundaries. The current frontend features import the local generated model but do not call either durable API or declare parallel transport DTOs. See [Cooking and Live-Cook APIs](./cooking-session-api.md), [Local Plan Page](./local-plan.md), and [Local Today and Live Cook](./local-live-cook.md).
+The strict cooking-session aggregate in `backend/src/session-contract.ts` drives planning and eligible-draft routes under `/api/sessions`. `backend/src/live-cook-contract.ts` joins activation to that aggregate and defines active, ID-addressed live/terminal detail, notes, and commands under `/api/live-sessions`. Plan, Today, and Live use the generated operations exclusively through `frontend/src/api/sessions.ts`; production components do not declare parallel transport DTOs or call `fetch` directly. See [Durable Cooking-Session API](./cooking-session-api.md), [Durable Plan Page](./local-plan.md), and [Today and Live Cook](./local-live-cook.md).
 
 Frontend state follows these ownership rules:
 
 - **Pinia** owns shared state controlled by the browser application.
 - **Pinia Colada** owns remote query and mutation state. Install it only after Pinia.
-- Components and feature code consume domain composables such as `frontend/src/api/health.ts`; they do not import generated runtime clients or call `fetch` directly. Type-only imports of standalone generated contract models are allowed.
-- Domain query keys live in `frontend/src/api/queryKeys.ts` and remain stable so cache operations do not depend on component-local arrays.
-- Future successful mutation composables invalidate their related centralized keys through Pinia Colada's query cache. Do not move server responses into Pinia or add mutation endpoints solely to demonstrate invalidation.
+- Components and feature code consume domain composables such as `frontend/src/api/health.ts` and `frontend/src/api/sessions.ts`; they do not import generated runtime clients or call `fetch` directly.
+- Session query keys and the mutation invalidation matrix live together in `frontend/src/api/sessions.ts` so cache operations do not depend on component-local arrays.
+- Successful session mutations reconcile their authoritative response before asynchronously invalidating affected queries. A later refresh failure remains query state and does not turn the committed mutation into a rejection.
 
 ## Documentation and architecture
 

@@ -39,6 +39,7 @@ export interface SessionRepository {
   create(draft: SessionWrite): RepositoryResult<SessionRead>;
   get(id: string): RepositoryResult<SessionRead | undefined>;
   list(): RepositoryResult<SessionRead[]>;
+  listEligible(): RepositoryResult<SessionRead[]>;
   update(id: string, draft: SessionWrite): RepositoryResult<SessionRead | undefined>;
   delete(id: string): RepositoryResult<boolean>;
 }
@@ -124,6 +125,10 @@ export function createSessionRepository(persistence: PersistenceContext) {
     return session;
   }
 
+  function isActivated(id: string): boolean {
+    return Boolean(database.query<{ id: string }, [string]>("SELECT id FROM live_cook_sessions WHERE id = ?").get(id));
+  }
+
   return {
     create(draft: SessionWrite): SessionRead {
       const id = randomUUID();
@@ -159,13 +164,31 @@ export function createSessionRepository(persistence: PersistenceContext) {
     get,
     list() {
       return database
-        .query<{ id: string }, []>("SELECT id FROM cooking_sessions ORDER BY updated_at DESC, id ASC")
+        .query<{ id: string }, []>(
+          `SELECT cooking_sessions.id
+           FROM cooking_sessions
+           LEFT JOIN live_cook_sessions ON live_cook_sessions.id = cooking_sessions.id
+           WHERE live_cook_sessions.id IS NULL
+           ORDER BY cooking_sessions.updated_at DESC, cooking_sessions.id ASC`,
+        )
+        .all()
+        .map(({ id }) => requireSession(id));
+    },
+    listEligible() {
+      return database
+        .query<{ id: string }, []>(
+          `SELECT cooking_sessions.id
+           FROM cooking_sessions
+           LEFT JOIN live_cook_sessions ON live_cook_sessions.id = cooking_sessions.id
+           WHERE live_cook_sessions.id IS NULL
+           ORDER BY cooking_sessions.updated_at DESC, cooking_sessions.id ASC`,
+        )
         .all()
         .map(({ id }) => requireSession(id));
     },
     update(id: string, draft: SessionWrite): SessionRead | undefined {
       const existing = get(id);
-      if (!existing) return undefined;
+      if (!existing || isActivated(id)) return undefined;
 
       return persistence.transaction(() => {
         database.run("DELETE FROM cooking_session_phases WHERE session_id = ?", [id]);
@@ -195,6 +218,7 @@ export function createSessionRepository(persistence: PersistenceContext) {
       });
     },
     delete(id: string): boolean {
+      if (isActivated(id)) return false;
       return persistence.transaction(() => database.run("DELETE FROM cooking_sessions WHERE id = ?", [id]).changes > 0);
     },
   };

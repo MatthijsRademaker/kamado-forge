@@ -7,8 +7,10 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - backend-dependencies:/workspace/backend/node_modules
+      - frontend-dependencies:/workspace/frontend/node_modules
       - bun-cache:/root/.bun/install/cache
-    command: bun install --frozen-lockfile
+    command: bun install --frozen-lockfile --force
 
   backend:
     image: oven/bun:1.2.23-alpine
@@ -22,6 +24,7 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - backend-dependencies:/workspace/backend/node_modules
       - development-data:/data
     ports:
       - "3000:3000"
@@ -45,8 +48,58 @@ services:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
+      - frontend-dependencies:/workspace/frontend/node_modules
     ports:
       - "5173:5173"
+    command: bun run dev:frontend
+    healthcheck:
+      test: >-
+        bun -e 'fetch("http://127.0.0.1:5173/").then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))'
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  backend-e2e:
+    image: oven/bun:1.2.23-alpine
+    profiles:
+      - e2e
+    working_dir: /workspace
+    depends_on:
+      dependencies:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_PATH: /tmp/kamado-e2e.sqlite
+      PORT: "3000"
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+      - backend-dependencies:/workspace/backend/node_modules
+    command: bun run dev:backend
+    healthcheck:
+      test: >-
+        bun -e 'fetch("http://127.0.0.1:3000/api/health").then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))'
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  frontend-e2e:
+    image: oven/bun:1.2.23-alpine
+    profiles:
+      - e2e
+    working_dir: /workspace
+    depends_on:
+      dependencies:
+        condition: service_completed_successfully
+      backend-e2e:
+        condition: service_healthy
+    environment:
+      API_PROXY_TARGET: http://backend-e2e:3000
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+      - frontend-dependencies:/workspace/frontend/node_modules
     command: bun run dev:frontend
     healthcheck:
       test: >-
@@ -62,18 +115,20 @@ services:
       - e2e
     working_dir: /workspace
     depends_on:
-      backend:
+      backend-e2e:
         condition: service_healthy
-      frontend:
+      frontend-e2e:
         condition: service_healthy
     environment:
-      PLAYWRIGHT_BASE_URL: http://frontend:5173
+      PLAYWRIGHT_BASE_URL: http://frontend-e2e:5173
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules
-    command: ./node_modules/.bin/playwright test
+    command: ./node_modules/.bin/playwright test --workers=1
 
 volumes:
   bun-cache:
   dependencies:
+  backend-dependencies:
+  frontend-dependencies:
   development-data:

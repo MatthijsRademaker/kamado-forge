@@ -1,14 +1,10 @@
 import { z, type ZodError } from "./schema";
 import {
-  activateLiveDraftRoute,
-  advanceLiveSessionRoute,
-  cancelLiveSessionRoute,
-  completeLiveSessionRoute,
-  createLiveDraftRoute,
-  getActiveLiveSessionRoute,
-  pauseLiveSessionRoute,
-  resumeLiveSessionRoute,
-  returnLiveSessionRoute,
+  activateCookingSessionRoute,
+  addLiveCookingSessionNoteRoute,
+  cookingSessionCommandRoutes,
+  findActiveCookingSessionRoute,
+  getLiveCookingSessionRoute,
 } from "./live-cook-contract";
 import {
   sessionIdParamsSchema,
@@ -16,52 +12,6 @@ import {
   sessionSuccessSchema,
   sessionWriteSchema,
 } from "./session-contract";
-
-const identitySchema = z.string().min(1);
-const draftDateSchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
-
-const plannedDomeTargetSchema = z
-  .object({ value: z.number().int().min(150).max(700).nullable(), unit: z.literal("F") })
-  .strict()
-  .openapi("PlannedDomeTarget");
-const plannedFoodTargetSchema = z
-  .object({ value: z.number().int().min(32).max(212).nullable(), unit: z.literal("F") })
-  .strict()
-  .openapi("PlannedFoodTarget");
-const sessionPlanStepSchema = z
-  .object({
-    id: identitySchema,
-    title: z.string(),
-    durationMinutes: z.number().int().min(1).max(1440),
-    instructions: z.string(),
-  })
-  .strict()
-  .openapi("SessionPlanStep");
-const sessionPlanPhaseSchema = z
-  .object({
-    id: identitySchema,
-    title: z.string(),
-    technique: z.string(),
-    transitionGuidance: z.string(),
-    steps: z.array(sessionPlanStepSchema),
-  })
-  .strict()
-  .openapi("SessionPlanPhase");
-
-export const sessionPlanSchema = z
-  .object({
-    id: identitySchema,
-    title: z.string(),
-    date: draftDateSchema,
-    phases: z.array(sessionPlanPhaseSchema),
-    plannedDomeTarget: plannedDomeTargetSchema,
-    plannedFoodTarget: plannedFoodTargetSchema,
-    setup: z.string(),
-    ventFireGuidance: z.string(),
-    prepNotes: z.string(),
-  })
-  .strict()
-  .openapi("SessionPlan");
 
 const healthQuerySchema = z.object({}).strict().openapi("HealthQuery");
 const databaseHealthSchema = z
@@ -89,7 +39,7 @@ export const API_ERRORS = {
   validation: { code: "VALIDATION_ERROR", message: "Request validation failed" },
   notFound: { code: "NOT_FOUND", message: "Route not found" },
   methodNotAllowed: { code: "METHOD_NOT_ALLOWED", message: "Method not allowed" },
-  liveCookNotFound: { code: "NOT_FOUND", message: "Live-cook draft or session not found" },
+  liveCookNotFound: { code: "NOT_FOUND", message: "Cooking session not found" },
   invalidDraft: { code: "INVALID_DRAFT", message: "Live-cook draft cannot be activated" },
   invalidTransition: { code: "INVALID_TRANSITION", message: "Live-cook command is not permitted in the current state" },
   activeSessionConflict: { code: "ACTIVE_SESSION_CONFLICT", message: "Another live-cook session is already active" },
@@ -128,6 +78,16 @@ export const listSessionsRoute = {
   responses: { 200: sessionListSuccessSchema, 400: apiErrorSchema, 405: apiErrorSchema },
 } as const;
 
+export const listEligibleSessionsRoute = {
+  method: "GET",
+  runtimePath: "/api/sessions/eligible",
+  openApiPath: "/sessions/eligible",
+  operationId: "listEligibleCookingSessions",
+  summary: "List cooking sessions eligible for activation",
+  querySchema: sessionQuerySchema,
+  responses: { 200: sessionListSuccessSchema, 400: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
 export const getSessionRoute = {
   method: "GET",
   runtimePath: "/api/sessions/{sessionId}",
@@ -160,24 +120,22 @@ export const deleteSessionRoute = {
   querySchema: sessionQuerySchema,
   paramsSchema: sessionIdParamsSchema,
   responses: { 204: null, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+  responseDescriptions: { 204: "Draft cooking session deleted" },
 } as const;
 
 export const apiRouteRegistry = [
   healthRoute,
   createSessionRoute,
   listSessionsRoute,
+  listEligibleSessionsRoute,
   getSessionRoute,
   updateSessionRoute,
   deleteSessionRoute,
-  createLiveDraftRoute,
-  activateLiveDraftRoute,
-  getActiveLiveSessionRoute,
-  advanceLiveSessionRoute,
-  returnLiveSessionRoute,
-  pauseLiveSessionRoute,
-  resumeLiveSessionRoute,
-  completeLiveSessionRoute,
-  cancelLiveSessionRoute,
+  activateCookingSessionRoute,
+  findActiveCookingSessionRoute,
+  getLiveCookingSessionRoute,
+  addLiveCookingSessionNoteRoute,
+  ...Object.values(cookingSessionCommandRoutes),
 ] as const;
 
 export { sessionWriteSchema };

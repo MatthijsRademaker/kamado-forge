@@ -5,7 +5,7 @@ import {
   retryLocalFixture,
   selectFixture,
   returnToDefaultFixture,
-} from "./fixtures";
+} from "./plan-fixtures";
 
 describe("Plan fixture lifecycle", () => {
   test("selects every documented fixture and defaults unsupported values to complete", () => {

@@ -10,6 +10,7 @@ RUN apt-get update -qq \
       ca-certificates \
       coreutils \
       docker-cli \
+      docker-compose \
       findutils \
       git \
       grep \

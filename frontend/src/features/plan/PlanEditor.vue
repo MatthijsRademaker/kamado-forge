@@ -1,7 +1,7 @@
 <script lang="ts">
-import { computed, defineComponent, nextTick, type PropType, ref, watch } from "vue";
+import { computed, defineComponent, nextTick, type PropType } from "vue";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-vue-next";
-import type { SessionPlan } from "@/api/generated/types.gen";
+import type { PlanEditorForm } from "./draft";
 import StatusIndicator from "@/components/StatusIndicator.vue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,23 +34,16 @@ export default defineComponent({
     Trash2,
   },
   props: {
-    modelValue: { type: Object as PropType<SessionPlan>, required: true },
+    modelValue: { type: Object as PropType<PlanEditorForm>, required: true },
+    saving: { type: Boolean, default: false },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "save"],
   setup(props, { emit }) {
     const draft = computed(() => props.modelValue);
     const readiness = computed(() => validateReadiness(draft.value));
     const timeline = computed(() => deriveTimeline(draft.value));
-    const completed = ref(false);
-    watch(
-      () => props.modelValue,
-      () => {
-        completed.value = false;
-      },
-    );
     const errors = computed(() => new Map(readiness.value.errors.map((error) => [error.path, error.message])));
-    const replaceDraft = (next: SessionPlan) => {
-      completed.value = false;
+    const replaceDraft = (next: PlanEditorForm) => {
       emit("update:modelValue", next);
     };
     const setText = (field: "title" | "date" | "setup" | "ventFireGuidance" | "prepNotes", value: string | number) => {
@@ -59,6 +52,15 @@ export default defineComponent({
     const setTarget = (field: "plannedDomeTarget" | "plannedFoodTarget", value: string | number) => {
       const parsed = value === "" ? null : Number(value);
       replaceDraft({ ...draft.value, [field]: { value: parsed, unit: "F" } });
+    };
+    const setDurableGuidance = (
+      field: "deflectorGuidance" | "heatZoneGuidance" | "plannedDomeMaxF",
+      value: string | number,
+    ) => {
+      replaceDraft({
+        ...draft.value,
+        [field]: field === "plannedDomeMaxF" ? (value === "" ? null : Number(value)) : String(value),
+      });
     };
     const setPhaseText = (
       phaseIndex: number,
@@ -146,27 +148,28 @@ export default defineComponent({
         invalidControl.focus();
         return;
       }
-      completed.value = true;
+      emit("save", draft.value);
     };
 
     return {
       appendPhase,
       appendStep,
       completePlan,
-      completed,
       controlId,
       draft,
       errorFor,
       errorId,
       formatMinutes,
       movePhase: (phaseId: string, direction: "up" | "down") =>
-        replaceDraft(movePhase(draft.value, phaseId, direction)),
+        replaceDraft(movePhase(draft.value, phaseId, direction) as PlanEditorForm),
       moveStep: (phaseId: string, stepId: string, direction: "up" | "down") =>
-        replaceDraft(moveStep(draft.value, phaseId, stepId, direction)),
+        replaceDraft(moveStep(draft.value, phaseId, stepId, direction) as PlanEditorForm),
       phaseTiming,
       readiness,
-      removePhase: (phaseId: string) => replaceDraft(removePhase(draft.value, phaseId)),
-      removeStep: (phaseId: string, stepId: string) => replaceDraft(removeStep(draft.value, phaseId, stepId)),
+      removePhase: (phaseId: string) => replaceDraft(removePhase(draft.value, phaseId) as PlanEditorForm),
+      removeStep: (phaseId: string, stepId: string) =>
+        replaceDraft(removeStep(draft.value, phaseId, stepId) as PlanEditorForm),
+      setDurableGuidance,
       setPhaseText,
       setStepField,
       setTarget,
@@ -199,8 +202,8 @@ function formatMinutes(minutes: number): string {
         <p v-else>{{ readiness.errors.length }} required {{ readiness.errors.length === 1 ? "detail" : "details" }} missing or invalid.</p>
       </div>
       <StatusIndicator
-        :label="completed ? 'Plan complete' : readiness.ready ? 'Ready locally' : 'Not ready'"
-        :value="completed ? 'In memory only' : readiness.ready ? 'No save performed' : `${readiness.errors.length} updates needed`"
+        :label="readiness.ready ? 'Ready to save' : 'Not ready'"
+        :value="readiness.ready ? 'Awaiting confirmed save' : `${readiness.errors.length} updates needed`"
         :status="readiness.ready ? 'neutral' : 'warning'"
       />
       <ul
@@ -212,7 +215,7 @@ function formatMinutes(minutes: number): string {
       >
         <li v-for="error in readiness.errors" :key="error.path">{{ error.message }}</li>
       </ul>
-      <Button class="touch-action" type="submit">Complete plan</Button>
+      <Button class="touch-action" type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save plan' }}</Button>
     </section>
 
     <section class="plan-targets" aria-labelledby="targets-heading">
@@ -240,6 +243,22 @@ function formatMinutes(minutes: number): string {
           </span>
           <small>Manual target · 150–700°F</small>
           <span v-if="errorFor('plannedDomeTarget.value')" :id="errorId('plannedDomeTarget.value')" class="field-error">{{ errorFor("plannedDomeTarget.value") }}</span>
+        </label>
+        <label class="target-field" for="plan-field-plannedDomeMaxF">
+          <span>Planned dome maximum</span>
+          <span class="target-input-row">
+            <Input
+              id="plan-field-plannedDomeMaxF"
+              type="number"
+              inputmode="numeric"
+              min="150"
+              max="700"
+              :model-value="draft.plannedDomeMaxF ?? ''"
+              @update:model-value="setDurableGuidance('plannedDomeMaxF', $event)"
+            />
+            <strong>°F</strong>
+          </span>
+          <small>Upper edge of the manual range</small>
         </label>
         <label class="target-field" for="plan-field-plannedFoodTarget-value">
           <span>Planned food target</span>
@@ -462,6 +481,14 @@ function formatMinutes(minutes: number): string {
             <span>Kamado setup</span>
             <Textarea id="plan-field-setup" :model-value="draft.setup" :aria-invalid="Boolean(errorFor('setup'))" :aria-describedby="errorFor('setup') ? errorId('setup') : undefined" @update:model-value="setText('setup', $event)" />
             <span v-if="errorFor('setup')" :id="errorId('setup')" class="field-error">{{ errorFor("setup") }}</span>
+          </label>
+          <label for="plan-field-deflectorGuidance">
+            <span>Deflector guidance</span>
+            <Textarea id="plan-field-deflectorGuidance" :model-value="draft.deflectorGuidance" @update:model-value="setDurableGuidance('deflectorGuidance', $event)" />
+          </label>
+          <label for="plan-field-heatZoneGuidance">
+            <span>Heat-zone guidance</span>
+            <Textarea id="plan-field-heatZoneGuidance" :model-value="draft.heatZoneGuidance" @update:model-value="setDurableGuidance('heatZoneGuidance', $event)" />
           </label>
           <label for="plan-field-ventFireGuidance">
             <span>Vent and fire guidance</span>

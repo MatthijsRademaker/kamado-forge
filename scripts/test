@@ -19,9 +19,11 @@ verification_run_container "$BUN_IMAGE" sh -c '
   bun run test
 '
 
-verification_add_arg --ipc=host
-verification_add_env HOME=/tmp
-verification_run_container "$PLAYWRIGHT_IMAGE" bash -c '
-  set -euo pipefail
-  ./node_modules/.bin/playwright test
-'
+COMPOSE_PROJECT_NAME="kamado-e2e-$(verification_sanitize_name "${VERIFY_RUN_ID:-$$}")"
+export COMPOSE_PROJECT_NAME
+cleanup_e2e() {
+  docker compose --profile e2e down --volumes --remove-orphans >/dev/null 2>&1 || true
+}
+trap cleanup_e2e EXIT INT TERM
+cleanup_e2e
+docker compose --profile e2e up --abort-on-container-exit --exit-code-from e2e e2e
