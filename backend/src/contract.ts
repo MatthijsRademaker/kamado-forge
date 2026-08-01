@@ -1,7 +1,10 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
-import { z, type ZodError } from "zod";
-
-extendZodWithOpenApi(z);
+import { z, type ZodError } from "./schema";
+import {
+  sessionIdParamsSchema,
+  sessionListSuccessSchema,
+  sessionSuccessSchema,
+  sessionWriteSchema,
+} from "./session-contract";
 
 const identitySchema = z.string().min(1);
 const draftDateSchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
@@ -118,6 +121,10 @@ export const API_ERRORS = {
     code: "METHOD_NOT_ALLOWED",
     message: "Method not allowed",
   },
+  sessionNotFound: {
+    code: "SESSION_NOT_FOUND",
+    message: "Cooking session not found",
+  },
 } as const;
 
 export const healthRoute = {
@@ -134,23 +141,96 @@ export const healthRoute = {
   },
 } as const;
 
-export const apiRouteRegistry = [healthRoute] as const;
+const sessionQuerySchema = z.object({}).strict().openapi("CookingSessionQuery");
 
+export const createSessionRoute = {
+  method: "POST",
+  runtimePath: "/api/sessions",
+  openApiPath: "/sessions",
+  operationId: "createCookingSession",
+  summary: "Create a draft cooking session",
+  querySchema: sessionQuerySchema,
+  bodySchema: sessionWriteSchema,
+  responses: { 201: sessionSuccessSchema, 400: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const listSessionsRoute = {
+  method: "GET",
+  runtimePath: "/api/sessions",
+  openApiPath: "/sessions",
+  operationId: "listCookingSessions",
+  summary: "List draft cooking sessions",
+  querySchema: sessionQuerySchema,
+  responses: { 200: sessionListSuccessSchema, 400: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const getSessionRoute = {
+  method: "GET",
+  runtimePath: "/api/sessions/{sessionId}",
+  openApiPath: "/sessions/{sessionId}",
+  operationId: "getCookingSession",
+  summary: "Get a draft cooking session",
+  querySchema: sessionQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  responses: { 200: sessionSuccessSchema, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const updateSessionRoute = {
+  method: "PUT",
+  runtimePath: "/api/sessions/{sessionId}",
+  openApiPath: "/sessions/{sessionId}",
+  operationId: "updateCookingSession",
+  summary: "Replace a draft cooking session",
+  querySchema: sessionQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  bodySchema: sessionWriteSchema,
+  responses: { 200: sessionSuccessSchema, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const deleteSessionRoute = {
+  method: "DELETE",
+  runtimePath: "/api/sessions/{sessionId}",
+  openApiPath: "/sessions/{sessionId}",
+  operationId: "deleteCookingSession",
+  summary: "Delete a draft cooking session",
+  querySchema: sessionQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  responses: { 204: null, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const apiRouteRegistry = [
+  healthRoute,
+  createSessionRoute,
+  listSessionsRoute,
+  getSessionRoute,
+  updateSessionRoute,
+  deleteSessionRoute,
+] as const;
+
+export { sessionWriteSchema };
 export type HealthData = z.infer<typeof healthDataSchema>;
 type ValidationIssue = z.infer<typeof validationIssueSchema>;
+type ValidationContext = "body" | "path" | "query";
 
-export function normalizeValidationIssues(error: ZodError): ValidationIssue[] {
+export function normalizeValidationIssues(error: ZodError, context: ValidationContext = "query"): ValidationIssue[] {
   const issues = error.issues.flatMap((issue): ValidationIssue[] => {
     if (issue.code === "unrecognized_keys") {
+      const parentPath = issue.path.length > 0 ? `.${issue.path.join(".")}` : "";
       return issue.keys.map((key) => ({
-        path: `query.${key}`,
-        code: "unexpected_query_parameter",
-        message: `Unexpected query parameter: ${key}`,
+        path: `${context}${parentPath}.${key}`,
+        code: `unexpected_${context === "query" ? "query_parameter" : context === "path" ? "path_parameter" : "body_field"}`,
+        message: context === "query" ? `Unexpected query parameter: ${key}` : `Unexpected ${context} field: ${key}`,
       }));
     }
 
-    const path = issue.path.length > 0 ? issue.path.join(".") : "query";
-    return [{ path, code: "invalid_query_parameter", message: "Invalid query parameter" }];
+    const suffix = issue.path.length > 0 ? `.${issue.path.join(".")}` : "";
+    return [
+      {
+        path: `${context}${suffix}`,
+        code: `invalid_${context === "query" ? "query_parameter" : context === "path" ? "path_parameter" : "body_field"}`,
+        message: `Invalid ${context} value`,
+      },
+    ];
   });
 
   return issues.sort(

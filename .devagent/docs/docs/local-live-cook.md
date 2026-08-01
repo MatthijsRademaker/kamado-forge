@@ -1,6 +1,6 @@
 # Local Today and Live Cook
 
-Today and Live provide a deterministic outdoor cook walkthrough before session APIs or persistence exist. The Vue SPA owns the mounted fixture lifecycle; the backend owns only the canonical generated `SessionPlan` contract used to statically check durable fixture data.
+Today and Live provide a deterministic outdoor cook walkthrough backed by mounted local fixtures. The backend now persists draft cooking sessions, but these views do not call that API: the Vue SPA owns their fixture lifecycle and the generated `SessionPlan` model statically checks fixture data.
 
 ## Route and fixture boundary
 
@@ -21,7 +21,7 @@ Unsupported selectors resolve to no session. Fixtures do not fetch, import a gen
 
 ## Contract and controller ownership
 
-`frontend/src/features/session/fixtures.ts` checks its durable plan seed with the generated `SessionPlan` type from `frontend/src/api/generated/types.gen.ts` and clones it for each mounted flow. The generated type comes from the standalone schema in `backend/src/contract.ts`; generated files remain read-only.
+`frontend/src/features/session/fixtures.ts` checks its durable plan seed with the generated `SessionPlan` type from `frontend/src/api/generated/types.gen.ts` and clones it for each mounted flow. That local model comes from the standalone schema in `backend/src/contract.ts`; it is separate from the generated `/api/sessions` transport models, and generated files remain read-only.
 
 The local controller separately owns fields that are not transport data:
 
@@ -51,6 +51,7 @@ Run `scripts/check`, `scripts/test`, `scripts/build`, and `scripts/precommit-run
 
 ## Related pages
 
+- [Draft Cooking-Session API](./cooking-session-api.md) — durable draft aggregate and persistence semantics.
 - [Local Plan Page](./local-plan.md) — canonical `SessionPlan` contract and local Plan lifecycle.
 - [Architecture Diagrams](./architecture.mdx) — frontend route and local-controller boundaries.
 - [Tech Stack](./tech-stack.md) — Vue, generated API, and verification ownership.

@@ -1,10 +1,10 @@
 # Local Plan Page
 
-The Plan feature at `/plan` lets a learner build a complete cooking-day timeline before session APIs or persistence exist. The Vue SPA owns the entire fixture lifecycle and editor state; the backend owns only the canonical generated `SessionPlan` contract, not a Plan endpoint.
+The Plan feature at `/plan` lets a learner build a complete cooking-day timeline through local fixtures. The backend now exposes a durable draft cooking-session API, but this UI deliberately remains disconnected: the Vue SPA owns the fixture lifecycle and editor state and does not persist Plan edits.
 
 ## Contract boundary
 
-`backend/src/contract.ts` defines the standalone Zod `SessionPlan` schema. `backend/src/openapi.ts` registers it as an OpenAPI component without registering a route, and `bun run generate:api` emits the canonical frontend type in `frontend/src/api/generated/types.gen.ts`.
+`backend/src/contract.ts` defines the standalone Zod `SessionPlan` schema used by the current local UI. `backend/src/openapi.ts` registers it alongside the separate cooking-session CRUD routes, and `bun run generate:api` emits both the local model and durable API transport types in `frontend/src/api/generated/types.gen.ts`.
 
 The feature preserves one domain shape across that boundary:
 
@@ -15,7 +15,7 @@ The feature preserves one domain shape across that boundary:
 | Fixture data | `frontend/src/features/plan/fixtures.ts` | Compile-time checks every data-bearing fixture with `satisfies SessionPlan` and clones selected data |
 | Local model | `frontend/src/features/plan/model.ts` | Derives timeline totals, readiness errors, and immutable nested operations without declaring competing Plan DTOs |
 
-Generated files are generator-owned. Change the Zod source, run `bun run generate:api`, and use `bun run check:api` to detect drift. The schema registration does not expose `/api/session` or any other session route.
+Generated files are generator-owned. Change the Zod source, run `bun run generate:api`, and use `bun run check:api` to detect drift. The durable `/api/sessions` aggregate has a separate strict write/read contract in `backend/src/session-contract.ts`; no handwritten frontend API integration is part of the local Plan feature.
 
 ## Route-thin composition
 
@@ -59,6 +59,7 @@ Run `scripts/check`, `scripts/test`, `scripts/build`, and `scripts/precommit-run
 
 ## Related pages
 
+- [Draft Cooking-Session API](./cooking-session-api.md) — durable aggregate contract, ordering, and transaction semantics.
 - [Tech Stack](./tech-stack.md) — frontend, backend, generated client, and verification ownership.
 - [Product Guardrails](./product-guardrails.md) — product navigation and architectural boundaries.
 - [Architecture Diagrams](./architecture.mdx) — product containers and frontend component map.
