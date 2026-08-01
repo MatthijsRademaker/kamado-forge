@@ -1,3 +1,5 @@
+import { apiErrorSchema, type ValidationIssue } from "./api-error";
+import { coachRoute } from "./coach-contract";
 import { z, type ZodError } from "./schema";
 import {
   activateCookingSessionRoute,
@@ -24,17 +26,6 @@ const healthDataSchema = z
   .openapi("HealthDataV1");
 export const healthSuccessSchema = z.object({ data: healthDataSchema }).strict().openapi("HealthSuccessV1");
 
-const validationIssueSchema = z
-  .object({ path: z.string(), code: z.string(), message: z.string() })
-  .strict()
-  .openapi("ValidationIssue");
-export const apiErrorSchema = z
-  .object({
-    error: z.object({ code: z.string(), message: z.string(), issues: z.array(validationIssueSchema) }).strict(),
-  })
-  .strict()
-  .openapi("ApiError");
-
 export const API_ERRORS = {
   validation: { code: "VALIDATION_ERROR", message: "Request validation failed" },
   notFound: { code: "NOT_FOUND", message: "Route not found" },
@@ -44,6 +35,13 @@ export const API_ERRORS = {
   invalidTransition: { code: "INVALID_TRANSITION", message: "Live-cook command is not permitted in the current state" },
   activeSessionConflict: { code: "ACTIVE_SESSION_CONFLICT", message: "Another live-cook session is already active" },
   sessionNotFound: { code: "SESSION_NOT_FOUND", message: "Cooking session not found" },
+  coachConfiguration: { code: "COACH_CONFIGURATION_ERROR", message: "Coach provider is not configured" },
+  coachProviderRejected: { code: "COACH_PROVIDER_REJECTED", message: "Coach provider rejected the request" },
+  coachProviderUnavailable: { code: "COACH_PROVIDER_UNAVAILABLE", message: "Coach provider is unavailable" },
+  coachProviderInvalidResponse: {
+    code: "COACH_PROVIDER_INVALID_RESPONSE",
+    message: "Coach provider returned an invalid response",
+  },
 } as const;
 
 export const healthRoute = {
@@ -125,6 +123,7 @@ export const deleteSessionRoute = {
 
 export const apiRouteRegistry = [
   healthRoute,
+  coachRoute,
   createSessionRoute,
   listSessionsRoute,
   listEligibleSessionsRoute,
@@ -138,9 +137,8 @@ export const apiRouteRegistry = [
   ...Object.values(cookingSessionCommandRoutes),
 ] as const;
 
-export { sessionWriteSchema };
+export { apiErrorSchema, sessionWriteSchema };
 export type HealthData = z.infer<typeof healthDataSchema>;
-type ValidationIssue = z.infer<typeof validationIssueSchema>;
 type ValidationContext = "body" | "path" | "query";
 
 export function normalizeValidationIssues(error: ZodError, context: ValidationContext = "query"): ValidationIssue[] {

@@ -75,6 +75,87 @@ describe("API startup", () => {
     }
   });
 
+  test("keeps health available while invalid coach configuration returns the safe error", async () => {
+    const fixture = createTemporaryPersistence();
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
+
+    try {
+      const api = startApi({
+        port: 3000,
+        databasePath: fixture.databasePath,
+        environment: {},
+        serve(options) {
+          fetchHandler = options.fetch;
+        },
+      });
+
+      const coachResponse = await fetchHandler?.(
+        new Request("http://api.test/api/coach", {
+          method: "POST",
+          body: JSON.stringify({ messages: [{ role: "user", content: "Help" }] }),
+        }),
+      );
+      const healthResponse = await fetchHandler?.(new Request("http://api.test/api/health"));
+
+      expect(coachResponse?.status).toBe(503);
+      expect(await coachResponse?.json()).toEqual({
+        error: {
+          code: "COACH_CONFIGURATION_ERROR",
+          message: "Coach provider is not configured",
+          issues: [],
+        },
+      });
+      expect(healthResponse?.status).toBe(200);
+      api.persistence.close();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("constructs the configured real coach provider entirely on the server", async () => {
+    const fixture = createTemporaryPersistence();
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
+
+    try {
+      const api = startApi({
+        port: 3000,
+        databasePath: fixture.databasePath,
+        environment: {
+          COACH_PROVIDER: "openai",
+          COACH_MODEL: "gpt-server-model",
+          OPENAI_API_KEY: "server-secret",
+        },
+        coachFetch: async () =>
+          Response.json({
+            output: [
+              {
+                type: "message",
+                content: [{ type: "output_text", text: "Make one small vent change." }],
+              },
+            ],
+          }),
+        serve(options) {
+          fetchHandler = options.fetch;
+        },
+      });
+
+      const response = await fetchHandler?.(
+        new Request("http://api.test/api/coach", {
+          method: "POST",
+          body: JSON.stringify({ messages: [{ role: "user", content: "What next?" }] }),
+        }),
+      );
+
+      expect(response?.status).toBe(200);
+      expect(await response?.json()).toEqual({
+        data: { message: "Make one small vent change.", suggestions: [] },
+      });
+      api.persistence.close();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   test("preserves successful OPTIONS preflight and configured CORS headers", async () => {
     const fixture = createTemporaryPersistence();
     let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;

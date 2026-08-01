@@ -28,6 +28,35 @@ export type ApiError = {
   };
 };
 
+export type CoachResult = {
+  message: string;
+  suggestions: Array<
+    | {
+        kind: "next_action";
+        title: string;
+        rationale: string;
+      }
+    | {
+        kind: "caution";
+        title: string;
+        rationale: string;
+      }
+  >;
+};
+
+export type CoachSuccess = {
+  data: CoachResult;
+};
+
+export type CoachChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type CoachRequest = {
+  messages: Array<CoachChatMessage>;
+};
+
 export type PlannedDomeRange = {
   minF: number;
   maxF: number;
@@ -213,6 +242,43 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type AskCoachData = {
+  body: CoachRequest;
+  path?: never;
+  query?: never;
+  url: "/coach";
+};
+
+export type AskCoachErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError;
+  /**
+   * Method not allowed
+   */
+  405: ApiError;
+  /**
+   * Response 502
+   */
+  502: ApiError;
+  /**
+   * Response 503
+   */
+  503: ApiError;
+};
+
+export type AskCoachError = AskCoachErrors[keyof AskCoachErrors];
+
+export type AskCoachResponses = {
+  /**
+   * Successful response
+   */
+  200: CoachSuccess;
+};
+
+export type AskCoachResponse = AskCoachResponses[keyof AskCoachResponses];
 
 export type ListCookingSessionsData = {
   body?: never;
@@ -421,59 +487,19 @@ export type ActivateCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type ActivateCookingSessionError = ActivateCookingSessionErrors[keyof ActivateCookingSessionErrors];
@@ -498,59 +524,19 @@ export type FindActiveCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type FindActiveCookingSessionError = FindActiveCookingSessionErrors[keyof FindActiveCookingSessionErrors];
@@ -582,59 +568,19 @@ export type GetLiveCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type GetLiveCookingSessionError = GetLiveCookingSessionErrors[keyof GetLiveCookingSessionErrors];
@@ -661,59 +607,19 @@ export type AddLiveCookingSessionNoteErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type AddLiveCookingSessionNoteError = AddLiveCookingSessionNoteErrors[keyof AddLiveCookingSessionNoteErrors];
@@ -741,59 +647,19 @@ export type AdvanceCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type AdvanceCookingSessionError = AdvanceCookingSessionErrors[keyof AdvanceCookingSessionErrors];
@@ -820,59 +686,19 @@ export type ReturnCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type ReturnCookingSessionError = ReturnCookingSessionErrors[keyof ReturnCookingSessionErrors];
@@ -899,59 +725,19 @@ export type PauseCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type PauseCookingSessionError = PauseCookingSessionErrors[keyof PauseCookingSessionErrors];
@@ -978,59 +764,19 @@ export type ResumeCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type ResumeCookingSessionError = ResumeCookingSessionErrors[keyof ResumeCookingSessionErrors];
@@ -1057,59 +803,19 @@ export type CompleteCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type CompleteCookingSessionError = CompleteCookingSessionErrors[keyof CompleteCookingSessionErrors];
@@ -1136,59 +842,19 @@ export type CancelCookingSessionErrors = {
   /**
    * Malformed request
    */
-  400: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  400: ApiError;
   /**
    * Resource not found
    */
-  404: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  404: ApiError;
   /**
    * Method not allowed
    */
-  405: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  405: ApiError;
   /**
    * Response 409
    */
-  409: ApiError & {
-    error?: {
-      code: string;
-      message: string;
-      issues: Array<{
-        path: string;
-        code: string;
-        message: string;
-      }>;
-    };
-  };
+  409: ApiError;
 };
 
 export type CancelCookingSessionError = CancelCookingSessionErrors[keyof CancelCookingSessionErrors];

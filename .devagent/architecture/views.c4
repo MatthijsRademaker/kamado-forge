@@ -1,23 +1,23 @@
 views {
   view system-context {
     title 'System context'
-    description 'The kamado learner uses one personal SPA; future coaching calls leave the app only through the backend LLM boundary.'
+    description 'The kamado learner uses one personal SPA; coaching calls leave the app only through the delivered backend LLM boundary.'
     include learner
     include kamadoCoach
     include llmProvider
     include learner -> kamadoCoach.frontend
-    include kamadoCoach.backend.coachApi -> llmProvider
+    include kamadoCoach.backend.openAiAdapter -> llmProvider
     autoLayout LeftRight
   }
 
   view containers of kamadoCoach {
     title 'Containers and ownership boundaries'
-    description 'The product is a Vue SPA, Bun API, and local SQLite store. The API owns persistence and future LLM access.'
+    description 'The product is a Vue SPA, Bun API, and local SQLite store. The API owns persistence and server-only LLM access.'
     include *
     include learner -> kamadoCoach.frontend
     include kamadoCoach.frontend -> kamadoCoach.backend
     include kamadoCoach.backend -> kamadoCoach.sqlite
-    include kamadoCoach.backend.coachApi -> llmProvider
+    include kamadoCoach.backend.openAiAdapter -> llmProvider
     autoLayout LeftRight
   }
 
@@ -31,7 +31,7 @@ views {
 
   view backend-map of kamadoCoach.backend {
     title 'Backend service map'
-    description 'The Bun API should keep domain endpoints separate from the future LLM and memory boundary.'
+    description 'The Bun API keeps session endpoints separate from the delivered read-only coach orchestration and future learning, logbook, and memory boundaries.'
     include *
     include kamadoCoach.sqlite
     include llmProvider
@@ -50,9 +50,11 @@ views {
     learner -> kamadoCoach.frontend.live 'follows live outdoor guidance'
     kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'records progress, transitions, and current-step notes'
     learner -> kamadoCoach.frontend.coach 'asks context-aware question'
-    kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends active session context'
-    kamadoCoach.backend.coachApi -> kamadoCoach.backend.memoryService 'adds preferences and prior lessons'
-    kamadoCoach.backend.coachApi -> llmProvider 'requests coaching answer'
+    kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'planned UI sends bounded chat only'
+    kamadoCoach.backend.coachApi -> kamadoCoach.backend.coachService 'delegates validated chat'
+    kamadoCoach.backend.coachService -> kamadoCoach.sqlite 'reads authoritative active-session context'
+    kamadoCoach.backend.coachService -> kamadoCoach.backend.openAiAdapter 'invokes one selected provider'
+    kamadoCoach.backend.openAiAdapter -> llmProvider 'requests coaching answer'
     learner -> kamadoCoach.frontend.logbook 'logs outcome and lessons'
     kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'persists actuals and notes'
     kamadoCoach.backend.logbookApi -> kamadoCoach.backend.memoryService 'updates durable learning memory'
