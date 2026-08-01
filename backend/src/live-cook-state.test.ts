@@ -109,7 +109,7 @@ describe("live-cook state machine", () => {
     }
   });
 
-  test("leaves missing-draft and live-slot conflict requests unchanged", async () => {
+  test("leaves missing-draft and active/paused live-slot conflict requests unchanged", async () => {
     const { fixture, persistence, dispatcher } = setup();
 
     try {
@@ -133,13 +133,83 @@ describe("live-cook state machine", () => {
           )
         ).status,
       ).toBe(200);
-      const beforeConflict = durableSnapshot(persistence);
-      const conflict = await dispatcher(
-        new Request(`http://api.test/api/drafts/${secondDraft}/activate`, { method: "POST", body: "{}" }),
+      for (const status of ["ACTIVE", "PAUSED"] as const) {
+        if (status === "PAUSED") {
+          expect(
+            (await dispatcher(new Request("http://api.test/api/live-session/pause", { method: "POST", body: "{}" })))
+              .status,
+          ).toBe(200);
+        }
+        const beforeConflict = durableSnapshot(persistence);
+        const conflict = await dispatcher(
+          new Request(`http://api.test/api/drafts/${secondDraft}/activate`, { method: "POST", body: "{}" }),
+        );
+        expect(conflict.status).toBe(409);
+        expect(await conflict.json()).toMatchObject({ error: { code: "ACTIVE_SESSION_CONFLICT" } });
+        expect(durableSnapshot(persistence)).toEqual(beforeConflict);
+      }
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("persists cancellation as an unfinished visit with transition and note history", async () => {
+    const { fixture, persistence, dispatcher } = setup();
+    const timestamp = "2026-08-08T12:00:00.000Z";
+
+    try {
+      expect((await activate(dispatcher)).status).toBe(200);
+      const cancellation = await dispatcher(
+        new Request("http://api.test/api/live-session/cancel", {
+          method: "POST",
+          body: JSON.stringify({ note: "Stopped for rain." }),
+        }),
       );
-      expect(conflict.status).toBe(409);
-      expect(await conflict.json()).toMatchObject({ error: { code: "ACTIVE_SESSION_CONFLICT" } });
-      expect(durableSnapshot(persistence)).toEqual(beforeConflict);
+      const cancellationBody = (await cancellation.json()) as {
+        data: { status: string; currentStep: null; nextStep: null };
+      };
+      expect(cancellation.status).toBe(200);
+      expect(cancellationBody.data).toMatchObject({ status: "CANCELLED", currentStep: null, nextStep: null });
+
+      persistence.close();
+      const reopened = fixture.bootstrap();
+      expect(
+        reopened.database
+          .query<{ actual_started_at: string; actual_finished_at: string | null; cancelled_at: string | null }, []>(
+            `SELECT actual_started_at, actual_finished_at, cancelled_at
+             FROM live_cook_execution_visits
+             ORDER BY ordinal ASC`,
+          )
+          .all(),
+      ).toEqual([
+        {
+          actual_started_at: timestamp,
+          actual_finished_at: null,
+          cancelled_at: timestamp,
+        },
+      ]);
+      expect(
+        reopened.database
+          .query<
+            { ordinal: number; action: string; from_status: string | null; to_status: string; occurred_at: string },
+            []
+          >(
+            `SELECT ordinal, action, from_status, to_status, occurred_at
+             FROM live_cook_transitions
+             ORDER BY ordinal ASC`,
+          )
+          .all(),
+      ).toEqual([
+        { ordinal: 0, action: "ACTIVATE", from_status: null, to_status: "ACTIVE", occurred_at: timestamp },
+        { ordinal: 1, action: "CANCEL", from_status: "ACTIVE", to_status: "CANCELLED", occurred_at: timestamp },
+      ]);
+      expect(
+        reopened.database
+          .query<{ ordinal: number; content: string; created_at: string }, []>(
+            "SELECT ordinal, content, created_at FROM live_cook_step_notes ORDER BY ordinal ASC",
+          )
+          .all(),
+      ).toEqual([{ ordinal: 0, content: "Stopped for rain.", created_at: timestamp }]);
     } finally {
       fixture.cleanup();
     }
