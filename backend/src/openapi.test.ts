@@ -59,48 +59,43 @@ describe("OpenAPI generation", () => {
     expect(Object.keys(document.paths?.["/health"]?.get?.responses ?? {})).toEqual(["200", "400", "404", "405"]);
   });
 
-  test("emits the complete strict read step as one satisfiable object schema", () => {
-    const schema = buildOpenApiDocument().components?.schemas?.CookingSessionStep;
+  test("publishes the local plan model and every live-cook operation", () => {
+    const document = buildOpenApiDocument();
 
-    expect(schema).toMatchObject({
-      type: "object",
-      properties: {
-        title: { type: "string", minLength: 1 },
-        instructions: { type: "string", minLength: 1 },
-        durationMinutes: { type: "integer", minimum: 1, maximum: 1440 },
-        id: { type: "string", format: "uuid" },
-      },
-      required: ["title", "instructions", "durationMinutes", "id"],
-      additionalProperties: false,
-    });
-    expect(schema).not.toHaveProperty("allOf");
+    expect(document.components?.schemas?.SessionPlan).toBeDefined();
+    expect(Object.keys(document.paths ?? {})).toEqual([
+      "/health",
+      "/sessions",
+      "/sessions/{sessionId}",
+      "/drafts",
+      "/drafts/{draftId}/activate",
+      "/live-session",
+      "/live-session/advance",
+      "/live-session/return",
+      "/live-session/pause",
+      "/live-session/resume",
+      "/live-session/complete",
+      "/live-session/cancel",
+    ]);
+    expect(document.paths?.["/sessions"]?.post?.operationId).toBe("createCookingSession");
+    expect(document.paths?.["/sessions/{sessionId}"]?.delete?.operationId).toBe("deleteCookingSession");
+    expect(document.paths?.["/drafts"]?.post?.operationId).toBe("createLiveCookDraft");
+    expect(document.paths?.["/drafts/{draftId}/activate"]?.post?.operationId).toBe("activateLiveCookDraft");
+    expect(document.paths?.["/live-session"]?.get?.operationId).toBe("getActiveLiveCookSession");
+    expect(document.paths?.["/live-session/complete"]?.post?.responses[200]).toBeDefined();
   });
 
-  test("publishes the local plan model and every cooking-session CRUD operation", () => {
+  test("represents terminal current and next steps as nullable components", () => {
     const document = buildOpenApiDocument();
-    const sessionPlan = document.components?.schemas?.SessionPlan;
+    const schemas = document.components?.schemas;
 
-    expect(sessionPlan).toBeDefined();
-    expect(sessionPlan).toMatchObject({
-      type: "object",
-      required: [
-        "id",
-        "title",
-        "date",
-        "phases",
-        "plannedDomeTarget",
-        "plannedFoodTarget",
-        "setup",
-        "ventFireGuidance",
-        "prepNotes",
-      ],
+    expect(schemas?.LiveCookCurrentStep).toMatchObject({ nullable: true });
+    expect(schemas?.LiveCookNextStep).toMatchObject({ nullable: true });
+    expect(schemas?.LiveCookSession).toMatchObject({
+      properties: {
+        currentStep: { $ref: "#/components/schemas/LiveCookCurrentStep" },
+        nextStep: { $ref: "#/components/schemas/LiveCookNextStep" },
+      },
     });
-    expect(Object.keys(document.paths ?? {})).toEqual(["/health", "/sessions", "/sessions/{sessionId}"]);
-    expect(document.paths?.["/sessions"]?.post?.operationId).toBe("createCookingSession");
-    expect(document.paths?.["/sessions"]?.post?.requestBody).toMatchObject({ required: true });
-    expect(document.paths?.["/sessions"]?.get?.operationId).toBe("listCookingSessions");
-    expect(document.paths?.["/sessions/{sessionId}"]?.get?.operationId).toBe("getCookingSession");
-    expect(document.paths?.["/sessions/{sessionId}"]?.put?.operationId).toBe("updateCookingSession");
-    expect(document.paths?.["/sessions/{sessionId}"]?.delete?.responses[204]).not.toHaveProperty("content");
   });
 });

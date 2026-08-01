@@ -81,17 +81,17 @@ model {
 
     backend = container 'Bun API' {
       description '''
-        Bun TypeScript HTTP API. Exposes contract-validated health and durable draft
-        cooking-session CRUD routes, initializes SQLite, applies CORS when configured,
-        and owns future live-cook and LLM boundaries.
+        Bun TypeScript HTTP API. Exposes contract-validated health, planning draft CRUD, ordered
+        live-cook draft activation, query, and state-transition routes; initializes SQLite, applies
+        CORS when configured, and owns the LLM boundary.
       '''
 
       healthApi = component 'Health API' {
         description 'Contract-validated `/api/health` endpoint reporting status without exposing the SQLite path.'
       }
 
-      sessionApi = component 'Session API' {
-        description 'Shipped create/get/list/full-replacement/delete endpoints for complete ordered cooking-day drafts; live state transitions remain planned.'
+      sessionApi = component 'Cooking and live-cook APIs' {
+        description 'Shipped complete planning-draft CRUD plus ordered live-draft activation and transactional live-session commands. SQLite enforces one ACTIVE or PAUSED live session and preserves snapshot, visit, note, and transition history.'
       }
 
       coachApi = component 'Coach API' {
@@ -114,8 +114,10 @@ model {
     sqlite = database 'SQLite database' {
       description '''
         Local SQLite persistence configured by `DATABASE_PATH`. It contains migration history,
-        `app_metadata`, and normalized ordered draft-session, phase, and step tables. Future logs,
-        learning content, and memory remain in the same personal store.
+        `app_metadata`, historic migration records, normalized planning sessions with phases and
+        steps, and transactional live-cook drafts, immutable snapshot steps, session cursor/status,
+        transitions, visits, and notes. Future logs, learning content, and memory remain in the
+        same personal store.
       '''
     }
   }
@@ -139,10 +141,10 @@ model {
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
   kamadoCoach.frontend.sessionFlow -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
-  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'future: loads active cook and records progress'
-  kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'future: persists live progress and notes'
+  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'future: reads the active cook'
+  kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'future: sends live progress commands'
   kamadoCoach.frontend.planner -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
-  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: persists and adjusts cooking-day timeline'
+  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: creates ordered activation drafts'
   kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
   kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
   kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'

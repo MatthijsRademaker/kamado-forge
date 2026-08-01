@@ -1,5 +1,16 @@
 import { z, type ZodError } from "./schema";
 import {
+  activateLiveDraftRoute,
+  advanceLiveSessionRoute,
+  cancelLiveSessionRoute,
+  completeLiveSessionRoute,
+  createLiveDraftRoute,
+  getActiveLiveSessionRoute,
+  pauseLiveSessionRoute,
+  resumeLiveSessionRoute,
+  returnLiveSessionRoute,
+} from "./live-cook-contract";
+import {
   sessionIdParamsSchema,
   sessionListSuccessSchema,
   sessionSuccessSchema,
@@ -10,21 +21,13 @@ const identitySchema = z.string().min(1);
 const draftDateSchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
 
 const plannedDomeTargetSchema = z
-  .object({
-    value: z.number().int().min(150).max(700).nullable(),
-    unit: z.literal("F"),
-  })
+  .object({ value: z.number().int().min(150).max(700).nullable(), unit: z.literal("F") })
   .strict()
   .openapi("PlannedDomeTarget");
-
 const plannedFoodTargetSchema = z
-  .object({
-    value: z.number().int().min(32).max(212).nullable(),
-    unit: z.literal("F"),
-  })
+  .object({ value: z.number().int().min(32).max(212).nullable(), unit: z.literal("F") })
   .strict()
   .openapi("PlannedFoodTarget");
-
 const sessionPlanStepSchema = z
   .object({
     id: identitySchema,
@@ -34,7 +37,6 @@ const sessionPlanStepSchema = z
   })
   .strict()
   .openapi("SessionPlanStep");
-
 const sessionPlanPhaseSchema = z
   .object({
     id: identitySchema,
@@ -62,69 +64,36 @@ export const sessionPlanSchema = z
   .openapi("SessionPlan");
 
 const healthQuerySchema = z.object({}).strict().openapi("HealthQuery");
-
 const databaseHealthSchema = z
-  .object({
-    status: z.literal("ok"),
-  })
+  .object({ status: z.literal("ok") })
   .strict()
   .openapi("DatabaseHealth");
-
 const healthDataSchema = z
-  .object({
-    ok: z.literal(true),
-    service: z.literal("api"),
-    database: databaseHealthSchema,
-  })
+  .object({ ok: z.literal(true), service: z.literal("api"), database: databaseHealthSchema })
   .strict()
   .openapi("HealthDataV1");
-
-export const healthSuccessSchema = z
-  .object({
-    data: healthDataSchema,
-  })
-  .strict()
-  .openapi("HealthSuccessV1");
+export const healthSuccessSchema = z.object({ data: healthDataSchema }).strict().openapi("HealthSuccessV1");
 
 const validationIssueSchema = z
-  .object({
-    path: z.string(),
-    code: z.string(),
-    message: z.string(),
-  })
+  .object({ path: z.string(), code: z.string(), message: z.string() })
   .strict()
   .openapi("ValidationIssue");
-
 export const apiErrorSchema = z
   .object({
-    error: z
-      .object({
-        code: z.string(),
-        message: z.string(),
-        issues: z.array(validationIssueSchema),
-      })
-      .strict(),
+    error: z.object({ code: z.string(), message: z.string(), issues: z.array(validationIssueSchema) }).strict(),
   })
   .strict()
   .openapi("ApiError");
 
 export const API_ERRORS = {
-  validation: {
-    code: "VALIDATION_ERROR",
-    message: "Request validation failed",
-  },
-  notFound: {
-    code: "NOT_FOUND",
-    message: "Route not found",
-  },
-  methodNotAllowed: {
-    code: "METHOD_NOT_ALLOWED",
-    message: "Method not allowed",
-  },
-  sessionNotFound: {
-    code: "SESSION_NOT_FOUND",
-    message: "Cooking session not found",
-  },
+  validation: { code: "VALIDATION_ERROR", message: "Request validation failed" },
+  notFound: { code: "NOT_FOUND", message: "Route not found" },
+  methodNotAllowed: { code: "METHOD_NOT_ALLOWED", message: "Method not allowed" },
+  liveCookNotFound: { code: "NOT_FOUND", message: "Live-cook draft or session not found" },
+  invalidDraft: { code: "INVALID_DRAFT", message: "Live-cook draft cannot be activated" },
+  invalidTransition: { code: "INVALID_TRANSITION", message: "Live-cook command is not permitted in the current state" },
+  activeSessionConflict: { code: "ACTIVE_SESSION_CONFLICT", message: "Another live-cook session is already active" },
+  sessionNotFound: { code: "SESSION_NOT_FOUND", message: "Cooking session not found" },
 } as const;
 
 export const healthRoute = {
@@ -133,12 +102,7 @@ export const healthRoute = {
   openApiPath: "/health",
   operationId: "getHealth",
   querySchema: healthQuerySchema,
-  responses: {
-    200: healthSuccessSchema,
-    400: apiErrorSchema,
-    404: apiErrorSchema,
-    405: apiErrorSchema,
-  },
+  responses: { 200: healthSuccessSchema, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
 } as const;
 
 const sessionQuerySchema = z.object({}).strict().openapi("CookingSessionQuery");
@@ -205,6 +169,15 @@ export const apiRouteRegistry = [
   getSessionRoute,
   updateSessionRoute,
   deleteSessionRoute,
+  createLiveDraftRoute,
+  activateLiveDraftRoute,
+  getActiveLiveSessionRoute,
+  advanceLiveSessionRoute,
+  returnLiveSessionRoute,
+  pauseLiveSessionRoute,
+  resumeLiveSessionRoute,
+  completeLiveSessionRoute,
+  cancelLiveSessionRoute,
 ] as const;
 
 export { sessionWriteSchema };
@@ -222,7 +195,6 @@ export function normalizeValidationIssues(error: ZodError, context: ValidationCo
         message: context === "query" ? `Unexpected query parameter: ${key}` : `Unexpected ${context} field: ${key}`,
       }));
     }
-
     const suffix = issue.path.length > 0 ? `.${issue.path.join(".")}` : "";
     return [
       {
@@ -232,7 +204,6 @@ export function normalizeValidationIssues(error: ZodError, context: ValidationCo
       },
     ];
   });
-
   return issues.sort(
     (left, right) =>
       compareLexicographically(left.path, right.path) ||

@@ -1,59 +1,39 @@
-# Draft Cooking-Session API
+# Cooking and Live-Cook APIs
 
-The backend persists complete single-owner cooking-day drafts through `/api/sessions`. The API owns durable session, phase, and step identities while callers own the full editable plan submitted on create or replacement.
+The Bun API exposes two durable, single-owner boundaries: complete planning drafts at `/api/sessions` and minimal live-cook drafts/session commands at `/api/drafts` and `/api/live-session`. The current Vue Plan, Today, and Live screens remain fixture-driven and do not call either boundary.
 
-## Aggregate boundary
+## Planning drafts
 
-```text
-Vue/generated client
-        │ JSON under /api/sessions
-        ▼
-Bun contract dispatcher
-        │ validated complete aggregate
-        ▼
-Session repository transaction
-        │ normalized ordered rows
-        ▼
-SQLite session → phases → steps
-```
-
-The central rule is **complete aggregate replacement**. `POST /api/sessions` creates a draft, while `PUT /api/sessions/{sessionId}` atomically replaces all editable values and nested items. PUT preserves the session ID and creation timestamp, generates fresh phase and step IDs, and advances the update timestamp. Failed replacements leave the prior aggregate unchanged.
+`backend/src/session-contract.ts` defines the strict aggregate persisted by `backend/src/persistence/session-repository.ts`. The executable registry in `backend/src/contract.ts` exposes:
 
 | Method | Path | Behavior |
 | --- | --- | --- |
 | `POST` | `/api/sessions` | Create a complete draft and return `201` |
-| `GET` | `/api/sessions` | List complete drafts by update time descending, then ID |
+| `GET` | `/api/sessions` | List drafts by update time descending, then ID |
 | `GET` | `/api/sessions/{sessionId}` | Retrieve one complete draft |
-| `PUT` | `/api/sessions/{sessionId}` | Atomically replace and reorder the complete draft |
-| `DELETE` | `/api/sessions/{sessionId}` | Delete the draft and nested rows, returning `204` |
+| `PUT` | `/api/sessions/{sessionId}` | Atomically replace a complete draft |
+| `DELETE` | `/api/sessions/{sessionId}` | Delete the aggregate and nested rows with `204` |
 
-JSON successes use `{ "data": ... }`. Unknown well-formed session IDs use the shared error envelope with `SESSION_NOT_FOUND`; malformed path, query, or body input uses deterministic contextual validation issues.
+The planning API owns session, phase, and step identities. Its write shape requires complete ordered phases and steps, real `YYYY-MM-DD` cooking dates, integer minute durations, and planned Fahrenheit guidance. Successes use `{ "data": ... }`; an unknown well-formed session ID returns `SESSION_NOT_FOUND` in the shared error envelope.
 
-## Planning semantics
+## Live-cook sessions
 
-`backend/src/session-contract.ts` is the executable write/read contract. A complete draft contains at least one phase and each phase contains at least one step. Array order is authoritative; SQLite ordinals are internal and responses reproduce explicit phase and step order.
+`backend/src/live-cook-contract.ts` defines a separate minimal ordered-step draft. `POST /api/drafts` creates that draft, `POST /api/drafts/{draftId}/activate` snapshots it once, and `GET /api/live-session` reads the sole `ACTIVE` or `PAUSED` session. The live-session commands are `advance`, `return`, `pause`, `resume`, `complete`, and `cancel` under `/api/live-session`.
 
-Step `durationMinutes` is integral from 1 through 1440. Offsets and totals are derived from ordered durations and are not persisted. `cookingDate` is a real `YYYY-MM-DD` calendar date without time-zone conversion.
+The live projection includes deterministic execution history, the active current step, and the immediate next step. At terminal completion or cancellation, `currentStep` and `nextStep` are both `null`; subsequent active-session reads return `404 NOT_FOUND` while durable history remains available.
 
-Temperatures are manual planned Fahrenheit guidance, never probe readings or telemetry:
+## Persistence and generated contract
 
-- `plannedDomeRange.minF` and `maxF` are integers from 150°F through 700°F, with minimum not exceeding maximum.
-- `plannedFoodTargetF` is omitted when absent and otherwise is an integer from 32°F through 212°F.
+Migration `0002` owns normalized planning session, phase, and step tables. Migration `0003` owns live-cook drafts, immutable session-step snapshots, transitions, visits, notes, and the single `ACTIVE`/`PAUSED` session index. Migration `0004` adds integer-duration guards for existing live-cook step tables; activation independently revalidates persisted draft rows before creating a snapshot.
 
-Setup, deflector, heat-zone, vent, and prep guidance are distinct required session-level fields. Phase technique and transition guidance and step title, instructions, and duration are also required.
-
-## Persistence and generated contracts
-
-Migration `0002` in `backend/src/persistence/migrations.ts` creates normalized `cooking_sessions`, `cooking_session_phases`, and `cooking_session_steps` tables. Foreign-key cascades remove nested rows, and per-parent ordinal uniqueness protects ordering.
-
-`backend/src/openapi.ts` generates the canonical OpenAPI document and the Hey API client under `frontend/src/api/generated/`. The generated client exposes the transport operations, but the current Plan and Today/Live interfaces remain fixture-driven and do not call them.
+`backend/src/openapi.ts` generates `backend/openapi/openapi.json`, and Hey API generates `frontend/src/api/generated/`. Generated artifacts are read-only: change the executable schemas and route registry, run `bun run generate:api`, and use `bun run check:api` to detect drift.
 
 ## Verification
 
-Repository behavior is covered in `backend/src/persistence/session-repository.test.ts`; route and validation behavior is covered in `backend/src/dispatcher.test.ts` and `backend/src/session-contract.test.ts`. Generated drift is checked by `bun run check:api`, and the complete repository gate is `scripts/precommit-run`.
+Planning contract, repository, and dispatcher coverage lives in `backend/src/session-contract.test.ts`, `backend/src/persistence/session-repository.test.ts`, and `backend/src/dispatcher.test.ts`. Live-cook transition, rollback, restart, migration, and response-validation coverage lives in `backend/src/live-cook-*.test.ts` and `backend/src/persistence/live-cook-migration.test.ts`.
 
 ## Related pages
 
-- [Local Plan Page](./local-plan.md) — fixture-driven Plan UI and its separate local `SessionPlan` model.
-- [Tech Stack](./tech-stack.md) — backend, SQLite, OpenAPI, and generated-client ownership.
-- [Architecture Diagrams](./architecture.mdx) — product containers and API/persistence boundaries.
+- [Local Plan Page](./local-plan.md) — fixture-only Plan behavior and its generated local model.
+- [Local Today and Live Cook](./local-live-cook.md) — fixture-only live walkthrough behavior.
+- [Tech Stack](./tech-stack.md) — backend, SQLite, generated-client, and verification ownership.

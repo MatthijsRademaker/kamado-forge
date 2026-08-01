@@ -1,4 +1,5 @@
 import { createApiDispatcher } from "./dispatcher";
+import { createLiveCookRepository } from "./persistence/live-cook-repository";
 import { createSessionRepository } from "./persistence/session-repository";
 import {
   bootstrapPersistence,
@@ -32,6 +33,7 @@ export function startApi({
   const persistence = bootstrap({ databasePath });
   const dispatch = createApiDispatcher({
     getHealth: () => ({ ok: true, service: "api", database: { status: "ok" } }),
+    liveCookRepository: createLiveCookRepository(persistence),
     sessionRepository: createSessionRepository(persistence),
   });
   const server = serve({

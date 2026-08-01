@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { SessionWrite } from "../session-contract";
-import { createSessionRepository } from "./bootstrap";
+import { createSessionRepository } from "./session-repository";
 import { createTemporaryPersistence } from "./test-support";
 
 const draft: SessionWrite = {
