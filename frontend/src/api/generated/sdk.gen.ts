@@ -5,6 +5,9 @@ import type {
   GetHealthData,
   GetHealthResponses,
   GetHealthErrors,
+  AskCoachData,
+  AskCoachResponses,
+  AskCoachErrors,
   ListCookingSessionsData,
   ListCookingSessionsResponses,
   ListCookingSessionsErrors,
@@ -80,6 +83,20 @@ export const getHealth = <ThrowOnError extends boolean = false>(options?: Option
   return (options?.client ?? client).get<GetHealthResponses, GetHealthErrors, ThrowOnError>({
     url: "/health",
     ...options,
+  });
+};
+
+/**
+ * Ask the context-aware cooking coach
+ */
+export const askCoach = <ThrowOnError extends boolean = false>(options: Options<AskCoachData, ThrowOnError>) => {
+  return (options.client ?? client).post<AskCoachResponses, AskCoachErrors, ThrowOnError>({
+    url: "/coach",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 };
 

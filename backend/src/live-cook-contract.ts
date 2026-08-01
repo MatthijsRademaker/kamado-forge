@@ -1,3 +1,4 @@
+import { apiErrorSchema } from "./api-error";
 import { z } from "./schema";
 import { sessionIdParamsSchema, sessionReadSchema } from "./session-contract";
 
@@ -7,23 +8,11 @@ const requiredTextSchema = z
   .refine((value) => value.trim().length > 0, { message: "Text must not be blank" });
 const opaqueIdSchema = z.string().uuid();
 const utcTimestampSchema = z.string().datetime({ offset: false });
-const liveCookErrorSchema = z
-  .object({
-    error: z
-      .object({
-        code: z.string(),
-        message: z.string(),
-        issues: z.array(z.object({ path: z.string(), code: z.string(), message: z.string() }).strict()),
-      })
-      .strict(),
-  })
-  .strict()
-  .openapi("ApiError");
 const liveCookErrorResponses = {
-  400: liveCookErrorSchema,
-  404: liveCookErrorSchema,
-  405: liveCookErrorSchema,
-  409: liveCookErrorSchema,
+  400: apiErrorSchema,
+  404: apiErrorSchema,
+  405: apiErrorSchema,
+  409: apiErrorSchema,
 } as const;
 
 const plannedStepFields = {

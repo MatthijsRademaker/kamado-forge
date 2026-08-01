@@ -1,3 +1,7 @@
+import { CoachConfigurationError } from "./coach-config";
+import { coachRequestSchema, coachRoute, coachSuccessSchema } from "./coach-contract";
+import { CoachProviderError } from "./coach-provider";
+import type { CoachService } from "./coach-service";
 import {
   API_ERRORS,
   apiErrorSchema,
@@ -26,16 +30,23 @@ import type { SessionRepository } from "./persistence/session-repository";
 import { sessionSuccessSchema, sessionWriteSchema, type SessionWrite } from "./session-contract";
 
 interface ApiDispatcherDependencies {
+  readonly coachService?: CoachService;
   readonly getHealth: () => unknown;
   readonly liveCookRepository?: LiveCookRepository;
   readonly sessionRepository?: SessionRepository;
 }
 
-export function createApiDispatcher({ getHealth, liveCookRepository, sessionRepository }: ApiDispatcherDependencies) {
+export function createApiDispatcher({
+  coachService,
+  getHealth,
+  liveCookRepository,
+  sessionRepository,
+}: ApiDispatcherDependencies) {
   return (request: Request): Response | Promise<Response> => {
     const url = parseRequestUrl(request.url);
     if (!url) return errorResponse(400, API_ERRORS.validation);
     if (url.pathname === healthRoute.runtimePath) return dispatchHealth(request, url, getHealth);
+    if (url.pathname === coachRoute.runtimePath) return dispatchCoach(request, url, requireCoachService(coachService));
     if (url.pathname === createSessionRoute.runtimePath)
       return dispatchSessionCollection(request, url, requireSessionRepository(sessionRepository));
     if (url.pathname === listEligibleSessionsRoute.runtimePath)
@@ -97,6 +108,20 @@ function dispatchHealth(request: Request, url: URL, getHealth: () => unknown): R
   const query = healthRoute.querySchema.safeParse(Object.fromEntries(url.searchParams));
   if (!query.success) return errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(query.error, "query"));
   return validatedJson(healthSuccessSchema, { data: getHealth() as HealthData }, 200);
+}
+
+async function dispatchCoach(request: Request, url: URL, service: CoachService): Promise<Response> {
+  const query = coachRoute.querySchema.safeParse(Object.fromEntries(url.searchParams));
+  if (!query.success) return errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(query.error, "query"));
+  if (request.method !== coachRoute.method) return errorResponse(405, API_ERRORS.methodNotAllowed);
+  const body = await parseBody(request, coachRequestSchema);
+  if (body instanceof Response) return body;
+
+  try {
+    return validatedJson(coachSuccessSchema, { data: await service.ask(body.messages) }, 200);
+  } catch (error) {
+    return coachProviderErrorResponse(error);
+  }
 }
 
 async function dispatchSessionCollection(request: Request, url: URL, repository: SessionRepository): Promise<Response> {
@@ -273,6 +298,11 @@ async function parseSessionBody(request: Request): Promise<SessionWrite | Respon
     : errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(result.error, "body"));
 }
 
+function requireCoachService(service: CoachService | undefined): CoachService {
+  if (!service) throw new Error("Coach service is required for coach routes");
+  return service;
+}
+
 function requireSessionRepository(repository: SessionRepository | undefined): SessionRepository {
   if (!repository) throw new Error("Session repository is required for cooking-session routes");
   return repository;
@@ -283,14 +313,12 @@ function requireLiveCookRepository(repository: LiveCookRepository | undefined): 
   return repository;
 }
 
-async function parseBody(
+async function parseBody<T>(
   request: Request,
   schema: {
-    safeParse(
-      value: unknown,
-    ): { success: true; data: { note?: string } } | { success: false; error: import("zod").ZodError };
+    safeParse(value: unknown): { success: true; data: T } | { success: false; error: import("zod").ZodError };
   },
-) {
+): Promise<T | Response> {
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -303,6 +331,21 @@ async function parseBody(
   return result.success
     ? result.data
     : errorResponse(400, API_ERRORS.validation, normalizeValidationIssues(result.error, "body"));
+}
+
+function coachProviderErrorResponse(error: unknown): Response {
+  if (error instanceof CoachConfigurationError) return errorResponse(503, API_ERRORS.coachConfiguration);
+  if (!(error instanceof CoachProviderError)) throw error;
+  switch (error.kind) {
+    case "rejected":
+      return errorResponse(502, API_ERRORS.coachProviderRejected);
+    case "unavailable":
+      return errorResponse(503, API_ERRORS.coachProviderUnavailable);
+    case "malformed_output":
+      return errorResponse(502, API_ERRORS.coachProviderInvalidResponse);
+    default:
+      throw new Error(`Unhandled coach provider failure: ${error.kind}`);
+  }
 }
 
 function liveCookErrorResponse(error: unknown): Response {
@@ -322,7 +365,7 @@ function liveCookErrorResponse(error: unknown): Response {
 }
 
 function errorResponse(
-  status: 400 | 404 | 405 | 409,
+  status: 400 | 404 | 405 | 409 | 502 | 503,
   error: { readonly code: string; readonly message: string },
   issues: { readonly path: string; readonly code: string; readonly message: string }[] = [],
 ): Response {
@@ -332,7 +375,7 @@ function errorResponse(
 function validatedJson(
   schema: { parse(value: unknown): unknown },
   body: unknown,
-  status: 200 | 201 | 400 | 404 | 405 | 409,
+  status: 200 | 201 | 400 | 404 | 405 | 409 | 502 | 503,
 ): Response {
   return Response.json(schema.parse(body), { status, headers: { "content-type": "application/json" } });
 }

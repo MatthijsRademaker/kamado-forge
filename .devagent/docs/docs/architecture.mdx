@@ -8,7 +8,7 @@ The key separation: the **Vue SPA** owns the user experience, the **Bun API** ow
 
 ## System context
 
-Shows the one-user product boundary and the planned external LLM provider relationship.
+Shows the one-user product boundary and the delivered server-only external LLM provider relationship.
 
 <ClientOnly>
   <likec4-view view-id="system-context" />
@@ -32,7 +32,7 @@ Shows the shipped Vue Router boundary: Today, ID-addressed Live, Plan, Coach, Le
 
 ## Backend service map
 
-Shows the planned backend slices. Keep future endpoints cohesive: session planning/live state, coach/LLM orchestration, learning content, cook logs, and memory service.
+Shows the delivered session and read-only coach/LLM slices alongside the planned learning, logbook, and memory boundaries.
 
 <ClientOnly>
   <likec4-view view-id="backend-map" />
@@ -59,5 +59,6 @@ Shows the current developer runtime: browser, Vite dev server, Bun API process, 
 - [Vision & Goals](./vision.md) — product strategy, scope, and anti-goals.
 - [Product Guardrails](./product-guardrails.md) — written rules derived from the vision and architecture.
 - [Tech Stack](./tech-stack.md) — repository layout and current tooling.
+- [Context-Aware Coach API](./coach-api.md) — read-only context, provider configuration, and safe failures.
 - [Durable Plan Page](./local-plan.md) — local editing buffer and explicit persistence.
 - [Today and Live Cook](./local-live-cook.md) — active-first selection and durable outdoor guidance.

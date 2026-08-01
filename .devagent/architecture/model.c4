@@ -7,7 +7,7 @@ model {
 
   llmProvider = externalSystem 'LLM provider' {
     description '''
-      Planned external model provider used for context-aware coaching answers.
+      OpenAI Responses API used for non-streaming context-aware coaching answers.
     '''
   }
 
@@ -82,7 +82,8 @@ model {
       description '''
         Bun TypeScript HTTP API. Exposes contract-validated health, complete planning draft CRUD,
         eligible/active lookup, cooking-session activation, ID-addressed live detail, notes, and
-        state-transition routes; initializes SQLite and owns the future LLM boundary.
+        state-transition routes and a non-streaming context-aware coach route; initializes
+        SQLite and owns the server-only LLM boundary.
       '''
 
       healthApi = component 'Health API' {
@@ -94,7 +95,15 @@ model {
       }
 
       coachApi = component 'Coach API' {
-        description 'Planned endpoint boundary for LLM-assisted questions with session and memory context.'
+        description 'Contract-validated `POST /api/coach` boundary for bounded chat input, safe errors, and advisory-only responses.'
+      }
+
+      coachService = component 'Coach service' {
+        description 'Read-only orchestrator that assembles immutable active-session context, supplies the server prompt and advisory tools, and validates provider output.'
+      }
+
+      openAiAdapter = component 'OpenAI adapter' {
+        description 'Server-only non-streaming Responses API adapter selected by environment configuration behind the vendor-neutral provider contract.'
       }
 
       learningApi = component 'Learning API' {
@@ -124,7 +133,7 @@ model {
   learner -> kamadoCoach.frontend 'plans cooks, follows guidance, asks questions, and reviews logs'
   kamadoCoach.frontend -[sync]-> kamadoCoach.backend 'calls JSON API via `/api/*`'
   kamadoCoach.backend -[persist]-> kamadoCoach.sqlite 'stores application data'
-  kamadoCoach.backend.coachApi -[llm]-> llmProvider 'requests context-aware coaching answers'
+  kamadoCoach.backend.openAiAdapter -[llm]-> llmProvider 'requests non-streaming coaching answers'
 
   kamadoCoach.frontend.appShell -> kamadoCoach.frontend.router 'hosts router-rendered layouts'
   kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders product routes through shared chrome'
@@ -143,11 +152,13 @@ model {
   kamadoCoach.frontend.live -> kamadoCoach.frontend.sessionQueries 'queries detail and submits pessimistic actions'
   kamadoCoach.frontend.sessionQueries -> kamadoCoach.frontend.generatedClient 'uses generated session operations and types'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.sessionApi 'calls relative durable session routes'
-  kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
+  kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'planned UI sends bounded chat only'
   kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
   kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'
 
   kamadoCoach.backend.sessionApi -> kamadoCoach.backend.memoryService 'reads preferences and prior lessons'
-  kamadoCoach.backend.coachApi -> kamadoCoach.backend.memoryService 'builds prompt context'
+  kamadoCoach.backend.coachApi -> kamadoCoach.backend.coachService 'delegates validated chat'
+  kamadoCoach.backend.coachService -> kamadoCoach.sqlite 'reads authoritative active-session context'
+  kamadoCoach.backend.coachService -> kamadoCoach.backend.openAiAdapter 'invokes one selected provider'
   kamadoCoach.backend.logbookApi -> kamadoCoach.backend.memoryService 'feeds new lessons after each cook'
 }

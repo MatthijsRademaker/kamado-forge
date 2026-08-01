@@ -64,6 +64,7 @@ describe("OpenAPI generation", () => {
 
     expect(Object.keys(document.paths ?? {})).toEqual([
       "/health",
+      "/coach",
       "/sessions",
       "/sessions/eligible",
       "/sessions/{sessionId}",
@@ -78,6 +79,7 @@ describe("OpenAPI generation", () => {
       "/live-sessions/{sessionId}/complete",
       "/live-sessions/{sessionId}/cancel",
     ]);
+    expect(document.paths?.["/coach"]?.post?.operationId).toBe("askCoach");
     expect(document.paths?.["/sessions"]?.post?.operationId).toBe("createCookingSession");
     expect(document.paths?.["/sessions/eligible"]?.get?.operationId).toBe("listEligibleCookingSessions");
     expect(document.paths?.["/sessions/{sessionId}"]?.delete?.operationId).toBe("deleteCookingSession");
