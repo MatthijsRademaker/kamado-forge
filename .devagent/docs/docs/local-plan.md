@@ -1,65 +1,51 @@
-# Local Plan Page
+# Durable Plan Page
 
-The Plan feature at `/plan` lets a learner build a complete cooking-day timeline through local fixtures. The backend now exposes a durable draft cooking-session API, but this UI deliberately remains disconnected: the Vue SPA owns the fixture lifecycle and editor state and does not persist Plan edits.
+Plan at `/plan` edits a complete cooking-day aggregate in local form state and persists only on explicit save. The server remains authoritative for durable identities and confirmed content; failed saves never replace or discard the editable buffer.
 
-## Contract boundary
+## Data flow
 
-`backend/src/contract.ts` defines the standalone Zod `SessionPlan` schema used by the current local UI. `backend/src/openapi.ts` registers it alongside the separate cooking-session CRUD routes, and `bun run generate:api` emits both the local model and durable API transport types in `frontend/src/api/generated/types.gen.ts`.
+```text
+GET /api/sessions
+        │
+        ▼
+Pinia Colada session list
+        │ confirmed aggregate
+        ▼
+local Plan buffer ── add/remove/reorder/edit
+        │ complete explicit POST or PUT
+        ▼
+server-confirmed aggregate ── rehydrate buffer
+```
 
-The feature preserves one domain shape across that boundary:
+`frontend/src/features/plan/PlanPage.vue` owns route states and save orchestration. `frontend/src/features/plan/PlanEditor.vue` owns nested interactions and readiness. `frontend/src/features/plan/draft.ts` converts between the durable aggregate and local keys without sending client identities in write payloads.
 
-| Layer | Source | Responsibility |
-| --- | --- | --- |
-| Contract | `backend/src/contract.ts` | Required draft structure, IDs, date representation, step durations in minutes, and planned Fahrenheit target ranges |
-| Generated artifact | `frontend/src/api/generated/types.gen.ts` | Canonical `SessionPlan`, `SessionPlanPhase`, and `SessionPlanStep` TypeScript types |
-| Fixture data | `frontend/src/features/plan/fixtures.ts` | Compile-time checks every data-bearing fixture with `satisfies SessionPlan` and clones selected data |
-| Local model | `frontend/src/features/plan/model.ts` | Derives timeline totals, readiness errors, and immutable nested operations without declaring competing Plan DTOs |
+The central separation is deliberate: Pinia Colada owns remote query state, while the Plan buffer owns unsaved user input. Query invalidation cannot silently overwrite edits. Only a successful create/update or explicit draft selection rehydrates the form.
 
-Generated files are generator-owned. Change the Zod source, run `bun run generate:api`, and use `bun run check:api` to detect drift. The durable `/api/sessions` aggregate has a separate strict write/read contract in `backend/src/session-contract.ts`; no handwritten frontend API integration is part of the local Plan feature.
+## Complete ordered saves
 
-## Route-thin composition
+Plan submits every editable field, ordered phase, and ordered step in one request. Durations remain the timing authority; offsets and totals are derived from array order. Dome range, food target, setup, deflector, heat-zone, vent, prep, phase technique/transition, and step guidance all cross the same aggregate boundary.
 
-`frontend/src/router.ts` mounts `/plan` through `frontend/src/components/ProductShell.vue`; `frontend/src/views/PlanView.vue` renders `frontend/src/features/plan/PlanPage.vue` inside that shared product chrome. `/` redirects to Today, and `/showcase` remains outside product chrome.
+A rejected save keeps all values and ordering. Structured validation issues appear with their backend paths and corrective summary; unknown transport failures provide retry guidance without claiming persistence.
 
-The shared shell displays Today, Plan, Coach, Learn, and Logbook in product order. Plan is implemented locally; Today, Coach, Learn, and Logbook are orientation-only placeholders. At narrow widths the shell exposes navigation through its menu; desktop keeps navigation in the sidebar.
+## Route states
 
-## Fixture selector
+- **Loading:** waits for authoritative session list data.
+- **Empty:** offers creation when no draft exists.
+- **Editing:** distinguishes new unsaved input from a saved server draft.
+- **Saving:** disables duplicate submission.
+- **Validation/conflict/transport failure:** preserves the buffer and explains correction or retry.
+- **Confirmed:** rehydrates from the server response and reports the durable save time.
 
-Use the local-only query parameter to review deterministic states:
-
-| URL | Composition |
-| --- | --- |
-| `/plan?fixture=complete` | Ready, populated reverse-sear draft |
-| `/plan?fixture=incomplete` | Populated draft with readiness errors |
-| `/plan?fixture=empty` | Empty-state action backed by a typed empty draft |
-| `/plan?fixture=loading` | Explicit loading composition with no draft payload |
-| `/plan?fixture=error` | Explicit error composition with no draft payload |
-
-An absent or unsupported `fixture` value selects `complete`. Selecting a data fixture deep-clones its module-owned definition before Vue receives it. Refreshing, resetting, or selecting the fixture again discards edits and creates another clone.
-
-Create, retry, return, and reset actions are deterministic in-memory transitions. They do not call `fetch`, use the generated SDK, create a backend session, write browser storage, or claim that a plan was saved. `Complete plan` only validates the local draft and displays an in-memory completion status; it does not start Live Cook.
-
-## Timeline and readiness
-
-Step `durationMinutes` values are the timing authority. `frontend/src/features/plan/model.ts` sums steps in explicit array order to derive step offsets, phase offsets and totals, and the Plan total. Fixtures never persist derived timing.
-
-Readiness is also a pure derivation. It checks the contract/readiness rules and returns ordered field paths and messages. `frontend/src/features/plan/PlanEditor.vue` relates editable-field messages to their inputs and focuses the first invalid field when completion is requested. Because structural identities are not editable, identity failures focus the visible requirements summary instead of throwing or inventing identity fields.
-
-Dome and food temperatures are manual planned targets in degrees Fahrenheit. The editor deliberately avoids current-reading, probe, controller, and telemetry semantics.
+Production no longer supports `?fixture=` selectors. Typed local examples remain only under `frontend/src/test-support/` and cannot be selected by runtime code.
 
 ## Verification
 
-Behavior coverage lives in:
-
-- `frontend/src/features/plan/model.test.ts` for timeline, readiness, and nested operations.
-- `frontend/src/features/plan/fixtures.test.ts` for selection, cloning, and local transitions.
-- `e2e/plan.spec.ts` for direct routes, fixtures, editing, focus, keyboard controls, refresh reset, target semantics, and the 320px composition.
-
-Run `scripts/check`, `scripts/test`, `scripts/build`, and `scripts/precommit-run` before changing the Plan boundary.
+- `frontend/src/features/plan/draft.test.ts` covers complete field and order conversion.
+- `frontend/src/features/plan/model.test.ts` covers timeline, readiness, and local nested operations.
+- `e2e/session-flow.spec.ts` creates, saves, reloads, and later activates the same server-assigned plan.
 
 ## Related pages
 
-- [Cooking and Live-Cook APIs](./cooking-session-api.md) — durable aggregate contract, ordering, and transaction semantics.
-- [Tech Stack](./tech-stack.md) — frontend, backend, generated client, and verification ownership.
-- [Product Guardrails](./product-guardrails.md) — product navigation and architectural boundaries.
-- [Architecture Diagrams](./architecture.mdx) — product containers and frontend component map.
+- [Durable Cooking-Session API](./cooking-session-api.md) — aggregate and generated contract.
+- [Today and Live Cook](./local-live-cook.md) — explicit activation and live execution.
+- [Architecture Diagrams](./architecture.mdx) — frontend session-domain flow.

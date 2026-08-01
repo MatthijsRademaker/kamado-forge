@@ -39,6 +39,7 @@ export interface SessionRepository {
   create(draft: SessionWrite): RepositoryResult<SessionRead>;
   get(id: string): RepositoryResult<SessionRead | undefined>;
   list(): RepositoryResult<SessionRead[]>;
+  listEligible(): RepositoryResult<SessionRead[]>;
   update(id: string, draft: SessionWrite): RepositoryResult<SessionRead | undefined>;
   delete(id: string): RepositoryResult<boolean>;
 }
@@ -160,6 +161,18 @@ export function createSessionRepository(persistence: PersistenceContext) {
     list() {
       return database
         .query<{ id: string }, []>("SELECT id FROM cooking_sessions ORDER BY updated_at DESC, id ASC")
+        .all()
+        .map(({ id }) => requireSession(id));
+    },
+    listEligible() {
+      return database
+        .query<{ id: string }, []>(
+          `SELECT cooking_sessions.id
+           FROM cooking_sessions
+           LEFT JOIN live_cook_sessions ON live_cook_sessions.id = cooking_sessions.id
+           WHERE live_cook_sessions.id IS NULL
+           ORDER BY cooking_sessions.updated_at DESC, cooking_sessions.id ASC`,
+        )
         .all()
         .map(({ id }) => requireSession(id));
     },

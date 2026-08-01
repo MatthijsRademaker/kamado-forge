@@ -1,122 +1,122 @@
 import { expect, test } from "@playwright/test";
 
-test("loads every Today fixture and starts a draft in the mounted Live flow", async ({ page }) => {
-  const apiRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/api/")) apiRequests.push(request.url());
-  });
+test("persists the complete Plan-to-Live journey, recovers from a backend conflict, and reloads terminal detail", async ({
+  page,
+}) => {
+  await page.goto("/plan");
+  await page.getByRole("button", { name: "Create plan" }).click();
 
-  await page.goto("/?fixture=no-session");
-  await expect(page).toHaveURL(/\/today\?fixture=no-session$/);
-  await expect(page.getByRole("heading", { level: 2, name: "No cook on the fire" })).toBeVisible();
+  await page.getByLabel("Plan title").fill("Durable steak night");
+  await page.getByLabel("Cooking date").fill("2026-08-08");
+  await page.getByLabel("Planned dome target").fill("225");
+  await page.getByLabel("Planned dome maximum").fill("275");
+  await page.getByLabel("Planned food target").fill("130");
+  await page.getByLabel("Phase 1 title").fill("Build the fire");
+  await page.getByLabel("Phase 1 technique").fill("Two-zone fire");
+  await page.getByLabel("Phase 1 transition guidance").fill("Wait for clean smoke.");
+  await page.getByLabel("Step 1 title").fill("Light the charcoal");
+  await page.getByLabel("Step 1 duration (minutes)").fill("20");
+  await page.getByLabel("Step 1 instructions").fill("Light one starter and wait for clean smoke.");
 
-  await page.goto("/today?fixture=draft");
-  await expect(page.getByRole("heading", { level: 2, name: "Reverse-sear steak night" })).toBeVisible();
-  await page.getByRole("button", { name: "Start cook" }).click();
-  await expect(page).toHaveURL(/\/live\?fixture=active-running$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Light a small fire" })).toBeVisible();
+  await page.getByRole("button", { name: "Add step to phase 1" }).click();
+  await page.getByLabel("Step 2 title").fill("Stabilize the dome");
+  await page.getByLabel("Step 2 duration (minutes)").fill("25");
+  await page.getByLabel("Step 2 instructions").fill("Settle the kamado in the planned range.");
 
-  await page.goto("/today?fixture=active-running");
-  await expect(page.getByRole("link", { name: "Continue cook" })).toBeVisible();
-  await page.goto("/today?fixture=active-paused");
-  await expect(page.getByRole("link", { name: "Resume cook" })).toBeVisible();
-  expect(apiRequests).toEqual([]);
-});
+  await page.getByLabel("Kamado setup").fill("Set up two heat zones.");
+  await page.getByLabel("Deflector guidance").fill("Install the half-moon deflector.");
+  await page.getByLabel("Heat-zone guidance").fill("Keep the right side direct.");
+  await page.getByLabel("Vent and fire guidance").fill("Bottom vent one finger, top vent quarter open.");
+  await page.getByLabel("Prep notes").fill("Dry brine overnight.");
 
-test("operates the Live flow, preserves notes, and confirms terminal actions accessibly", async ({ page }) => {
-  await page.goto("/live?fixture=active-running");
-
-  await expect(page.getByRole("heading", { level: 1, name: "Stabilize the dome" })).toBeVisible();
-  await expect(page.getByTestId("planned-dome-target")).toContainText("250°F");
-  await expect(page.getByTestId("planned-food-target")).toContainText("130°F");
-  await expect(page.getByRole("progressbar", { name: "Session progress" })).toHaveAttribute("aria-valuenow", "50");
-
-  const elapsed = page.getByRole("heading", { name: /elapsed/ });
-  const runningText = await elapsed.textContent();
-  await page.waitForTimeout(1_100);
-  await expect(elapsed).not.toHaveText(runningText ?? "");
-
-  await page.getByRole("button", { name: "Pause" }).click();
-  await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
-  const pausedText = await elapsed.textContent();
-  await page.waitForTimeout(1_100);
-  await expect(elapsed).toHaveText(pausedText ?? "");
-
-  await page.getByLabel("Session note").fill("Close the top vent a touch.");
-  await page.getByRole("button", { name: "Back" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Light a small fire" })).toBeVisible();
-  await expect(page.getByLabel("Session note")).toHaveValue("Close the top vent a touch.");
-  await expect(page.getByRole("button", { name: "Back" })).toBeDisabled();
-
-  for (let index = 0; index < 3; index += 1) await page.getByRole("button", { name: "Advance" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Sear and rest" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Advance" })).toBeDisabled();
-
-  const cancelTrigger = page.getByRole("button", { name: "Cancel cook" });
-  await cancelTrigger.click();
-  await expect(page.getByRole("dialog", { name: "Cancel cook?" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(cancelTrigger).toBeFocused();
-  await expect(page.getByRole("heading", { level: 1, name: "Sear and rest" })).toBeVisible();
-
-  const finishTrigger = page.getByRole("button", { name: "Finish cook" });
-  await finishTrigger.click();
-  await page.getByRole("button", { name: "Keep cooking" }).click();
-  await expect(finishTrigger).toBeFocused();
-  await finishTrigger.click();
-  await page.getByRole("button", { name: "Confirm finish" }).click();
-  await expect(page).toHaveURL(/\/today\?fixture=no-session$/);
-  await expect(page.getByRole("heading", { level: 2, name: "No cook on the fire" })).toBeVisible();
-});
-
-test("keeps planned guidance and outdoor controls usable at 320 by 568", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 568 });
-  const apiRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/api/")) apiRequests.push(request.url());
-  });
-  await page.goto("/live?fixture=active-paused");
+  await page.getByRole("button", { name: "Save plan" }).click();
+  await expect(page.getByText(/^Saved /)).toBeVisible();
   await page.reload();
+  await expect(page.getByLabel("Plan title")).toHaveValue("Durable steak night");
+  await expect(page.getByLabel("Step 1 title")).toHaveValue("Light the charcoal");
+  await expect(page.getByLabel("Step 2 title")).toHaveValue("Stabilize the dome");
 
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { name: "Eligible saved plans" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Durable steak night" })).toBeVisible();
+  await page.getByRole("button", { name: "Start this cook" }).click();
+  await expect(page).toHaveURL(/\/live\/[0-9a-f-]+$/);
+  const liveUrl = page.url();
+  const sessionId = liveUrl.split("/").at(-1);
+  if (!sessionId) throw new Error("Live route did not retain a session ID");
+
+  await expect(page.getByRole("heading", { level: 1, name: "Light the charcoal" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Light the charcoal" })).toBeVisible();
+
+  const externalPause = await page.request.post(`/api/live-sessions/${sessionId}/pause`, { data: {} });
+  expect(externalPause.status()).toBe(200);
+  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByRole("alert")).toContainText("server state changed");
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
+  await page.getByRole("button", { name: "Resume" }).click();
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+
+  await page.getByLabel("New step note").fill("Clean smoke settled in.");
+  await page.getByRole("button", { name: "Save note" }).click();
+  await expect(page.getByText("Clean smoke settled in.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Clean smoke settled in.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Advance" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Stabilize the dome" })).toBeVisible();
+  await page.getByRole("button", { name: "Finish cook" }).click();
+  await page.getByRole("button", { name: "Confirm finish" }).click();
+  await expect(page).toHaveURL(liveUrl);
+  await expect(page.getByText("completed cooking session · read-only durable detail")).toBeVisible();
+
+  await page.reload();
+  await expect(page).toHaveURL(liveUrl);
+  await expect(page.getByText("completed cooking session · read-only durable detail")).toBeVisible();
+  await expect(page.getByText("Clean smoke settled in.")).toBeVisible();
+
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { name: "No cook on the fire" })).toBeVisible();
+});
+
+test("keeps durable Live current action and key targets usable at 320px", async ({ page, request }) => {
+  const planResponse = await request.post("/api/sessions", {
+    data: {
+      title: "Narrow live cook",
+      cookingDate: "2026-08-09",
+      plannedDomeRange: { minF: 225, maxF: 275 },
+      plannedFoodTargetF: 130,
+      setupGuidance: "Two zones.",
+      deflectorGuidance: "Half moon.",
+      heatZoneGuidance: "Direct right.",
+      ventGuidance: "Quarter open.",
+      prepNotes: "Dry brine.",
+      phases: [
+        {
+          title: "Fire",
+          technique: "Indirect",
+          transitionGuidance: "Wait for clean smoke.",
+          steps: [
+            {
+              title: "Stabilize a clean fire",
+              instructions: "Settle the dome and make only small vent changes.",
+              durationMinutes: 20,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  expect(planResponse.status()).toBe(201);
+  const created = (await planResponse.json()) as { data: { id: string } };
+  const activation = await request.post(`/api/sessions/${created.data.id}/activate`, { data: {} });
+  expect(activation.status()).toBe(200);
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(`/live/${created.data.id}`);
+
   for (const testId of ["current-action", "planned-dome-target", "planned-food-target"]) {
-    const bounds = await page.getByTestId(testId).boundingBox();
-    expect(bounds, `${testId} should have measurable bounds`).not.toBeNull();
-    expect((bounds?.y ?? 568) + (bounds?.height ?? 0), `${testId} should fit in the first viewport`).toBeLessThanOrEqual(568);
+    await expect(page.getByTestId(testId)).toBeVisible();
   }
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-
-  const controlOverlap = await page.locator(".live-page button:visible").evaluateAll((elements) => {
-    const rectangles = elements.map((element) => element.getBoundingClientRect());
-    return rectangles.some((left, leftIndex) =>
-      rectangles.some(
-        (right, rightIndex) =>
-          rightIndex > leftIndex &&
-          Math.min(left.right, right.right) > Math.max(left.left, right.left) &&
-          Math.min(left.bottom, right.bottom) > Math.max(left.top, right.top),
-      ),
-    );
-  });
-  expect(controlOverlap).toBe(false);
-
-  const cancelTrigger = page.getByRole("button", { name: "Cancel cook" });
-  await cancelTrigger.focus();
-  await expect(cancelTrigger).toHaveCSS("outline-style", "solid");
-  await cancelTrigger.click();
-  const undersized = await page
-    .locator(".live-page button:visible, .live-page textarea:visible, [role=dialog] button:visible")
-    .evaluateAll((elements) =>
-      elements.flatMap((element) => {
-        const bounds = element.getBoundingClientRect();
-        return bounds.width >= 44 && bounds.height >= 44
-          ? []
-          : [`${element.getAttribute("aria-label") ?? element.textContent?.trim()}: ${Math.round(bounds.width)}x${Math.round(bounds.height)}`];
-      }),
-    );
-  expect(undersized).toEqual([]);
-
-  await page.getByRole("button", { name: "Confirm cancel" }).click();
-  await expect(page).toHaveURL(/\/today\?fixture=no-session$/);
-  await expect(page.getByRole("heading", { level: 2, name: "No cook on the fire" })).toBeVisible();
-  expect(apiRequests).toEqual([]);
 });

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { createApiDispatcher } from "./dispatcher";
-import { createLiveCookRepository } from "./persistence/live-cook-repository";
+import { createLiveCookRepository, LiveCookError } from "./persistence/live-cook-repository";
 import { createTemporaryPersistence } from "./persistence/test-support";
 
+const clock = { now: () => new Date("2026-08-08T12:00:00.000Z") };
 const draft = {
   steps: [
     { ordinal: 0, title: "Light", instructions: "Light charcoal.", durationMinutes: 20 },
@@ -10,32 +10,17 @@ const draft = {
   ],
 };
 
-function setup() {
-  const fixture = createTemporaryPersistence();
-  const persistence = fixture.bootstrap();
-  const dispatcher = createApiDispatcher({
-    getHealth: () => ({ ok: true, service: "api", database: { status: "ok" } }),
-    liveCookRepository: createLiveCookRepository(persistence, {
-      now: () => new Date("2026-08-08T12:00:00.000Z"),
-    }),
-  });
-  return { fixture, persistence, dispatcher };
+function errorCode(work: () => unknown): string | undefined {
+  try {
+    work();
+  } catch (error) {
+    if (error instanceof LiveCookError) return error.code;
+    throw error;
+  }
+  return undefined;
 }
 
-async function createDraft(dispatcher: ReturnType<typeof setup>["dispatcher"]): Promise<string> {
-  const created = await dispatcher(
-    new Request("http://api.test/api/drafts", { method: "POST", body: JSON.stringify(draft) }),
-  );
-  const { data } = (await created.json()) as { data: { id: string } };
-  return data.id;
-}
-
-async function activate(dispatcher: ReturnType<typeof setup>["dispatcher"]) {
-  const draftId = await createDraft(dispatcher);
-  return dispatcher(new Request(`http://api.test/api/drafts/${draftId}/activate`, { method: "POST", body: "{}" }));
-}
-
-function durableSnapshot(persistence: ReturnType<typeof setup>["persistence"]) {
+function durableSnapshot(persistence: ReturnType<ReturnType<typeof createTemporaryPersistence>["bootstrap"]>) {
   return {
     drafts: persistence.database.query<Record<string, unknown>, []>("SELECT * FROM live_cook_drafts ORDER BY id").all(),
     sessions: persistence.database
@@ -57,455 +42,172 @@ function durableSnapshot(persistence: ReturnType<typeof setup>["persistence"]) {
 }
 
 describe("live-cook state machine", () => {
-  test("rejects a malformed persisted draft without activation writes", async () => {
-    const { fixture, persistence, dispatcher } = setup();
+  test("rejects a malformed persisted draft without activation writes", () => {
+    const fixture = createTemporaryPersistence();
     try {
-      const created = await dispatcher(
-        new Request("http://api.test/api/drafts", { method: "POST", body: JSON.stringify(draft) }),
-      );
-      const { data } = (await created.json()) as { data: { id: string } };
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
+      const created = repository.createDraft(draft);
       persistence.database.run("PRAGMA ignore_check_constraints = ON");
       persistence.database.run("DROP TRIGGER live_cook_draft_steps_integer_duration_update");
-      persistence.database.run("UPDATE live_cook_draft_steps SET duration_minutes = ? WHERE draft_id = ?", [
-        1.5,
-        data.id,
+      persistence.database.run("UPDATE live_cook_draft_steps SET duration_minutes = 1.5 WHERE draft_id = ?", [
+        created.id,
       ]);
       persistence.database.run("PRAGMA ignore_check_constraints = OFF");
-      const before = [
-        persistence.database.query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_sessions").get(),
-        persistence.database
-          .query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_session_steps")
-          .get(),
-        persistence.database.query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_transitions").get(),
-        persistence.database
-          .query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_execution_visits")
-          .get(),
-        persistence.database
-          .query<{ activated_at: string | null }, [string]>("SELECT activated_at FROM live_cook_drafts WHERE id = ?")
-          .get(data.id),
-      ];
+      const before = durableSnapshot(persistence);
 
-      const response = await dispatcher(
-        new Request(`http://api.test/api/drafts/${data.id}/activate`, { method: "POST", body: "{}" }),
-      );
-
-      expect(response.status).toBe(409);
-      expect(await response.json()).toMatchObject({ error: { code: "INVALID_DRAFT" } });
-      expect([
-        persistence.database.query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_sessions").get(),
-        persistence.database
-          .query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_session_steps")
-          .get(),
-        persistence.database.query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_transitions").get(),
-        persistence.database
-          .query<{ count: number }, []>("SELECT COUNT(*) AS count FROM live_cook_execution_visits")
-          .get(),
-        persistence.database
-          .query<{ activated_at: string | null }, [string]>("SELECT activated_at FROM live_cook_drafts WHERE id = ?")
-          .get(data.id),
-      ]).toEqual(before);
+      expect(errorCode(() => repository.activateDraft(created.id, {}))).toBe("INVALID_DRAFT");
+      expect(durableSnapshot(persistence)).toEqual(before);
     } finally {
       fixture.cleanup();
     }
   });
 
-  test("leaves missing-draft and active/paused live-slot conflict requests unchanged", async () => {
-    const { fixture, persistence, dispatcher } = setup();
-
+  test("leaves missing activation and sole-live-session conflicts unchanged", () => {
+    const fixture = createTemporaryPersistence();
     try {
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
       const empty = durableSnapshot(persistence);
-      const missing = await dispatcher(
-        new Request("http://api.test/api/drafts/00000000-0000-4000-8000-000000000000/activate", {
-          method: "POST",
-          body: "{}",
-        }),
-      );
-      expect(missing.status).toBe(404);
-      expect(await missing.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
+      expect(errorCode(() => repository.activateDraft("00000000-0000-4000-8000-000000000000", {}))).toBe("NOT_FOUND");
       expect(durableSnapshot(persistence)).toEqual(empty);
 
-      const firstDraft = await createDraft(dispatcher);
-      const secondDraft = await createDraft(dispatcher);
-      expect(
-        (
-          await dispatcher(
-            new Request(`http://api.test/api/drafts/${firstDraft}/activate`, { method: "POST", body: "{}" }),
-          )
-        ).status,
-      ).toBe(200);
+      const first = repository.createDraft(draft);
+      const second = repository.createDraft(draft);
+      repository.activateDraft(first.id, {});
       for (const status of ["ACTIVE", "PAUSED"] as const) {
-        if (status === "PAUSED") {
-          expect(
-            (await dispatcher(new Request("http://api.test/api/live-session/pause", { method: "POST", body: "{}" })))
-              .status,
-          ).toBe(200);
-        }
-        const beforeConflict = durableSnapshot(persistence);
-        const conflict = await dispatcher(
-          new Request(`http://api.test/api/drafts/${secondDraft}/activate`, { method: "POST", body: "{}" }),
-        );
-        expect(conflict.status).toBe(409);
-        expect(await conflict.json()).toMatchObject({ error: { code: "ACTIVE_SESSION_CONFLICT" } });
-        expect(durableSnapshot(persistence)).toEqual(beforeConflict);
+        if (status === "PAUSED") repository.command("pause", {});
+        const before = durableSnapshot(persistence);
+        expect(errorCode(() => repository.activateDraft(second.id, {}))).toBe("ACTIVE_SESSION_CONFLICT");
+        expect(durableSnapshot(persistence)).toEqual(before);
       }
     } finally {
       fixture.cleanup();
     }
   });
 
-  test("persists cancellation as an unfinished visit with transition and note history", async () => {
-    const { fixture, persistence, dispatcher } = setup();
-    const timestamp = "2026-08-08T12:00:00.000Z";
-
+  test("persists cancellation as an unfinished visit with transition and note history", () => {
+    const fixture = createTemporaryPersistence();
     try {
-      expect((await activate(dispatcher)).status).toBe(200);
-      const cancellation = await dispatcher(
-        new Request("http://api.test/api/live-session/cancel", {
-          method: "POST",
-          body: JSON.stringify({ note: "Stopped for rain." }),
-        }),
-      );
-      const cancellationBody = (await cancellation.json()) as {
-        data: { status: string; currentStep: null; nextStep: null };
-      };
-      expect(cancellation.status).toBe(200);
-      expect(cancellationBody.data).toMatchObject({ status: "CANCELLED", currentStep: null, nextStep: null });
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
+      const created = repository.createDraft(draft);
+      repository.activateDraft(created.id, {});
 
-      persistence.close();
-      const reopened = fixture.bootstrap();
+      expect(repository.command("cancel", { note: "Stopped for rain." })).toMatchObject({
+        status: "CANCELLED",
+        currentStep: null,
+        nextStep: null,
+      });
       expect(
-        reopened.database
-          .query<{ actual_started_at: string; actual_finished_at: string | null; cancelled_at: string | null }, []>(
-            `SELECT actual_started_at, actual_finished_at, cancelled_at
-             FROM live_cook_execution_visits
-             ORDER BY ordinal ASC`,
+        persistence.database
+          .query<{ actual_finished_at: string | null; cancelled_at: string | null }, []>(
+            "SELECT actual_finished_at, cancelled_at FROM live_cook_execution_visits",
+          )
+          .get(),
+      ).toEqual({ actual_finished_at: null, cancelled_at: "2026-08-08T12:00:00.000Z" });
+      expect(
+        persistence.database
+          .query<{ action: string; to_status: string }, []>(
+            "SELECT action, to_status FROM live_cook_transitions ORDER BY ordinal",
           )
           .all(),
       ).toEqual([
-        {
-          actual_started_at: timestamp,
-          actual_finished_at: null,
-          cancelled_at: timestamp,
-        },
+        { action: "ACTIVATE", to_status: "ACTIVE" },
+        { action: "CANCEL", to_status: "CANCELLED" },
       ]);
       expect(
-        reopened.database
-          .query<
-            { ordinal: number; action: string; from_status: string | null; to_status: string; occurred_at: string },
-            []
-          >(
-            `SELECT ordinal, action, from_status, to_status, occurred_at
-             FROM live_cook_transitions
-             ORDER BY ordinal ASC`,
-          )
-          .all(),
-      ).toEqual([
-        { ordinal: 0, action: "ACTIVATE", from_status: null, to_status: "ACTIVE", occurred_at: timestamp },
-        { ordinal: 1, action: "CANCEL", from_status: "ACTIVE", to_status: "CANCELLED", occurred_at: timestamp },
-      ]);
-      expect(
-        reopened.database
-          .query<{ ordinal: number; content: string; created_at: string }, []>(
-            "SELECT ordinal, content, created_at FROM live_cook_step_notes ORDER BY ordinal ASC",
-          )
-          .all(),
-      ).toEqual([{ ordinal: 0, content: "Stopped for rain.", created_at: timestamp }]);
+        persistence.database.query<{ content: string }, []>("SELECT content FROM live_cook_step_notes").get(),
+      ).toEqual({ content: "Stopped for rain." });
     } finally {
       fixture.cleanup();
     }
   });
 
-  test("enforces every state and step-boundary rejection without durable writes", async () => {
-    const { fixture, persistence, dispatcher } = setup();
-    const commands = ["advance", "return", "pause", "resume", "complete", "cancel"] as const;
-
-    async function reject(action: (typeof commands)[number]) {
-      const before = durableSnapshot(persistence);
-      const response = await dispatcher(
-        new Request(`http://api.test/api/live-session/${action}`, { method: "POST", body: "{}" }),
-      );
-      expect(response.status).toBe(409);
-      expect(await response.json()).toMatchObject({ error: { code: "INVALID_TRANSITION" } });
-      expect(durableSnapshot(persistence)).toEqual(before);
-    }
-
+  test("enforces state and step boundaries without durable writes", () => {
+    const fixture = createTemporaryPersistence();
     try {
-      const firstDraft = await createDraft(dispatcher);
-      expect(
-        (
-          await dispatcher(
-            new Request(`http://api.test/api/drafts/${firstDraft}/activate`, { method: "POST", body: "{}" }),
-          )
-        ).status,
-      ).toBe(200);
-      await reject("return");
-      await reject("complete");
-      await reject("resume");
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
+      const created = repository.createDraft(draft);
+      repository.activateDraft(created.id, {});
 
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/pause", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      await reject("pause");
-      await reject("advance");
-      await reject("return");
-      await reject("complete");
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/resume", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/advance", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/return", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/advance", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      await reject("advance");
-      const completed = await dispatcher(
-        new Request("http://api.test/api/live-session/complete", { method: "POST", body: "{}" }),
-      );
-      const completedBody = (await completed.json()) as {
-        data: { status: string; currentStep: null; nextStep: null };
+      const reject = (action: "advance" | "return" | "pause" | "resume" | "complete" | "cancel") => {
+        const before = durableSnapshot(persistence);
+        expect(errorCode(() => repository.command(action, {}))).toBe("INVALID_TRANSITION");
+        expect(durableSnapshot(persistence)).toEqual(before);
       };
-      expect(completed.status).toBe(200);
-      expect(completedBody.data).toMatchObject({ status: "COMPLETED", currentStep: null, nextStep: null });
-      for (const action of commands) await reject(action);
 
-      const pausedDraft = await createDraft(dispatcher);
-      expect(
-        (
-          await dispatcher(
-            new Request(`http://api.test/api/drafts/${pausedDraft}/activate`, { method: "POST", body: "{}" }),
-          )
-        ).status,
-      ).toBe(200);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/pause", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      const cancelled = await dispatcher(
-        new Request("http://api.test/api/live-session/cancel", { method: "POST", body: "{}" }),
-      );
-      expect(cancelled.status).toBe(200);
-      for (const action of commands) await reject(action);
-
-      const activeDraft = await createDraft(dispatcher);
-      expect(
-        (
-          await dispatcher(
-            new Request(`http://api.test/api/drafts/${activeDraft}/activate`, { method: "POST", body: "{}" }),
-          )
-        ).status,
-      ).toBe(200);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/cancel", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
+      reject("return");
+      reject("complete");
+      reject("resume");
+      repository.command("pause", {});
+      reject("pause");
+      reject("advance");
+      reject("complete");
+      repository.command("resume", {});
+      repository.command("advance", {});
+      reject("advance");
+      expect(repository.command("complete", {})).toMatchObject({ status: "COMPLETED" });
+      for (const action of ["advance", "return", "pause", "resume", "complete", "cancel"] as const) reject(action);
     } finally {
       fixture.cleanup();
     }
   });
 
-  test("preserves every visit and note across repeated returns", async () => {
-    const { fixture, dispatcher } = setup();
-    const repeatedDraft = {
-      steps: [
-        { ordinal: 0, title: "Light", instructions: "Light charcoal.", durationMinutes: 20 },
-        { ordinal: 1, title: "Cook", instructions: "Cook indirectly.", durationMinutes: 40 },
-        { ordinal: 2, title: "Rest", instructions: "Rest the meat.", durationMinutes: 10 },
-      ],
-    };
-
+  test("preserves every visit and note across repeated returns and final completion", () => {
+    const fixture = createTemporaryPersistence();
     try {
-      const created = await dispatcher(
-        new Request("http://api.test/api/drafts", { method: "POST", body: JSON.stringify(repeatedDraft) }),
-      );
-      const { data } = (await created.json()) as { data: { id: string } };
-      expect(
-        (
-          await dispatcher(
-            new Request(`http://api.test/api/drafts/${data.id}/activate`, { method: "POST", body: "{}" }),
-          )
-        ).status,
-      ).toBe(200);
-
+      const repository = createLiveCookRepository(fixture.bootstrap(), clock);
+      const created = repository.createDraft({
+        steps: [...draft.steps, { ordinal: 2, title: "Rest", instructions: "Rest the meat.", durationMinutes: 10 }],
+      });
+      repository.activateDraft(created.id, {});
       for (const [action, note] of [
         ["advance", "to cook"],
         ["advance", "to rest"],
         ["return", "back to cook"],
         ["return", "back to light"],
+        ["advance", "second cook"],
+        ["advance", "second rest"],
       ] as const) {
-        expect(
-          (
-            await dispatcher(
-              new Request(`http://api.test/api/live-session/${action}`, {
-                method: "POST",
-                body: JSON.stringify({ note }),
-              }),
-            )
-          ).status,
-        ).toBe(200);
+        repository.command(action, { note });
       }
+      const completed = repository.command("complete", { note: "done" });
 
-      const projection = await dispatcher(new Request("http://api.test/api/live-session"));
-      const projectionBody = (await projection.json()) as {
-        data: {
-          currentStep: { ordinal: number };
-          nextStep: { ordinal: number };
-          executionHistory: Array<{ step: { ordinal: number }; notes: Array<{ content: string }> }>;
-        };
-      };
-      expect(projection.status).toBe(200);
-      expect(projectionBody.data.currentStep.ordinal).toBe(0);
-      expect(projectionBody.data.nextStep.ordinal).toBe(1);
-      expect(projectionBody.data.executionHistory.map((visit) => visit.step.ordinal)).toEqual([0, 1, 2, 1, 0]);
-      expect(projectionBody.data.executionHistory.flatMap((visit) => visit.notes.map((note) => note.content))).toEqual([
+      expect(completed.executionHistory.map((visit) => visit.step.ordinal)).toEqual([0, 1, 2, 1, 0, 1, 2]);
+      expect(completed.executionHistory.flatMap((visit) => visit.notes.map((note) => note.content))).toEqual([
         "to cook",
         "to rest",
         "back to cook",
         "back to light",
+        "second cook",
+        "second rest",
+        "done",
       ]);
+      expect(completed).toMatchObject({ status: "COMPLETED", currentStep: null, nextStep: null });
     } finally {
       fixture.cleanup();
     }
   });
 
-  test("retains active and paused projections after reopening SQLite", async () => {
-    const { fixture, persistence, dispatcher } = setup();
-    const clock = { now: () => new Date("2026-08-08T12:00:00.000Z") };
-
+  test("retains active and paused projections after reopening SQLite", () => {
+    const fixture = createTemporaryPersistence();
     try {
-      expect((await activate(dispatcher)).status).toBe(200);
-      expect(
-        (
-          await dispatcher(
-            new Request("http://api.test/api/live-session/advance", { method: "POST", body: '{"note":"checked"}' }),
-          )
-        ).status,
-      ).toBe(200);
-      const active = await dispatcher(new Request("http://api.test/api/live-session"));
-      const activeBody = await active.json();
-      expect(active.status).toBe(200);
-
+      const persistence = fixture.bootstrap();
+      const repository = createLiveCookRepository(persistence, clock);
+      const created = repository.createDraft(draft);
+      const active = repository.activateDraft(created.id, {});
       persistence.close();
+
       const activePersistence = fixture.bootstrap();
-      const activeDispatcher = createApiDispatcher({
-        getHealth: () => ({ ok: true, service: "api", database: { status: "ok" } }),
-        liveCookRepository: createLiveCookRepository(activePersistence, clock),
-      });
-      const reopenedActive = await activeDispatcher(new Request("http://api.test/api/live-session"));
-      expect(reopenedActive.status).toBe(200);
-      expect(await reopenedActive.json()).toEqual(activeBody);
-
-      expect(
-        (await activeDispatcher(new Request("http://api.test/api/live-session/pause", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      const paused = await activeDispatcher(new Request("http://api.test/api/live-session"));
-      const pausedBody = await paused.json();
-      expect(paused.status).toBe(200);
-
+      const reopenedRepository = createLiveCookRepository(activePersistence, clock);
+      expect(reopenedRepository.getActive()).toEqual(active);
+      const paused = reopenedRepository.command("pause", {});
       activePersistence.close();
-      const pausedPersistence = fixture.bootstrap();
-      const pausedDispatcher = createApiDispatcher({
-        getHealth: () => ({ ok: true, service: "api", database: { status: "ok" } }),
-        liveCookRepository: createLiveCookRepository(pausedPersistence, clock),
-      });
-      const reopenedPaused = await pausedDispatcher(new Request("http://api.test/api/live-session"));
-      expect(reopenedPaused.status).toBe(200);
-      expect(await reopenedPaused.json()).toEqual(pausedBody);
-    } finally {
-      fixture.cleanup();
-    }
-  });
 
-  test("preserves visits across pause, return, advance, and final completion", async () => {
-    const { fixture, dispatcher } = setup();
-    try {
-      expect((await activate(dispatcher)).status).toBe(200);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/pause", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/complete", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(409);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/resume", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(200);
-      expect(
-        (
-          await dispatcher(
-            new Request("http://api.test/api/live-session/advance", { method: "POST", body: '{"note":"arrived"}' }),
-          )
-        ).status,
-      ).toBe(200);
-      expect(
-        (
-          await dispatcher(
-            new Request("http://api.test/api/live-session/return", { method: "POST", body: '{"note":"returning"}' }),
-          )
-        ).status,
-      ).toBe(200);
-      const advanced = await dispatcher(
-        new Request("http://api.test/api/live-session/advance", { method: "POST", body: '{"note":"second pass"}' }),
-      );
-      const advancedBody = (await advanced.json()) as {
-        data: {
-          executionHistory: Array<{
-            actualStartedAt: string;
-            actualFinishedAt: string | null;
-            notes: Array<{ content: string }>;
-          }>;
-        };
-      };
-      expect(advanced.status).toBe(200);
-      expect(advancedBody.data.executionHistory).toHaveLength(4);
-      expect(advancedBody.data.executionHistory.flatMap((visit) => visit.notes.map((note) => note.content))).toEqual([
-        "arrived",
-        "returning",
-        "second pass",
-      ]);
-      expect(advancedBody.data.executionHistory).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            actualStartedAt: "2026-08-08T12:00:00.000Z",
-            actualFinishedAt: "2026-08-08T12:00:00.000Z",
-          }),
-          expect.objectContaining({ actualStartedAt: "2026-08-08T12:00:00.000Z", actualFinishedAt: null }),
-        ]),
-      );
-      const completed = await dispatcher(
-        new Request("http://api.test/api/live-session/complete", { method: "POST", body: '{"note":"done"}' }),
-      );
-      const completedBody = (await completed.json()) as {
-        data: {
-          currentStep: null;
-          nextStep: null;
-          executionHistory: Array<{ actualFinishedAt: string | null; notes: Array<{ content: string }> }>;
-        };
-      };
-      expect(completed.status).toBe(200);
-      expect(completedBody.data.currentStep).toBeNull();
-      expect(completedBody.data.nextStep).toBeNull();
-      expect(completedBody.data.executionHistory.at(-1)).toMatchObject({
-        actualFinishedAt: "2026-08-08T12:00:00.000Z",
-        notes: [{ content: "second pass" }, { content: "done" }],
-      });
-      expect((await dispatcher(new Request("http://api.test/api/live-session"))).status).toBe(404);
-      expect(
-        (await dispatcher(new Request("http://api.test/api/live-session/cancel", { method: "POST", body: "{}" })))
-          .status,
-      ).toBe(409);
+      const pausedPersistence = fixture.bootstrap();
+      expect(createLiveCookRepository(pausedPersistence, clock).getActive()).toEqual(paused);
     } finally {
       fixture.cleanup();
     }

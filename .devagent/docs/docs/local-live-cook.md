@@ -1,57 +1,44 @@
-# Local Today and Live Cook
+# Today and Live Cook
 
-Today and Live provide a deterministic outdoor cook walkthrough backed by mounted local fixtures. The backend now persists draft cooking sessions, but these views do not call that API: the Vue SPA owns their fixture lifecycle and the generated `SessionPlan` model statically checks fixture data.
+Today and Live execute the persisted cooking-session contract. Today resolves active state before eligible drafts; Live reads and mutates one ID-addressed durable projection that remains reloadable after completion or cancellation.
 
-## Route and fixture boundary
+## Today: active first
 
-`frontend/src/router.ts` mounts Today and Live through `frontend/src/components/ProductShell.vue`. The shell creates one `frontend/src/features/session/controller.ts` instance, so navigation from Today to Live preserves the mounted cook while refresh recreates the selected fixture baseline.
+`frontend/src/views/TodayView.vue` first queries `/api/live-sessions/active`.
 
-Use the local-only selector to inspect each state:
+1. An `ACTIVE` or `PAUSED` result offers continuation to `/live/{sessionId}`.
+2. Explicit `204` absence enables the eligible-draft query.
+3. Zero eligible drafts offers Plan.
+4. One or more drafts are displayed as explicit choices; no draft is silently selected or activated.
+5. Activation navigates only after backend confirmation.
 
-| URL | State |
-| --- | --- |
-| `/today?fixture=no-session` | Empty Today entry with a Plan action |
-| `/today?fixture=draft` | Planned session ready to start |
-| `/today?fixture=active-running` | Running session ready to continue |
-| `/today?fixture=active-paused` | Paused session ready to resume |
-| `/live?fixture=active-running` | Running Live guidance baseline |
-| `/live?fixture=active-paused` | Paused Live guidance baseline |
+Active-query failure is never rendered as empty state. Eligible-query failure is distinct and retryable.
 
-Unsupported selectors resolve to no session. Fixtures do not fetch, import a generated runtime client, use browser storage, or persist edits.
+## Live: durable ID-addressed execution
 
-## Contract and controller ownership
+`frontend/src/views/LiveView.vue` loads `/api/live-sessions/{sessionId}` directly. This route supports browser reload for active, paused, completed, and cancelled sessions. Current action, current and next step, planned targets, setup/deflector/heat-zone/vent guidance, timing, progress, status, and notes come from the backend projection.
 
-`frontend/src/features/session/fixtures.ts` checks its durable plan seed with the generated `SessionPlan` type from `frontend/src/api/generated/types.gen.ts` and clones it for each mounted flow. That local model comes from the standalone schema in `backend/src/contract.ts`; it is separate from the generated `/api/sessions` transport models, and generated files remain read-only.
+Pause, resume, return, advance, note, cancel, and complete are pessimistic generated-client mutations. Pending controls reject duplicate submission. A rejection retains prior visible state, preserves entered note text, shows corrective guidance, and refetches authoritative keys when state may have changed.
 
-The local controller separately owns fields that are not transport data:
+Notes are persisted against the current execution visit. Successful note creation clears the local input only after backend confirmation; persisted notes survive reload.
 
-- selected fixture and lifecycle kind;
-- running or paused state and mounted elapsed accounting;
-- current ordered step;
-- session note text;
-- terminal transitions.
+## Terminal detail
 
-Elapsed time advances only while running and its interval is cleared with ProductShell. Back and Advance enforce first and final boundaries. Confirmed Finish and Cancel both reset the controller and return to Today's no-session state; dialog dismissal changes nothing.
+Completion and cancellation retain the session ID and current URL. The terminal projection is read-only, contains final execution history and notes, and does not depend on active lookup. Active lookup correctly returns `204` after terminal transition.
 
-## Guidance semantics
+The Live layout keeps current action and planned dome/food targets readable at 320px without page-level horizontal overflow.
 
-Live presents the complete current instruction and both planned Fahrenheit targets before supporting setup, vent guidance, timing, progress, next-step, note, and terminal controls. Targets are planning values, not measured readings, connected probes, or controller telemetry.
-
-The 320-by-568 acceptance boundary includes the mobile ProductShell header. Browser tests measure the action and both planned targets against the real viewport, verify no page-level horizontal overflow, and require 44-by-44-pixel primary and confirmation controls.
+Production no longer contains mounted session controllers, runtime fixture selectors, or `?fixture=` route branches.
 
 ## Verification
 
-Behavior coverage lives in:
-
-- `frontend/src/features/session/controller.test.ts` for fixture initialization, mounted timing, bounded navigation, note retention, and terminal reset;
-- `e2e/session-flow.spec.ts` for direct fixtures, Today-to-Live transitions, timer behavior, dialogs, focus restoration, narrow-viewport geometry, and no API requests;
-- existing shell, Plan, and showcase suites for route regressions.
-
-Run `scripts/check`, `scripts/test`, `scripts/build`, and `scripts/precommit-run` before changing this boundary.
+- `frontend/src/api/sessions.test.ts` covers success, structured rejection, and authoritative cache reconciliation.
+- `backend/src/durable-session-workflow.test.ts` covers ID-addressed notes, transitions, completion, and terminal reload semantics.
+- `e2e/session-flow.spec.ts` covers explicit activation, durable reloads, a recoverable stale-state rejection, notes, advance, completion, direct final reload, and 320px rendering.
 
 ## Related pages
 
-- [Cooking and Live-Cook APIs](./cooking-session-api.md) — durable draft aggregate and persistence semantics.
-- [Local Plan Page](./local-plan.md) — canonical `SessionPlan` contract and local Plan lifecycle.
-- [Architecture Diagrams](./architecture.mdx) — frontend route and local-controller boundaries.
-- [Tech Stack](./tech-stack.md) — Vue, generated API, and verification ownership.
+- [Durable Cooking-Session API](./cooking-session-api.md) — route and persistence contract.
+- [Durable Plan Page](./local-plan.md) — complete ordered draft creation.
+- [Compose Development](./compose-development.md) — isolated real-API Playwright topology.
+- [Architecture Diagrams](./architecture.mdx) — current route and data-flow model.

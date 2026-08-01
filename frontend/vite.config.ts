@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ["frontend"],
+    allowedHosts: ["frontend", "frontend-e2e"],
     proxy: {
       "/api": resolveApiProxyTarget(process.env),
     },

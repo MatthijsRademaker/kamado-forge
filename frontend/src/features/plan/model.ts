@@ -1,4 +1,9 @@
-import type { SessionPlan, SessionPlanPhase, SessionPlanStep } from "@/api/generated/types.gen";
+import type {
+  PlanEditorForm,
+  PlanEditorModel as SessionPlan,
+  PlanEditorPhase as SessionPlanPhase,
+  PlanEditorStep as SessionPlanStep,
+} from "./draft";
 
 interface ReadinessError {
   path: string;
@@ -38,7 +43,7 @@ export function deriveTimeline(plan: SessionPlan) {
   return { totalMinutes: planOffsetMinutes, phases };
 }
 
-export function validateReadiness(plan: SessionPlan): ReadinessResult {
+export function validateReadiness(plan: SessionPlan | PlanEditorForm): ReadinessResult {
   const errors: ReadinessError[] = [];
   const requireText = (path: string, value: string, label: string, maximumLength?: number) => {
     const length = value.trim().length;
@@ -86,6 +91,18 @@ export function validateReadiness(plan: SessionPlan): ReadinessResult {
     700,
     "Planned dome target",
   );
+  if ("plannedDomeMaxF" in plan) {
+    requireIntegerInRange(errors, "plannedDomeMaxF", plan.plannedDomeMaxF, 150, 700, "Planned dome maximum");
+    if (
+      plan.plannedDomeTarget.value !== null &&
+      plan.plannedDomeMaxF !== null &&
+      plan.plannedDomeTarget.value > plan.plannedDomeMaxF
+    ) {
+      errors.push({ path: "plannedDomeMaxF", message: "Planned dome maximum must not be below the minimum." });
+    }
+    requireText("deflectorGuidance", plan.deflectorGuidance, "Deflector guidance");
+    requireText("heatZoneGuidance", plan.heatZoneGuidance, "Heat-zone guidance");
+  }
   requireIntegerInRange(
     errors,
     "plannedFoodTarget.value",

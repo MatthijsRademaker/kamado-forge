@@ -1,4 +1,5 @@
 import { z } from "./schema";
+import { sessionIdParamsSchema, sessionReadSchema } from "./session-contract";
 
 const requiredTextSchema = z
   .string()
@@ -33,7 +34,7 @@ const plannedStepFields = {
 };
 const plannedStepWriteSchema = z.object(plannedStepFields).strict().openapi("LiveCookPlannedStepWrite");
 
-export const createLiveDraftBodySchema = z
+const createLiveDraftBodySchema = z
   .object({
     steps: z.array(plannedStepWriteSchema).min(1),
   })
@@ -63,28 +64,14 @@ const liveDraftSchema = z
   .strict()
   .openapi("LiveCookDraft");
 
-export const liveDraftSuccessSchema = z.object({ data: liveDraftSchema }).strict().openapi("LiveCookDraftSuccess");
-
 const liveCookQuerySchema = z.object({}).strict().openapi("LiveCookQuery");
-
-export const createLiveDraftRoute = {
-  method: "POST",
-  runtimePath: "/api/drafts",
-  openApiPath: "/drafts",
-  operationId: "createLiveCookDraft",
-  summary: "Create an ordered live-cook draft",
-  querySchema: liveCookQuerySchema,
-  bodySchema: createLiveDraftBodySchema,
-  responses: {
-    201: liveDraftSuccessSchema,
-    ...liveCookErrorResponses,
-  },
-} as const;
 
 const liveCookCommandBodySchema = z
   .object({ note: requiredTextSchema.optional() })
   .strict()
   .openapi("LiveCookCommandRequest");
+
+const liveCookNoteBodySchema = z.object({ note: requiredTextSchema }).strict().openapi("LiveCookNoteRequest");
 
 const liveSessionStatusSchema = z.enum(["ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"]).openapi("LiveCookSessionStatus");
 
@@ -129,6 +116,7 @@ const liveCookProjectionSchema = z
     id: opaqueIdSchema,
     status: liveSessionStatusSchema,
     activatedAt: utcTimestampSchema,
+    plan: sessionReadSchema.optional(),
     currentStep: nullableCurrentStepSchema,
     nextStep: nullableNextStepSchema,
     executionHistory: z.array(executionVisitSchema),
@@ -141,16 +129,14 @@ export const liveCookSuccessSchema = z
   .strict()
   .openapi("LiveCookSessionSuccess");
 
-const liveDraftIdParamsSchema = z.object({ draftId: opaqueIdSchema }).strict().openapi("LiveCookDraftIdParams");
-
-export const activateLiveDraftRoute = {
+export const activateCookingSessionRoute = {
   method: "POST",
-  runtimePath: "/api/drafts/:draftId/activate",
-  openApiPath: "/drafts/{draftId}/activate",
-  operationId: "activateLiveCookDraft",
-  summary: "Activate a live-cook draft",
+  runtimePath: "/api/sessions/:sessionId/activate",
+  openApiPath: "/sessions/{sessionId}/activate",
+  operationId: "activateCookingSession",
+  summary: "Activate a persisted cooking session",
   querySchema: liveCookQuerySchema,
-  paramsSchema: liveDraftIdParamsSchema,
+  paramsSchema: sessionIdParamsSchema,
   bodySchema: liveCookCommandBodySchema,
   responses: {
     200: liveCookSuccessSchema,
@@ -160,46 +146,64 @@ export const activateLiveDraftRoute = {
 
 const noNoteCommandBodySchema = z.object({}).strict().openapi("LiveCookStatusCommandRequest");
 
-function liveSessionCommandRoute(action: "advance" | "return" | "pause" | "resume" | "complete" | "cancel") {
+export const getLiveCookingSessionRoute = {
+  method: "GET",
+  runtimePath: "/api/live-sessions/:sessionId",
+  openApiPath: "/live-sessions/{sessionId}",
+  operationId: "getLiveCookingSession",
+  summary: "Get a live or terminal cooking session",
+  querySchema: liveCookQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  responses: { 200: liveCookSuccessSchema, ...liveCookErrorResponses },
+} as const;
+
+export const addLiveCookingSessionNoteRoute = {
+  method: "POST",
+  runtimePath: "/api/live-sessions/:sessionId/notes",
+  openApiPath: "/live-sessions/{sessionId}/notes",
+  operationId: "addLiveCookingSessionNote",
+  summary: "Add a note to the current cooking step",
+  querySchema: liveCookQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  bodySchema: liveCookNoteBodySchema,
+  responses: { 200: liveCookSuccessSchema, ...liveCookErrorResponses },
+} as const;
+
+function cookingSessionCommandRoute(action: "advance" | "return" | "pause" | "resume" | "complete" | "cancel") {
   const acceptsNote = action === "advance" || action === "return" || action === "complete" || action === "cancel";
   return {
     method: "POST",
-    runtimePath: `/api/live-session/${action}`,
-    openApiPath: `/live-session/${action}`,
-    operationId: `${action}LiveCookSession`,
-    summary: `${action[0]?.toUpperCase()}${action.slice(1)} the live-cook session`,
+    runtimePath: `/api/live-sessions/:sessionId/${action}`,
+    openApiPath: `/live-sessions/{sessionId}/${action}`,
+    operationId: `${action}CookingSession`,
+    summary: `${action[0]?.toUpperCase()}${action.slice(1)} the cooking session`,
     querySchema: liveCookQuerySchema,
+    paramsSchema: sessionIdParamsSchema,
     bodySchema: acceptsNote ? liveCookCommandBodySchema : noNoteCommandBodySchema,
     responses: { 200: liveCookSuccessSchema, ...liveCookErrorResponses },
   } as const;
 }
 
-export const getActiveLiveSessionRoute = {
+export const cookingSessionCommandRoutes = {
+  advance: cookingSessionCommandRoute("advance"),
+  return: cookingSessionCommandRoute("return"),
+  pause: cookingSessionCommandRoute("pause"),
+  resume: cookingSessionCommandRoute("resume"),
+  complete: cookingSessionCommandRoute("complete"),
+  cancel: cookingSessionCommandRoute("cancel"),
+} as const;
+
+export const findActiveCookingSessionRoute = {
   method: "GET",
-  runtimePath: "/api/live-session",
-  openApiPath: "/live-session",
-  operationId: "getActiveLiveCookSession",
-  summary: "Get the active live-cook session",
+  runtimePath: "/api/live-sessions/active",
+  openApiPath: "/live-sessions/active",
+  operationId: "findActiveCookingSession",
+  summary: "Find the active cooking session",
   querySchema: liveCookQuerySchema,
-  responses: { 200: liveCookSuccessSchema, ...liveCookErrorResponses },
-} as const;
-export const advanceLiveSessionRoute = liveSessionCommandRoute("advance");
-export const returnLiveSessionRoute = liveSessionCommandRoute("return");
-export const pauseLiveSessionRoute = liveSessionCommandRoute("pause");
-export const resumeLiveSessionRoute = liveSessionCommandRoute("resume");
-export const completeLiveSessionRoute = liveSessionCommandRoute("complete");
-export const cancelLiveSessionRoute = liveSessionCommandRoute("cancel");
-
-export const liveSessionCommandRoutes = {
-  advance: advanceLiveSessionRoute,
-  return: returnLiveSessionRoute,
-  pause: pauseLiveSessionRoute,
-  resume: resumeLiveSessionRoute,
-  complete: completeLiveSessionRoute,
-  cancel: cancelLiveSessionRoute,
+  responses: { 200: liveCookSuccessSchema, 204: null, ...liveCookErrorResponses },
 } as const;
 
-export type LiveCookAction = keyof typeof liveSessionCommandRoutes;
+export type LiveCookAction = keyof typeof cookingSessionCommandRoutes;
 export type CreateLiveDraft = z.infer<typeof createLiveDraftBodySchema>;
 export type LiveCookCommand = z.infer<typeof liveCookCommandBodySchema>;
 export type LiveCookDraft = z.infer<typeof liveDraftSchema>;

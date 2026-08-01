@@ -5,7 +5,7 @@ import {
   type RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import type { ZodType } from "zod";
-import { apiRouteRegistry, sessionPlanSchema } from "./contract";
+import { apiRouteRegistry } from "./contract";
 
 const JSON_CONTENT_TYPE = "application/json" as const;
 const RESPONSE_DESCRIPTIONS: Readonly<Record<number, string>> = {
@@ -33,8 +33,6 @@ interface DocumentedRoute {
 
 export function buildOpenApiDocument() {
   const registry = new OpenAPIRegistry();
-
-  registry.register("SessionPlan", sessionPlanSchema);
 
   for (const route of apiRouteRegistry as readonly DocumentedRoute[]) {
     const request: RouteRequest = { query: route.querySchema };

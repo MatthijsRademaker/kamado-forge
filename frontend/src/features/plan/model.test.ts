@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { SessionPlan } from "@/api/generated/types.gen";
+import type { PlanEditorModel as SessionPlan } from "./draft";
 import {
   addPhase,
   addStep,

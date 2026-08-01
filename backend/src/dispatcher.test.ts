@@ -210,6 +210,9 @@ describe("API dispatcher", () => {
         async list() {
           return synchronousRepository.list();
         },
+        async listEligible() {
+          return synchronousRepository.listEligible();
+        },
         async update(id, draft) {
           return synchronousRepository.update(id, draft);
         },

@@ -59,30 +59,33 @@ describe("OpenAPI generation", () => {
     expect(Object.keys(document.paths?.["/health"]?.get?.responses ?? {})).toEqual(["200", "400", "404", "405"]);
   });
 
-  test("publishes the local plan model and every live-cook operation", () => {
+  test("publishes every durable cooking-session operation", () => {
     const document = buildOpenApiDocument();
 
-    expect(document.components?.schemas?.SessionPlan).toBeDefined();
     expect(Object.keys(document.paths ?? {})).toEqual([
       "/health",
       "/sessions",
+      "/sessions/eligible",
       "/sessions/{sessionId}",
-      "/drafts",
-      "/drafts/{draftId}/activate",
-      "/live-session",
-      "/live-session/advance",
-      "/live-session/return",
-      "/live-session/pause",
-      "/live-session/resume",
-      "/live-session/complete",
-      "/live-session/cancel",
+      "/sessions/{sessionId}/activate",
+      "/live-sessions/active",
+      "/live-sessions/{sessionId}",
+      "/live-sessions/{sessionId}/notes",
+      "/live-sessions/{sessionId}/advance",
+      "/live-sessions/{sessionId}/return",
+      "/live-sessions/{sessionId}/pause",
+      "/live-sessions/{sessionId}/resume",
+      "/live-sessions/{sessionId}/complete",
+      "/live-sessions/{sessionId}/cancel",
     ]);
     expect(document.paths?.["/sessions"]?.post?.operationId).toBe("createCookingSession");
+    expect(document.paths?.["/sessions/eligible"]?.get?.operationId).toBe("listEligibleCookingSessions");
     expect(document.paths?.["/sessions/{sessionId}"]?.delete?.operationId).toBe("deleteCookingSession");
-    expect(document.paths?.["/drafts"]?.post?.operationId).toBe("createLiveCookDraft");
-    expect(document.paths?.["/drafts/{draftId}/activate"]?.post?.operationId).toBe("activateLiveCookDraft");
-    expect(document.paths?.["/live-session"]?.get?.operationId).toBe("getActiveLiveCookSession");
-    expect(document.paths?.["/live-session/complete"]?.post?.responses[200]).toBeDefined();
+    expect(document.paths?.["/sessions/{sessionId}/activate"]?.post?.operationId).toBe("activateCookingSession");
+    expect(document.paths?.["/live-sessions/active"]?.get?.responses[204]).toBeDefined();
+    expect(document.paths?.["/live-sessions/{sessionId}"]?.get?.operationId).toBe("getLiveCookingSession");
+    expect(document.paths?.["/live-sessions/{sessionId}/notes"]?.post?.operationId).toBe("addLiveCookingSessionNote");
+    expect(document.paths?.["/live-sessions/{sessionId}/complete"]?.post?.responses[200]).toBeDefined();
   });
 
   test("represents terminal current and next steps as nullable components", () => {

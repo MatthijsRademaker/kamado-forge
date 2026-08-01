@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const productRoutes = [
   { heading: "Today", path: "/today" },
-  { heading: "Reverse-sear steak night", path: "/plan" },
+  { heading: "Plan the fire", path: "/plan" },
   { heading: "Coach", path: "/coach" },
   { heading: "Learn", path: "/learn" },
   { heading: "Logbook", path: "/logbook" },

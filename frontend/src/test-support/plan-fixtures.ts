@@ -1,9 +1,9 @@
-import type { SessionPlan } from "@/api/generated/types.gen";
+import type { PlanEditorModel as SessionPlan } from "@/features/plan/draft";
 
 type FixtureName = "complete" | "incomplete" | "empty" | "loading" | "error";
 type DataFixtureName = Extract<FixtureName, "complete" | "incomplete" | "empty">;
 
-export type PlanFixtureState =
+type PlanFixtureState =
   | { kind: "draft"; fixture: DataFixtureName; draft: SessionPlan }
   | { kind: "empty"; fixture: "empty"; draft: SessionPlan }
   | { kind: "loading"; fixture: "loading" }

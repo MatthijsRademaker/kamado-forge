@@ -1,71 +1,58 @@
 # Compose Development
 
-`compose.yaml` runs mounted-source frontend and backend development services with Docker-managed dependencies and SQLite data. It is a development and E2E topology, not production packaging, immutable application images, or deployment configuration.
+`compose.yaml` provides mounted-source development services and a separate isolated full-stack E2E topology. Development SQLite is durable; E2E SQLite exists only inside its ephemeral backend container.
 
-## Topology
+## Development topology
 
-| Service | Role | Host port | Health check |
+| Service | Role | Host port | State |
 | --- | --- | --- | --- |
-| `frontend` | Vite dev server; proxies relative `/api` to `backend` | `5173` | `http://127.0.0.1:5173/` |
-| `backend` | Bun watch process and API | `3000` | `http://127.0.0.1:3000/api/health` |
-| `dependencies` | Lockfile-respecting one-shot Bun install | None | Completes before runtime services start |
-| `e2e` | Opt-in Playwright runner | None | Starts only through `e2e` profile |
-
-Both runtime services bind-mount repository source at `/workspace`. `dependencies` owns root `node_modules` in Docker volume `dependencies`, so host dependencies never replace Linux container dependencies. Bun download cache uses `bun-cache`; backend SQLite uses durable `development-data` mounted at `/data` as `/data/app.sqlite`.
-
-Vite keeps `http://localhost:3000` as host-development `/api` proxy default. Compose sets `API_PROXY_TARGET=http://backend:3000`, so browser requests remain relative while Vite resolves API service DNS inside Compose.
-
-## Development lifecycle
-
-Start and wait for frontend and backend health:
+| `frontend` | Vite dev server; proxies relative `/api` to `backend` | `5173` | Mounted source |
+| `backend` | Bun API/watch process | `3000` | `development-data` SQLite volume |
+| `dependencies` | Frozen-lockfile Bun install | None | Shared dependency/cache volumes |
 
 ```bash
 docker compose up -d --wait
-```
-
-Inspect services or follow watch output:
-
-```bash
-docker compose ps
 docker compose logs -f frontend backend
-```
-
-Stop services while preserving dependency cache and development SQLite data:
-
-```bash
 docker compose down
 ```
 
-Reset all Compose development state, including persisted SQLite data:
+`API_PROXY_TARGET=http://backend:3000` keeps browser requests relative. `DATABASE_PATH=/data/app.sqlite` points development at the durable `development-data` volume.
+
+## Isolated browser verification
+
+The `e2e` profile uses separate `backend-e2e` and `frontend-e2e` services:
+
+- `backend-e2e` stores SQLite at `/tmp/kamado-e2e.sqlite` inside an ephemeral container;
+- `frontend-e2e` proxies `/api` to `backend-e2e`;
+- `e2e` runs Playwright against `http://frontend-e2e:5173` with one worker;
+- teardown removes containers, network, and volumes.
+
+`scripts/test` assigns a unique Compose project, starts the profile, returns the Playwright exit code, and always tears the project down. Each run therefore starts from an empty database while still proving persistence across browser reloads inside that run.
 
 ```bash
-docker compose down --volumes --remove-orphans
+scripts/test
 ```
 
-Source edits are bind-mounted. Existing Vite and Bun watch commands reload without an application image rebuild.
-
-## Isolated browser E2E lifecycle
-
-Use explicit project name `kamado-e2e`; its services, network, and volumes cannot share default development state:
+For focused manual E2E execution:
 
 ```bash
-docker compose -p kamado-e2e up -d --wait backend frontend
-docker compose -p kamado-e2e --profile e2e run --rm --no-deps e2e
-docker compose -p kamado-e2e down --volumes --remove-orphans
+COMPOSE_PROJECT_NAME=kamado-e2e docker compose --profile e2e up --abort-on-container-exit --exit-code-from e2e e2e
+docker compose -p kamado-e2e --profile e2e down --volumes --remove-orphans
 ```
 
-First command waits for backend and frontend health. Second runs full Playwright suite on Compose network with `PLAYWRIGHT_BASE_URL=http://frontend:5173`; it does not start local Vite and returns Playwright exit code. Suite includes browser-origin relative `/api/health` assertion with exact successful health payload. Final command removes only `kamado-e2e` services, network, and volumes.
+Do not point browser acceptance tests at the durable development `backend` service. Shared data makes create/eligible/active assertions order-dependent and can hide persistence defects.
 
 ## Troubleshooting
 
 | Symptom | Check | Fix |
 | --- | --- | --- |
-| Service never becomes healthy | `docker compose logs backend frontend` | Fix watch-process error, then restart with `docker compose up -d --wait`. |
-| Frontend API request fails | `docker compose logs frontend backend` | Confirm `frontend` has `API_PROXY_TARGET=http://backend:3000`; browser code must use relative `/api` paths. |
-| Dependency installation is stale or corrupt | `docker compose down --volumes --remove-orphans` | Reset volumes, then restart; first install takes longer. |
-| E2E leaves state behind | `docker compose -p kamado-e2e down --volumes --remove-orphans` | Use exact E2E project name; do not run `down --volumes` without `-p kamado-e2e` while preserving development data. |
+| API service is unhealthy | `docker compose logs backend-e2e` | Fix contract or migration failure; do not bypass health gating. |
+| Browser cannot load Compose host | Vite `server.allowedHosts` | Keep `frontend-e2e` allowed for the isolated profile. |
+| Frontend API request fails | `docker compose logs frontend-e2e backend-e2e` | Confirm `API_PROXY_TARGET=http://backend-e2e:3000`. |
+| E2E state leaks | Compose project/teardown output | Use a unique project and `down --volumes --remove-orphans`. |
 
 ## Related pages
 
-- [Tech Stack](./tech-stack.md) — frontend, backend, persistence, and verification boundaries.
-- [Architecture Diagrams](./architecture.mdx) — product topology source of truth.
+- [Durable Cooking-Session API](./cooking-session-api.md) — behavior exercised by full-stack tests.
+- [Architecture Diagrams](./architecture.mdx) — product and local runtime topology.
+- [Tech Stack](./tech-stack.md) — repository tooling boundaries.

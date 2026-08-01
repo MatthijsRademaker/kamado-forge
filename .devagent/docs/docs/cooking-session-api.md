@@ -1,39 +1,55 @@
-# Cooking and Live-Cook APIs
+# Durable Cooking-Session API
 
-The Bun API exposes two durable, single-owner boundaries: complete planning drafts at `/api/sessions` and minimal live-cook drafts/session commands at `/api/drafts` and `/api/live-session`. The current Vue Plan, Today, and Live screens remain fixture-driven and do not call either boundary.
+The Bun API joins complete planning drafts to one durable live-cook lifecycle. Plan, Today, and Live consume this boundary through the generated client and `frontend/src/api/sessions.ts`; browser code does not invent transitions or transport DTOs.
 
-## Planning drafts
+## Executable boundary
 
-`backend/src/session-contract.ts` defines the strict aggregate persisted by `backend/src/persistence/session-repository.ts`. The executable registry in `backend/src/contract.ts` exposes:
+`backend/src/session-contract.ts` owns the complete ordered planning aggregate. `backend/src/live-cook-contract.ts` owns activation, active and ID-addressed projections, current-step notes, and transitions.
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| `POST` | `/api/sessions` | Create a complete draft and return `201` |
-| `GET` | `/api/sessions` | List drafts by update time descending, then ID |
-| `GET` | `/api/sessions/{sessionId}` | Retrieve one complete draft |
-| `PUT` | `/api/sessions/{sessionId}` | Atomically replace a complete draft |
-| `DELETE` | `/api/sessions/{sessionId}` | Delete the aggregate and nested rows with `204` |
+| `POST` | `/api/sessions` | Create a complete draft |
+| `GET` | `/api/sessions` | List complete drafts deterministically |
+| `GET` | `/api/sessions/eligible` | List drafts that have never been activated |
+| `GET`, `PUT`, `DELETE` | `/api/sessions/{sessionId}` | Read, replace, or delete one draft |
+| `POST` | `/api/sessions/{sessionId}/activate` | Snapshot the persisted plan and start it atomically |
+| `GET` | `/api/live-sessions/active` | Return the active session or explicit `204` absence |
+| `GET` | `/api/live-sessions/{sessionId}` | Read active, paused, completed, or cancelled detail |
+| `POST` | `/api/live-sessions/{sessionId}/notes` | Persist a note on the current execution visit |
+| `POST` | `/api/live-sessions/{sessionId}/{action}` | `advance`, `return`, `pause`, `resume`, `complete`, or `cancel` |
 
-The planning API owns session, phase, and step identities. Its write shape requires complete ordered phases and steps, real `YYYY-MM-DD` cooking dates, integer minute durations, and planned Fahrenheit guidance. Successes use `{ "data": ... }`; an unknown well-formed session ID returns `SESSION_NOT_FOUND` in the shared error envelope.
+The planning API owns session, phase, and step identities. Callers submit complete ordered replacements; SQLite transactions preserve the previous aggregate if replacement fails. Activation retains the planning session ID as the live and terminal route identity.
 
-## Live-cook sessions
+## Live projection and absence
 
-`backend/src/live-cook-contract.ts` defines a separate minimal ordered-step draft. `POST /api/drafts` creates that draft, `POST /api/drafts/{draftId}/activate` snapshots it once, and `GET /api/live-session` reads the sole `ACTIVE` or `PAUSED` session. The live-session commands are `advance`, `return`, `pause`, `resume`, `complete`, and `cancel` under `/api/live-session`.
+A live projection contains the complete plan, status, activation timestamp, current and next step, and immutable execution history with notes. `ACTIVE` and `PAUSED` projections expose a current step. `COMPLETED` and `CANCELLED` projections retain final history while current and next steps are `null`.
 
-The live projection includes deterministic execution history, the active current step, and the immediate next step. At terminal completion or cancellation, `currentStep` and `nextStep` are both `null`; subsequent active-session reads return `404 NOT_FOUND` while durable history remains available.
+No active session is ordinary absence, not an error: `/api/live-sessions/active` returns `204`. Unknown IDs and rejected transitions use the shared structured error envelope, allowing Today and Live to distinguish absence, validation, conflict, and transport failure.
 
-## Persistence and generated contract
+## Frontend cache boundary
 
-Migration `0002` owns normalized planning session, phase, and step tables. Migration `0003` owns live-cook drafts, immutable session-step snapshots, transitions, visits, notes, and the single `ACTIVE`/`PAUSED` session index. Migration `0004` adds integer-duration guards for existing live-cook step tables; activation independently revalidates persisted draft rows before creating a snapshot.
+`frontend/src/api/sessions.ts` is the only production session-domain transport boundary. It defines parameterized list, draft/live detail, active, and eligible keys. Every create, update, activation, note, transition, cancellation, and completion mutation invalidates and refetches its declared authoritative keys. Live mutations are pessimistic; rejected actions retain visible state and trigger reconciliation when server state may have changed.
 
-`backend/src/openapi.ts` generates `backend/openapi/openapi.json`, and Hey API generates `frontend/src/api/generated/`. Generated artifacts are read-only: change the executable schemas and route registry, run `bun run generate:api`, and use `bun run check:api` to detect drift.
+Plan alone owns a local editable buffer. `frontend/src/features/plan/draft.ts` converts confirmed server aggregates into form state and strips local keys before a complete create or update.
+
+## Persistence and generation
+
+Migrations `0002` through `0004` create normalized planning data, live snapshots, transitions, visits, notes, integer guards, and the unique `ACTIVE`/`PAUSED` index. `backend/src/openapi.ts` generates `backend/openapi/openapi.json`; Hey API generates `frontend/src/api/generated/`. Never edit generated files by hand.
+
+```bash
+bun run generate:api
+bun run check:api
+```
 
 ## Verification
 
-Planning contract, repository, and dispatcher coverage lives in `backend/src/session-contract.test.ts`, `backend/src/persistence/session-repository.test.ts`, and `backend/src/dispatcher.test.ts`. Live-cook transition, rollback, restart, migration, and response-validation coverage lives in `backend/src/live-cook-*.test.ts` and `backend/src/persistence/live-cook-migration.test.ts`.
+- `backend/src/durable-session-workflow.test.ts` proves activation, explicit no-active semantics, eligible filtering, notes, ID-addressed commands, completion, and terminal detail.
+- `frontend/src/api/sessions.test.ts` proves typed queries/errors and the mutation reconciliation matrix.
+- `e2e/session-flow.spec.ts` proves the durable browser journey against an isolated real SQLite-backed API.
 
 ## Related pages
 
-- [Local Plan Page](./local-plan.md) — fixture-only Plan behavior and its generated local model.
-- [Local Today and Live Cook](./local-live-cook.md) — fixture-only live walkthrough behavior.
-- [Tech Stack](./tech-stack.md) — backend, SQLite, generated-client, and verification ownership.
+- [Durable Plan Page](./local-plan.md) — local editing and confirmed persistence.
+- [Today and Live Cook](./local-live-cook.md) — active-first selection and live execution.
+- [Compose Development](./compose-development.md) — isolated full-stack browser verification.
+- [Architecture Diagrams](./architecture.mdx) — current component and data-flow boundaries.

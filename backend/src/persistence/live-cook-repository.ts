@@ -7,6 +7,7 @@ import type {
   LiveCookProjection,
 } from "../live-cook-contract";
 import type { PersistenceContext } from "./repository-context";
+import { createSessionRepository } from "./session-repository";
 
 interface DraftRow {
   readonly id: string;
@@ -72,8 +73,12 @@ export class LiveCookError extends Error {
 export interface LiveCookRepository {
   createDraft(input: CreateLiveDraft): LiveCookDraft;
   activateDraft(draftId: string, command: LiveCookCommand): LiveCookProjection;
+  activateSession(sessionId: string, command: LiveCookCommand): LiveCookProjection;
+  findActive(): LiveCookProjection | undefined;
+  get(sessionId: string): LiveCookProjection;
   getActive(): LiveCookProjection;
-  command(action: LiveCookAction, command: LiveCookCommand): LiveCookProjection;
+  addNote(sessionId: string, note: string): LiveCookProjection;
+  command(action: LiveCookAction, command: LiveCookCommand, sessionId?: string): LiveCookProjection;
 }
 
 const systemClock: UtcClock = Object.freeze({
@@ -170,11 +175,13 @@ export function createLiveCookRepository(
         ? readCurrentStep(session.current_step_id, steps, visits)
         : null;
     const nextStep = currentStep ? (steps.find(({ ordinal }) => ordinal === currentStep.ordinal + 1) ?? null) : null;
+    const plan = createSessionRepository(persistence).get(session.id);
 
     return {
       id: session.id,
       status: session.status,
       activatedAt: session.activated_at,
+      ...(plan ? { plan } : {}),
       currentStep,
       nextStep: nextStep ? toStep(nextStep) : null,
       executionHistory,
@@ -206,6 +213,24 @@ export function createLiveCookRepository(
     return { ...toStep(step), execution: currentExecution };
   }
 
+  function findSession(sessionId: string): SessionRow | undefined {
+    return (
+      database
+        .query<SessionRow, [string]>(
+          `SELECT id, status, current_step_id, activated_at
+         FROM live_cook_sessions
+         WHERE id = ?`,
+        )
+        .get(sessionId) ?? undefined
+    );
+  }
+
+  function requireSession(sessionId: string): SessionRow {
+    const session = findSession(sessionId);
+    if (!session) throw new LiveCookError("NOT_FOUND", "Cooking session not found");
+    return session;
+  }
+
   function requireCommandSession(): SessionRow {
     const session = database
       .query<SessionRow, []>(
@@ -219,15 +244,21 @@ export function createLiveCookRepository(
     return session;
   }
 
-  function requireActiveSession(): SessionRow {
-    const session = database
-      .query<SessionRow, []>(
-        `SELECT id, status, current_step_id, activated_at
+  function findActiveSession(): SessionRow | undefined {
+    return (
+      database
+        .query<SessionRow, []>(
+          `SELECT id, status, current_step_id, activated_at
          FROM live_cook_sessions
          WHERE status IN ('ACTIVE', 'PAUSED')
          LIMIT 1`,
-      )
-      .get();
+        )
+        .get() ?? undefined
+    );
+  }
+
+  function requireActiveSession(): SessionRow {
+    const session = findActiveSession();
     if (!session) throw new LiveCookError("NOT_FOUND", "No active live-cook session exists");
     return session;
   }
@@ -309,7 +340,7 @@ export function createLiveCookRepository(
     return targetVisitId;
   }
 
-  return {
+  const repository: LiveCookRepository = {
     createDraft(input: CreateLiveDraft): LiveCookDraft {
       const id = randomUUID();
       const timestamp = timestampFrom(clock);
@@ -345,7 +376,7 @@ export function createLiveCookRepository(
         }
 
         const timestamp = timestampFrom(clock);
-        const sessionId = randomUUID();
+        const sessionId = draft.id;
         try {
           database.run(
             `INSERT INTO live_cook_sessions (id, draft_id, status, current_step_id, activated_at, updated_at)
@@ -398,13 +429,53 @@ export function createLiveCookRepository(
       });
     },
 
+    activateSession(sessionId: string, command: LiveCookCommand): LiveCookProjection {
+      return persistence.transaction(() => {
+        const session = createSessionRepository(persistence).get(sessionId);
+        if (!session) throw new LiveCookError("NOT_FOUND", "Cooking session not found");
+        database.run("INSERT INTO live_cook_drafts (id, created_at) VALUES (?, ?)", [session.id, session.createdAt]);
+        let ordinal = 0;
+        for (const step of session.phases.flatMap((phase) => phase.steps)) {
+          database.run(
+            `INSERT INTO live_cook_draft_steps
+             (id, draft_id, ordinal, title, instructions, duration_minutes)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [randomUUID(), session.id, ordinal, step.title, step.instructions, step.durationMinutes],
+          );
+          ordinal += 1;
+        }
+        return repository.activateDraft(session.id, command);
+      });
+    },
+
+    findActive(): LiveCookProjection | undefined {
+      const session = findActiveSession();
+      return session ? readProjection(session.id) : undefined;
+    },
+
+    get(sessionId: string): LiveCookProjection {
+      return readProjection(requireSession(sessionId).id);
+    },
+
     getActive(): LiveCookProjection {
       return readProjection(requireActiveSession().id);
     },
 
-    command(action: LiveCookAction, command: LiveCookCommand): LiveCookProjection {
+    addNote(sessionId: string, note: string): LiveCookProjection {
       return persistence.transaction(() => {
-        const session = requireCommandSession();
+        const session = requireSession(sessionId);
+        if (session.status !== "ACTIVE" && session.status !== "PAUSED") {
+          throw new LiveCookError("INVALID_TRANSITION", "Notes require an active or paused cooking session");
+        }
+        const { visitId } = currentStepAndVisit(session);
+        addNote(visitId, note, timestampFrom(clock));
+        return readProjection(session.id);
+      });
+    },
+
+    command(action: LiveCookAction, command: LiveCookCommand, sessionId?: string): LiveCookProjection {
+      return persistence.transaction(() => {
+        const session = sessionId ? requireSession(sessionId) : requireCommandSession();
         if (session.status === "COMPLETED" || session.status === "CANCELLED") {
           throw new LiveCookError("INVALID_TRANSITION", "Terminal live-cook sessions cannot accept commands");
         }
@@ -492,6 +563,8 @@ export function createLiveCookRepository(
       });
     },
   };
+
+  return repository;
 }
 
 function toStep(step: {

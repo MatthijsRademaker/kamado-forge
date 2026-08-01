@@ -21,9 +21,8 @@ model {
       description '''
         Vite-powered Vue 3 application with Vue Router history routes, a responsive
         ProductShell for Today, Live, Plan, Coach, Learn, and Logbook, and an isolated
-        primitive showcase at `/showcase`. Today and Live share a mounted local session-flow
-        controller. The SPA also contains a generated API transport
-        plus Pinia Colada domain-query boundary.
+        primitive showcase at `/showcase`. Plan, Today, and ID-addressed Live routes consume
+        durable session state through a Pinia Colada domain layer backed by generated transport.
       '''
 
       appShell = component 'Application root' {
@@ -35,11 +34,11 @@ model {
       }
 
       productShell = component 'ProductShell' {
-        description 'Shared responsive layout with desktop and mobile navigation; owns the mounted local session-flow controller shared by Today and Live.'
+        description 'Shared responsive layout with desktop and mobile navigation around route-owned durable feature state.'
       }
 
-      sessionFlow = component 'Local session flow' {
-        description 'Fixture-driven mounted controller for draft start, elapsed timing, pause/resume, ordered steps, notes, and confirmed terminal transitions without API calls or persistence.'
+      sessionQueries = component 'Session domain layer' {
+        description 'Pinia Colada queries, pessimistic mutations, stable parameterized keys, and centralized reconciliation over the generated client.'
       }
 
       showcase = component 'Primitive showcase' {
@@ -51,19 +50,19 @@ model {
       }
 
       generatedClient = component 'Generated API client' {
-        description 'Hey API fetch transport and standalone SessionPlan type generated from the backend OpenAPI artifact under `frontend/src/api/generated/`.'
+        description 'Hey API fetch transport and types generated from the executable backend OpenAPI artifact under `frontend/src/api/generated/`.'
       }
 
       today = component 'Today route' {
-        description 'Implemented fixture-driven `/today` lifecycle entry for no-session, draft, running, and paused cook states.'
+        description 'Active-first `/today` entry that distinguishes no-active from failure and explicitly activates a selected eligible draft.'
       }
 
       live = component 'Live cook route' {
-        description 'Implemented `/live` outdoor guidance view with planned targets, timing, steps, notes, and accessible terminal confirmations.'
+        description 'ID-addressed `/live/:sessionId` guidance and read-only terminal detail with pessimistic transitions and durable step notes.'
       }
 
       planner = component 'Session planner' {
-        description 'Implemented local fixture-driven timeline editor rendered at `/plan` through ProductShell; derives timing and readiness in memory without API calls or persistence.'
+        description 'Durable `/plan` editor with a local ordered form buffer, explicit create/update, and server-confirmed reconciliation.'
       }
 
       coach = component 'Coach route' {
@@ -81,17 +80,17 @@ model {
 
     backend = container 'Bun API' {
       description '''
-        Bun TypeScript HTTP API. Exposes contract-validated health, planning draft CRUD, ordered
-        live-cook draft activation, query, and state-transition routes; initializes SQLite, applies
-        CORS when configured, and owns the LLM boundary.
+        Bun TypeScript HTTP API. Exposes contract-validated health, complete planning draft CRUD,
+        eligible/active lookup, cooking-session activation, ID-addressed live detail, notes, and
+        state-transition routes; initializes SQLite and owns the future LLM boundary.
       '''
 
       healthApi = component 'Health API' {
         description 'Contract-validated `/api/health` endpoint reporting status without exposing the SQLite path.'
       }
 
-      sessionApi = component 'Cooking and live-cook APIs' {
-        description 'Shipped complete planning-draft CRUD plus ordered live-draft activation and transactional live-session commands. SQLite enforces one ACTIVE or PAUSED live session and preserves snapshot, visit, note, and transition history.'
+      sessionApi = component 'Cooking session API' {
+        description 'Complete planning-draft CRUD joined to activation, eligible and active lookup, ID-addressed detail, current-step notes, and transactional commands. SQLite enforces one ACTIVE or PAUSED session.'
       }
 
       coachApi = component 'Coach API' {
@@ -130,21 +129,20 @@ model {
   kamadoCoach.frontend.appShell -> kamadoCoach.frontend.router 'hosts router-rendered layouts'
   kamadoCoach.frontend.router -> kamadoCoach.frontend.productShell 'renders product routes through shared chrome'
   kamadoCoach.frontend.router -> kamadoCoach.frontend.showcase 'renders standalone internal gallery'
-  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.sessionFlow 'owns mounted fixture and interaction state'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.today 'renders session lifecycle entry'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.live 'renders outdoor cook guidance'
-  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'renders local fixture-driven editor'
+  kamadoCoach.frontend.productShell -> kamadoCoach.frontend.planner 'renders durable ordered editor'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.coach 'navigates to static route placeholder'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.learn 'navigates to static route placeholder'
   kamadoCoach.frontend.productShell -> kamadoCoach.frontend.logbook 'navigates to static route placeholder'
 
   kamadoCoach.frontend.healthQueries -> kamadoCoach.frontend.generatedClient 'uses generated health operation'
   kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.healthApi 'calls relative `/api/health`'
-  kamadoCoach.frontend.sessionFlow -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
-  kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'future: reads the active cook'
-  kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'future: sends live progress commands'
-  kamadoCoach.frontend.planner -> kamadoCoach.frontend.generatedClient 'imports generated SessionPlan contract type'
-  kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'future: creates ordered activation drafts'
+  kamadoCoach.frontend.planner -> kamadoCoach.frontend.sessionQueries 'saves complete ordered drafts'
+  kamadoCoach.frontend.today -> kamadoCoach.frontend.sessionQueries 'queries active and eligible sessions'
+  kamadoCoach.frontend.live -> kamadoCoach.frontend.sessionQueries 'queries detail and submits pessimistic actions'
+  kamadoCoach.frontend.sessionQueries -> kamadoCoach.frontend.generatedClient 'uses generated session operations and types'
+  kamadoCoach.frontend.generatedClient -> kamadoCoach.backend.sessionApi 'calls relative durable session routes'
   kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends user question with visible context'
   kamadoCoach.frontend.learn -> kamadoCoach.backend.learningApi 'browses learning material'
   kamadoCoach.frontend.logbook -> kamadoCoach.backend.logbookApi 'reviews and edits cook history'
