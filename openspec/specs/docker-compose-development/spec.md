@@ -1,8 +1,11 @@
 # docker-compose-development Specification
 
 ## Purpose
+
 TBD - created by archiving change docker-compose-dev-e2e. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Live mounted-source Compose development stack
 
 The repository MUST provide root Docker Compose configuration that starts frontend and backend as separate live-development services from current workspace source. It MUST bind-mount project source for both services, keep container-installed dependencies outside host `node_modules`, publish frontend and backend host ports, and run backend SQLite against a Docker-managed durable development volume. Source edits MUST be observed by existing Vite and Bun watch processes without rebuilding an application image.
@@ -77,4 +80,3 @@ Project developer documentation MUST contain a dedicated Compose guide, register
 
 - **WHEN** developer reads Compose guide
 - **THEN** guide provides exact isolated project-scoped command to run E2E tests and exact teardown command that removes only E2E state
-
