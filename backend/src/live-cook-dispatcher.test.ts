@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createApiDispatcher } from "./dispatcher";
-import { createLiveCookRepository } from "./persistence/live-cook-repository";
+import { createLiveCookRepository, type LiveCookRepository } from "./persistence/live-cook-repository";
 import { createTemporaryPersistence } from "./persistence/test-support";
 
 const health = () => ({ ok: true, service: "api", database: { status: "ok" } }) as const;
@@ -119,6 +119,17 @@ describe("live-cook draft API", () => {
     } finally {
       fixture.cleanup();
     }
+  });
+
+  test("refuses a live-session projection that violates its declared response schema", () => {
+    const dispatcher = createApiDispatcher({
+      getHealth: health,
+      liveCookRepository: {
+        getActive: () => ({}),
+      } as unknown as LiveCookRepository,
+    });
+
+    expect(() => dispatcher(new Request("http://api.test/api/live-session"))).toThrow();
   });
 
   test("rejects empty and non-ordered drafts before they persist", async () => {

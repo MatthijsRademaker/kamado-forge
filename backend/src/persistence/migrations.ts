@@ -84,7 +84,7 @@ const createLiveCookSessions: Migration = Object.freeze({
         ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
         title TEXT NOT NULL CHECK (length(trim(title)) > 0),
         instructions TEXT NOT NULL CHECK (length(trim(instructions)) > 0),
-        duration_minutes INTEGER NOT NULL CHECK (duration_minutes BETWEEN 1 AND 1440),
+        duration_minutes INTEGER NOT NULL CHECK (typeof(duration_minutes) = 'integer' AND duration_minutes BETWEEN 1 AND 1440),
         UNIQUE (draft_id, ordinal)
       );
 
@@ -103,7 +103,7 @@ const createLiveCookSessions: Migration = Object.freeze({
         ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
         title TEXT NOT NULL CHECK (length(trim(title)) > 0),
         instructions TEXT NOT NULL CHECK (length(trim(instructions)) > 0),
-        duration_minutes INTEGER NOT NULL CHECK (duration_minutes BETWEEN 1 AND 1440),
+        duration_minutes INTEGER NOT NULL CHECK (typeof(duration_minutes) = 'integer' AND duration_minutes BETWEEN 1 AND 1440),
         UNIQUE (session_id, ordinal)
       );
 
@@ -145,10 +145,47 @@ const createLiveCookSessions: Migration = Object.freeze({
   },
 });
 
+const enforceLiveCookStepDurationIntegers: Migration = Object.freeze({
+  version: "0004",
+  name: "enforce_live_cook_step_duration_integers",
+  apply(database: Database) {
+    database.run(`
+      CREATE TRIGGER live_cook_draft_steps_integer_duration_insert
+      BEFORE INSERT ON live_cook_draft_steps
+      WHEN typeof(NEW.duration_minutes) != 'integer'
+      BEGIN
+        SELECT RAISE(ABORT, 'live-cook draft step duration must be an integer');
+      END;
+
+      CREATE TRIGGER live_cook_draft_steps_integer_duration_update
+      BEFORE UPDATE OF duration_minutes ON live_cook_draft_steps
+      WHEN typeof(NEW.duration_minutes) != 'integer'
+      BEGIN
+        SELECT RAISE(ABORT, 'live-cook draft step duration must be an integer');
+      END;
+
+      CREATE TRIGGER live_cook_session_steps_integer_duration_insert
+      BEFORE INSERT ON live_cook_session_steps
+      WHEN typeof(NEW.duration_minutes) != 'integer'
+      BEGIN
+        SELECT RAISE(ABORT, 'live-cook session step duration must be an integer');
+      END;
+
+      CREATE TRIGGER live_cook_session_steps_integer_duration_update
+      BEFORE UPDATE OF duration_minutes ON live_cook_session_steps
+      WHEN typeof(NEW.duration_minutes) != 'integer'
+      BEGIN
+        SELECT RAISE(ABORT, 'live-cook session step duration must be an integer');
+      END;
+    `);
+  },
+});
+
 export const shippedMigrations: readonly Migration[] = Object.freeze([
   createAppMetadata,
   createCookingSessions,
   createLiveCookSessions,
+  enforceLiveCookStepDurationIntegers,
 ]);
 
 export function validateMigrationRegistry(migrations: readonly Migration[]): void {

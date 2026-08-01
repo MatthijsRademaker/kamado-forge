@@ -59,7 +59,7 @@ Run `scripts/check`, `scripts/test`, `scripts/build`, and `scripts/precommit-run
 
 ## Related pages
 
-- [Draft Cooking-Session API](./cooking-session-api.md) — durable aggregate contract, ordering, and transaction semantics.
+- [Cooking and Live-Cook APIs](./cooking-session-api.md) — durable aggregate contract, ordering, and transaction semantics.
 - [Tech Stack](./tech-stack.md) — frontend, backend, generated client, and verification ownership.
 - [Product Guardrails](./product-guardrails.md) — product navigation and architectural boundaries.
 - [Architecture Diagrams](./architecture.mdx) — product containers and frontend component map.

@@ -511,7 +511,23 @@ function toStep(step: {
 }
 
 function isValidDraftSteps(steps: readonly DraftStepRow[]): boolean {
-  return steps.length > 0 && steps.every((step, index) => step.ordinal === index);
+  return (
+    steps.length > 0 &&
+    steps.every(
+      (step, index) =>
+        typeof step.id === "string" &&
+        step.id.trim().length > 0 &&
+        Number.isInteger(step.ordinal) &&
+        step.ordinal === index &&
+        typeof step.title === "string" &&
+        step.title.trim().length > 0 &&
+        typeof step.instructions === "string" &&
+        step.instructions.trim().length > 0 &&
+        Number.isInteger(step.duration_minutes) &&
+        step.duration_minutes >= 1 &&
+        step.duration_minutes <= 1440,
+    )
+  );
 }
 
 function timestampFrom(clock: UtcClock): string {

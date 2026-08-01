@@ -5,6 +5,21 @@ import type {
   GetHealthData,
   GetHealthResponses,
   GetHealthErrors,
+  ListCookingSessionsData,
+  ListCookingSessionsResponses,
+  ListCookingSessionsErrors,
+  CreateCookingSessionData,
+  CreateCookingSessionResponses,
+  CreateCookingSessionErrors,
+  DeleteCookingSessionData,
+  DeleteCookingSessionResponses,
+  DeleteCookingSessionErrors,
+  GetCookingSessionData,
+  GetCookingSessionResponses,
+  GetCookingSessionErrors,
+  UpdateCookingSessionData,
+  UpdateCookingSessionResponses,
+  UpdateCookingSessionErrors,
   CreateLiveCookDraftData,
   CreateLiveCookDraftResponses,
   CreateLiveCookDraftErrors,
@@ -59,6 +74,74 @@ export const getHealth = <ThrowOnError extends boolean = false>(options?: Option
   return (options?.client ?? client).get<GetHealthResponses, GetHealthErrors, ThrowOnError>({
     url: "/health",
     ...options,
+  });
+};
+
+/**
+ * List draft cooking sessions
+ */
+export const listCookingSessions = <ThrowOnError extends boolean = false>(
+  options?: Options<ListCookingSessionsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<ListCookingSessionsResponses, ListCookingSessionsErrors, ThrowOnError>({
+    url: "/sessions",
+    ...options,
+  });
+};
+
+/**
+ * Create a draft cooking session
+ */
+export const createCookingSession = <ThrowOnError extends boolean = false>(
+  options: Options<CreateCookingSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).post<CreateCookingSessionResponses, CreateCookingSessionErrors, ThrowOnError>({
+    url: "/sessions",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Delete a draft cooking session
+ */
+export const deleteCookingSession = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteCookingSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).delete<DeleteCookingSessionResponses, DeleteCookingSessionErrors, ThrowOnError>({
+    url: "/sessions/{sessionId}",
+    ...options,
+  });
+};
+
+/**
+ * Get a draft cooking session
+ */
+export const getCookingSession = <ThrowOnError extends boolean = false>(
+  options: Options<GetCookingSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).get<GetCookingSessionResponses, GetCookingSessionErrors, ThrowOnError>({
+    url: "/sessions/{sessionId}",
+    ...options,
+  });
+};
+
+/**
+ * Replace a draft cooking session
+ */
+export const updateCookingSession = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateCookingSessionData, ThrowOnError>,
+) => {
+  return (options.client ?? client).put<UpdateCookingSessionResponses, UpdateCookingSessionErrors, ThrowOnError>({
+    url: "/sessions/{sessionId}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 };
 

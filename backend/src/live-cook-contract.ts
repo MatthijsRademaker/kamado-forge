@@ -25,15 +25,13 @@ const liveCookErrorResponses = {
   409: liveCookErrorSchema,
 } as const;
 
-const plannedStepWriteSchema = z
-  .object({
-    ordinal: z.number().int().min(0),
-    title: requiredTextSchema,
-    instructions: requiredTextSchema,
-    durationMinutes: z.number().int().min(1).max(1440),
-  })
-  .strict()
-  .openapi("LiveCookPlannedStepWrite");
+const plannedStepFields = {
+  ordinal: z.number().int().min(0),
+  title: requiredTextSchema,
+  instructions: requiredTextSchema,
+  durationMinutes: z.number().int().min(1).max(1440),
+};
+const plannedStepWriteSchema = z.object(plannedStepFields).strict().openapi("LiveCookPlannedStepWrite");
 
 export const createLiveDraftBodySchema = z
   .object({
@@ -53,10 +51,8 @@ export const createLiveDraftBodySchema = z
   })
   .openapi("CreateLiveDraftRequest");
 
-const plannedStepReadSchema = plannedStepWriteSchema
-  .extend({ id: opaqueIdSchema })
-  .strict()
-  .openapi("LiveCookPlannedStep");
+const liveCookSessionStepFields = { id: opaqueIdSchema, ...plannedStepFields };
+const plannedStepReadSchema = z.object(liveCookSessionStepFields).strict().openapi("LiveCookPlannedStep");
 
 const liveDraftSchema = z
   .object({
@@ -92,7 +88,7 @@ const liveCookCommandBodySchema = z
 
 const liveSessionStatusSchema = z.enum(["ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"]).openapi("LiveCookSessionStatus");
 
-const sessionStepSchema = plannedStepReadSchema.openapi("LiveCookSessionStep");
+const sessionStepSchema = z.object(liveCookSessionStepFields).strict().openapi("LiveCookSessionStep");
 
 const stepNoteSchema = z
   .object({
@@ -121,18 +117,20 @@ const executionVisitSchema = executionSchema
   .strict()
   .openapi("LiveCookExecutionVisit");
 
-const currentStepSchema = sessionStepSchema
-  .extend({ execution: executionSchema })
+const nullableCurrentStepSchema = z
+  .object({ ...liveCookSessionStepFields, execution: executionSchema })
   .strict()
+  .nullable()
   .openapi("LiveCookCurrentStep");
+const nullableNextStepSchema = z.object(liveCookSessionStepFields).strict().nullable().openapi("LiveCookNextStep");
 
 const liveCookProjectionSchema = z
   .object({
     id: opaqueIdSchema,
     status: liveSessionStatusSchema,
     activatedAt: utcTimestampSchema,
-    currentStep: currentStepSchema.nullable(),
-    nextStep: sessionStepSchema.nullable(),
+    currentStep: nullableCurrentStepSchema,
+    nextStep: nullableNextStepSchema,
     executionHistory: z.array(executionVisitSchema),
   })
   .strict()

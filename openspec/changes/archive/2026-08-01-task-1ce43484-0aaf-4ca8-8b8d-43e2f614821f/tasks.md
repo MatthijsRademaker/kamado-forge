@@ -23,12 +23,12 @@
 
 ## 4. Prove transition, atomicity, persistence, and contract behavior
 
-- [ ] 4.1 Add transition-table tests for every permitted status/action pair and every prohibited pair, including first/final step boundaries, paused completion, terminal commands, and exact state/timestamp effects.
-- [ ] 4.2 Add before/after snapshot tests proving invalid input, invalid transitions, missing entities, invalid drafts, and live-slot conflicts leave status, cursor, execution visits, timestamps, notes, and transition history unchanged.
-- [ ] 4.3 Add repeated-return tests proving each visit and note remains durable, plus close/reopen tests proving active and paused status, cursor, timing, notes, and history are unchanged after restart.
-- [ ] 4.4 Add contract/dispatcher tests for current/next projection, deterministic structured errors, one-active-session conflict, terminal active-query behavior, and runtime response validation.
+- [x] 4.1 Add transition-table tests for every permitted status/action pair and every prohibited pair, including first/final step boundaries, paused completion, terminal commands, and exact state/timestamp effects.
+- [x] 4.2 Add before/after snapshot tests proving invalid input, invalid transitions, missing entities, invalid drafts, and live-slot conflicts leave status, cursor, execution visits, timestamps, notes, and transition history unchanged.
+- [x] 4.3 Add repeated-return tests proving each visit and note remains durable, plus close/reopen tests proving active and paused status, cursor, timing, notes, and history are unchanged after restart.
+- [x] 4.4 Add contract/dispatcher tests for current/next projection, deterministic structured errors, one-active-session conflict, terminal active-query behavior, and runtime response validation.
 
 ## 5. Update integration records and verify
 
 - [x] 5.1 Update the affected architecture/documentation source of truth narrowly for the implemented live-session API, transactional SQLite persistence flow, and single-live-session invariant.
-- [ ] 5.2 Run focused backend tests, regenerate/check API artifacts, and run `scripts/precommit-run` through the required Docker-backed verification environment.
+- [x] 5.2 Run focused backend tests, regenerate/check API artifacts, and run `scripts/precommit-run` through the required Docker-backed verification environment.

@@ -81,17 +81,17 @@ model {
 
     backend = container 'Bun API' {
       description '''
-        Bun TypeScript HTTP API. Exposes contract-validated health, ordered live-cook draft,
-        activation, query, and state-transition routes; initializes SQLite, applies CORS when
-        configured, and owns the LLM boundary.
+        Bun TypeScript HTTP API. Exposes contract-validated health, planning draft CRUD, ordered
+        live-cook draft activation, query, and state-transition routes; initializes SQLite, applies
+        CORS when configured, and owns the LLM boundary.
       '''
 
       healthApi = component 'Health API' {
         description 'Contract-validated `/api/health` endpoint reporting status without exposing the SQLite path.'
       }
 
-      sessionApi = component 'Live cook session API' {
-        description 'Shipped ordered draft activation and transactional live-session commands. SQLite enforces one ACTIVE or PAUSED session and preserves snapshot, visit, note, and transition history.'
+      sessionApi = component 'Cooking and live-cook APIs' {
+        description 'Shipped complete planning-draft CRUD plus ordered live-draft activation and transactional live-session commands. SQLite enforces one ACTIVE or PAUSED live session and preserves snapshot, visit, note, and transition history.'
       }
 
       coachApi = component 'Coach API' {
@@ -114,9 +114,10 @@ model {
     sqlite = database 'SQLite database' {
       description '''
         Local SQLite persistence configured by `DATABASE_PATH`. It contains migration history,
-        `app_metadata`, historic migration records, and transactional live-cook drafts, immutable
-        snapshot steps, session cursor/status, transitions, visits, and notes. Future logs,
-        learning content, and memory remain in the same personal store.
+        `app_metadata`, historic migration records, normalized planning sessions with phases and
+        steps, and transactional live-cook drafts, immutable snapshot steps, session cursor/status,
+        transitions, visits, and notes. Future logs, learning content, and memory remain in the
+        same personal store.
       '''
     }
   }

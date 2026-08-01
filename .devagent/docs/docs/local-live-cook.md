@@ -51,7 +51,7 @@ Run `scripts/check`, `scripts/test`, `scripts/build`, and `scripts/precommit-run
 
 ## Related pages
 
-- [Draft Cooking-Session API](./cooking-session-api.md) — durable draft aggregate and persistence semantics.
+- [Cooking and Live-Cook APIs](./cooking-session-api.md) — durable draft aggregate and persistence semantics.
 - [Local Plan Page](./local-plan.md) — canonical `SessionPlan` contract and local Plan lifecycle.
 - [Architecture Diagrams](./architecture.mdx) — frontend route and local-controller boundaries.
 - [Tech Stack](./tech-stack.md) — Vue, generated API, and verification ownership.

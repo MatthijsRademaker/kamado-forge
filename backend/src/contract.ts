@@ -10,6 +10,12 @@ import {
   resumeLiveSessionRoute,
   returnLiveSessionRoute,
 } from "./live-cook-contract";
+import {
+  sessionIdParamsSchema,
+  sessionListSuccessSchema,
+  sessionSuccessSchema,
+  sessionWriteSchema,
+} from "./session-contract";
 
 const identitySchema = z.string().min(1);
 const draftDateSchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
@@ -87,6 +93,7 @@ export const API_ERRORS = {
   invalidDraft: { code: "INVALID_DRAFT", message: "Live-cook draft cannot be activated" },
   invalidTransition: { code: "INVALID_TRANSITION", message: "Live-cook command is not permitted in the current state" },
   activeSessionConflict: { code: "ACTIVE_SESSION_CONFLICT", message: "Another live-cook session is already active" },
+  sessionNotFound: { code: "SESSION_NOT_FOUND", message: "Cooking session not found" },
 } as const;
 
 export const healthRoute = {
@@ -98,8 +105,70 @@ export const healthRoute = {
   responses: { 200: healthSuccessSchema, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
 } as const;
 
+const sessionQuerySchema = z.object({}).strict().openapi("CookingSessionQuery");
+
+export const createSessionRoute = {
+  method: "POST",
+  runtimePath: "/api/sessions",
+  openApiPath: "/sessions",
+  operationId: "createCookingSession",
+  summary: "Create a draft cooking session",
+  querySchema: sessionQuerySchema,
+  bodySchema: sessionWriteSchema,
+  responses: { 201: sessionSuccessSchema, 400: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const listSessionsRoute = {
+  method: "GET",
+  runtimePath: "/api/sessions",
+  openApiPath: "/sessions",
+  operationId: "listCookingSessions",
+  summary: "List draft cooking sessions",
+  querySchema: sessionQuerySchema,
+  responses: { 200: sessionListSuccessSchema, 400: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const getSessionRoute = {
+  method: "GET",
+  runtimePath: "/api/sessions/{sessionId}",
+  openApiPath: "/sessions/{sessionId}",
+  operationId: "getCookingSession",
+  summary: "Get a draft cooking session",
+  querySchema: sessionQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  responses: { 200: sessionSuccessSchema, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const updateSessionRoute = {
+  method: "PUT",
+  runtimePath: "/api/sessions/{sessionId}",
+  openApiPath: "/sessions/{sessionId}",
+  operationId: "updateCookingSession",
+  summary: "Replace a draft cooking session",
+  querySchema: sessionQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  bodySchema: sessionWriteSchema,
+  responses: { 200: sessionSuccessSchema, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
+export const deleteSessionRoute = {
+  method: "DELETE",
+  runtimePath: "/api/sessions/{sessionId}",
+  openApiPath: "/sessions/{sessionId}",
+  operationId: "deleteCookingSession",
+  summary: "Delete a draft cooking session",
+  querySchema: sessionQuerySchema,
+  paramsSchema: sessionIdParamsSchema,
+  responses: { 204: null, 400: apiErrorSchema, 404: apiErrorSchema, 405: apiErrorSchema },
+} as const;
+
 export const apiRouteRegistry = [
   healthRoute,
+  createSessionRoute,
+  listSessionsRoute,
+  getSessionRoute,
+  updateSessionRoute,
+  deleteSessionRoute,
   createLiveDraftRoute,
   activateLiveDraftRoute,
   getActiveLiveSessionRoute,
@@ -111,6 +180,7 @@ export const apiRouteRegistry = [
   cancelLiveSessionRoute,
 ] as const;
 
+export { sessionWriteSchema };
 export type HealthData = z.infer<typeof healthDataSchema>;
 type ValidationIssue = z.infer<typeof validationIssueSchema>;
 type ValidationContext = "body" | "path" | "query";
