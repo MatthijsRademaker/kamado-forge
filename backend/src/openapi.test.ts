@@ -53,9 +53,49 @@ describe("OpenAPI generation", () => {
     const document = buildOpenApiDocument();
 
     expect(document.openapi).toBe("3.0.3");
-    expect(document.info.version).toBe("1.0.0");
+    expect(document.info.version).toBe("2.0.0");
     expect(document.servers).toEqual([{ url: "/api" }]);
     expect(document.paths?.["/health"]?.get?.operationId).toBe("getHealth");
     expect(Object.keys(document.paths?.["/health"]?.get?.responses ?? {})).toEqual(["200", "400", "404", "405"]);
+  });
+
+  test("publishes the local plan model and every live-cook operation", () => {
+    const document = buildOpenApiDocument();
+
+    expect(document.components?.schemas?.SessionPlan).toBeDefined();
+    expect(Object.keys(document.paths ?? {})).toEqual([
+      "/health",
+      "/sessions",
+      "/sessions/{sessionId}",
+      "/drafts",
+      "/drafts/{draftId}/activate",
+      "/live-session",
+      "/live-session/advance",
+      "/live-session/return",
+      "/live-session/pause",
+      "/live-session/resume",
+      "/live-session/complete",
+      "/live-session/cancel",
+    ]);
+    expect(document.paths?.["/sessions"]?.post?.operationId).toBe("createCookingSession");
+    expect(document.paths?.["/sessions/{sessionId}"]?.delete?.operationId).toBe("deleteCookingSession");
+    expect(document.paths?.["/drafts"]?.post?.operationId).toBe("createLiveCookDraft");
+    expect(document.paths?.["/drafts/{draftId}/activate"]?.post?.operationId).toBe("activateLiveCookDraft");
+    expect(document.paths?.["/live-session"]?.get?.operationId).toBe("getActiveLiveCookSession");
+    expect(document.paths?.["/live-session/complete"]?.post?.responses[200]).toBeDefined();
+  });
+
+  test("represents terminal current and next steps as nullable components", () => {
+    const document = buildOpenApiDocument();
+    const schemas = document.components?.schemas;
+
+    expect(schemas?.LiveCookCurrentStep).toMatchObject({ nullable: true });
+    expect(schemas?.LiveCookNextStep).toMatchObject({ nullable: true });
+    expect(schemas?.LiveCookSession).toMatchObject({
+      properties: {
+        currentStep: { $ref: "#/components/schemas/LiveCookCurrentStep" },
+        nextStep: { $ref: "#/components/schemas/LiveCookNextStep" },
+      },
+    });
   });
 });

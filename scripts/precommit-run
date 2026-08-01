@@ -6,9 +6,7 @@ source "$ROOT/scripts/lib/docker-verification.sh"
 
 WORKSPACE="$(verification_workspace_root)"
 
-if ! docker image inspect "$PRECOMMIT_VERIFIER_IMAGE" >/dev/null 2>&1; then
-  "$ROOT/scripts/build-verifier-image"
-fi
+"$ROOT/scripts/build-verifier-image"
 
 verification_reset
 verification_workdir "$WORKSPACE"

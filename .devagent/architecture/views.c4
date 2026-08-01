@@ -23,7 +23,7 @@ views {
 
   view frontend-map of kamadoCoach.frontend {
     title 'Frontend navigation map'
-    description 'The mounted app currently exposes a route-thin primitive showcase at `/` and `/showcase`; its shell and planned product areas consume API state through domain queries backed by the generated client as it grows into Today, Plan, Coach, Learn, and Logbook.'
+    description 'Vue Router sends five primary destinations plus Live through the responsive ProductShell and keeps `/showcase` standalone. Plan, Today, and Live use local generated-type-coupled fixtures without API calls; Coach, Learn, and Logbook remain orientation-only placeholders.'
     include *
     include -> kamadoCoach.frontend.*
     autoLayout TopBottom
@@ -46,8 +46,9 @@ views {
     description 'The strategic loop that future features should preserve: plan, cook, ask, log, and learn from memory.'
     learner -> kamadoCoach.frontend.planner 'plans a cooking day'
     kamadoCoach.frontend.planner -> kamadoCoach.backend.sessionApi 'saves plan and targets'
-    learner -> kamadoCoach.frontend.today 'follows live outdoor guidance'
-    kamadoCoach.frontend.today -> kamadoCoach.backend.sessionApi 'records progress and timing changes'
+    learner -> kamadoCoach.frontend.today 'reviews or starts the current cook'
+    learner -> kamadoCoach.frontend.live 'follows live outdoor guidance'
+    kamadoCoach.frontend.live -> kamadoCoach.backend.sessionApi 'future: records progress and timing changes'
     learner -> kamadoCoach.frontend.coach 'asks context-aware question'
     kamadoCoach.frontend.coach -> kamadoCoach.backend.coachApi 'sends active session context'
     kamadoCoach.backend.coachApi -> kamadoCoach.backend.memoryService 'adds preferences and prior lessons'

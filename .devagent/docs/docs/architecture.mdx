@@ -24,7 +24,7 @@ Shows the deployable/product containers: Vue SPA, Bun API, and SQLite database. 
 
 ## Frontend navigation map
 
-Shows the intended product navigation from `vision.md`: Today, Plan, Coach, Learn, and Logbook. The mounted app currently exposes a route-thin primitive showcase at `/` and `/showcase`, plus the health domain-query and generated-client boundary; the product areas remain planned guardrails.
+Shows the shipped Vue Router boundary: Today, Live, Plan, Coach, Learn, and Logbook render through the responsive `ProductShell`, while `/showcase` renders the internal gallery outside product chrome. Plan contains the local fixture-driven editor; Today and Live share a mounted local session-flow controller. Both fixture slices consume the generated `SessionPlan` type without calling a session endpoint. Coach, Learn, and Logbook remain orientation-only placeholders.
 
 <ClientOnly>
   <likec4-view view-id="frontend-map" />
@@ -59,3 +59,5 @@ Shows the current developer runtime: browser, Vite dev server, Bun API process, 
 - [Vision & Goals](./vision.md) — product strategy, scope, and anti-goals.
 - [Product Guardrails](./product-guardrails.md) — written rules derived from the vision and architecture.
 - [Tech Stack](./tech-stack.md) — repository layout and current tooling.
+- [Local Plan Page](./local-plan.md) — generated contract boundary and local Plan fixture lifecycle.
+- [Local Today and Live Cook](./local-live-cook.md) — mounted session controller and outdoor guidance behavior.
