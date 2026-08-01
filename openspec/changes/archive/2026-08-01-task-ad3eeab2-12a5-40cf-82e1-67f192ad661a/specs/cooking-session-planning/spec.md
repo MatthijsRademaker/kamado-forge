@@ -32,7 +32,7 @@ GET `/api/sessions` MUST return all single-user draft aggregates without paginat
 
 ### Requirement: Separate strict write and read contracts
 
-Create and PUT MUST use one strict complete-draft write shape that rejects unknown fields and excludes server-owned identifiers, status, and audit timestamps. Read responses SHALL add opaque server-generated IDs for the session, phases, and steps, fixed status `draft`, and server-managed session-level `createdAt` and `updatedAt` UTC ISO-8601 timestamps. Nested items MUST NOT expose audit timestamps. The canonical contract MUST pin exact JSON field names, requiredness, and optional food-target serialization before implementation.
+Create and PUT MUST use one strict complete-draft write shape that rejects unknown fields and excludes server-owned identifiers, status, and audit timestamps. Read responses SHALL add opaque server-generated IDs for the session, phases, and steps, fixed status `draft`, and server-managed session-level `createdAt` and `updatedAt` UTC ISO-8601 timestamps. Nested items MUST NOT expose audit timestamps. The write contract MUST use `title`, `cookingDate`, `plannedDomeRange` with `minF` and `maxF`, optional-by-omission `plannedFoodTargetF`, `setupGuidance`, `deflectorGuidance`, `heatZoneGuidance`, `ventGuidance`, `prepNotes`, and `phases`; phases MUST use `title`, `technique`, `transitionGuidance`, and `steps`; steps MUST use `title`, `instructions`, and `durationMinutes`.
 
 #### Scenario: Server metadata is generated
 
@@ -74,7 +74,7 @@ The API MUST accept cooking dates only when they are real calendar dates seriali
 
 ### Requirement: Explicit planned temperature validation
 
-Dome and optional food targets MUST be interpreted only as planned/manual Fahrenheit guidance and MUST NOT represent probe or current readings. The dome minimum SHALL be less than or equal to the maximum. Before implementation, the executable contract MUST pin exact inclusive Fahrenheit bounds and numeric precision for dome endpoints and the optional scalar food target, and it MUST apply those rules consistently to create and PUT.
+Dome and optional food targets MUST be interpreted only as planned/manual Fahrenheit guidance and MUST NOT represent probe or current readings. The dome minimum SHALL be less than or equal to the maximum. Dome endpoints MUST be integral Fahrenheit values from 150 through 700 inclusive. The optional scalar food target MUST be an integral Fahrenheit value from 32 through 212 inclusive. Create and PUT MUST apply these rules consistently.
 
 #### Scenario: Equal dome endpoints
 

@@ -65,6 +65,74 @@ export type ApiError = {
   };
 };
 
+export type PlannedDomeRange = {
+  minF: number;
+  maxF: number;
+};
+
+export type CookingSessionStepWrite = {
+  title: string;
+  instructions: string;
+  durationMinutes: number;
+};
+
+export type CookingSessionStep = CookingSessionStepWrite & {
+  id: string;
+};
+
+export type CookingSessionPhase = {
+  title: string;
+  technique: string;
+  transitionGuidance: string;
+  id: string;
+  steps: Array<CookingSessionStep>;
+};
+
+export type CookingSession = {
+  title: string;
+  cookingDate: string;
+  plannedDomeRange: PlannedDomeRange;
+  plannedFoodTargetF?: number;
+  setupGuidance: string;
+  deflectorGuidance: string;
+  heatZoneGuidance: string;
+  ventGuidance: string;
+  prepNotes: string;
+  id: string;
+  status: "draft";
+  createdAt: string;
+  updatedAt: string;
+  phases: Array<CookingSessionPhase>;
+};
+
+export type CookingSessionSuccess = {
+  data: CookingSession;
+};
+
+export type CookingSessionPhaseWrite = {
+  title: string;
+  technique: string;
+  transitionGuidance: string;
+  steps: Array<CookingSessionStepWrite>;
+};
+
+export type CookingSessionWrite = {
+  title: string;
+  cookingDate: string;
+  plannedDomeRange: PlannedDomeRange;
+  plannedFoodTargetF?: number;
+  setupGuidance: string;
+  deflectorGuidance: string;
+  heatZoneGuidance: string;
+  ventGuidance: string;
+  prepNotes: string;
+  phases: Array<CookingSessionPhaseWrite>;
+};
+
+export type CookingSessionListSuccess = {
+  data: Array<CookingSession>;
+};
+
 export type GetHealthData = {
   body?: never;
   path?: never;
@@ -78,7 +146,7 @@ export type GetHealthErrors = {
    */
   400: ApiError;
   /**
-   * Route not found
+   * Resource not found
    */
   404: ApiError;
   /**
@@ -91,12 +159,175 @@ export type GetHealthError = GetHealthErrors[keyof GetHealthErrors];
 
 export type GetHealthResponses = {
   /**
-   * Health status
+   * Successful response
    */
   200: HealthSuccessV1;
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type ListCookingSessionsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/sessions";
+};
+
+export type ListCookingSessionsErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError;
+  /**
+   * Method not allowed
+   */
+  405: ApiError;
+};
+
+export type ListCookingSessionsError = ListCookingSessionsErrors[keyof ListCookingSessionsErrors];
+
+export type ListCookingSessionsResponses = {
+  /**
+   * Successful response
+   */
+  200: CookingSessionListSuccess;
+};
+
+export type ListCookingSessionsResponse = ListCookingSessionsResponses[keyof ListCookingSessionsResponses];
+
+export type CreateCookingSessionData = {
+  body: CookingSessionWrite;
+  path?: never;
+  query?: never;
+  url: "/sessions";
+};
+
+export type CreateCookingSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError;
+  /**
+   * Method not allowed
+   */
+  405: ApiError;
+};
+
+export type CreateCookingSessionError = CreateCookingSessionErrors[keyof CreateCookingSessionErrors];
+
+export type CreateCookingSessionResponses = {
+  /**
+   * Draft cooking session created
+   */
+  201: CookingSessionSuccess;
+};
+
+export type CreateCookingSessionResponse = CreateCookingSessionResponses[keyof CreateCookingSessionResponses];
+
+export type DeleteCookingSessionData = {
+  body?: never;
+  path: {
+    sessionId: string;
+  };
+  query?: never;
+  url: "/sessions/{sessionId}";
+};
+
+export type DeleteCookingSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError;
+  /**
+   * Resource not found
+   */
+  404: ApiError;
+  /**
+   * Method not allowed
+   */
+  405: ApiError;
+};
+
+export type DeleteCookingSessionError = DeleteCookingSessionErrors[keyof DeleteCookingSessionErrors];
+
+export type DeleteCookingSessionResponses = {
+  /**
+   * Draft cooking session deleted
+   */
+  204: void;
+};
+
+export type DeleteCookingSessionResponse = DeleteCookingSessionResponses[keyof DeleteCookingSessionResponses];
+
+export type GetCookingSessionData = {
+  body?: never;
+  path: {
+    sessionId: string;
+  };
+  query?: never;
+  url: "/sessions/{sessionId}";
+};
+
+export type GetCookingSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError;
+  /**
+   * Resource not found
+   */
+  404: ApiError;
+  /**
+   * Method not allowed
+   */
+  405: ApiError;
+};
+
+export type GetCookingSessionError = GetCookingSessionErrors[keyof GetCookingSessionErrors];
+
+export type GetCookingSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: CookingSessionSuccess;
+};
+
+export type GetCookingSessionResponse = GetCookingSessionResponses[keyof GetCookingSessionResponses];
+
+export type UpdateCookingSessionData = {
+  body: CookingSessionWrite;
+  path: {
+    sessionId: string;
+  };
+  query?: never;
+  url: "/sessions/{sessionId}";
+};
+
+export type UpdateCookingSessionErrors = {
+  /**
+   * Malformed request
+   */
+  400: ApiError;
+  /**
+   * Resource not found
+   */
+  404: ApiError;
+  /**
+   * Method not allowed
+   */
+  405: ApiError;
+};
+
+export type UpdateCookingSessionError = UpdateCookingSessionErrors[keyof UpdateCookingSessionErrors];
+
+export type UpdateCookingSessionResponses = {
+  /**
+   * Successful response
+   */
+  200: CookingSessionSuccess;
+};
+
+export type UpdateCookingSessionResponse = UpdateCookingSessionResponses[keyof UpdateCookingSessionResponses];
 
 export type ClientOptions = {
   baseUrl: `${string}://${string}/api` | (string & {});

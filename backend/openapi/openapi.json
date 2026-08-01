@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Kamado API",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "servers": [
     {
@@ -230,6 +230,280 @@
         },
         "required": ["error"],
         "additionalProperties": false
+      },
+      "PlannedDomeRange": {
+        "type": "object",
+        "properties": {
+          "minF": {
+            "type": "integer",
+            "minimum": 150,
+            "maximum": 700
+          },
+          "maxF": {
+            "type": "integer",
+            "minimum": 150,
+            "maximum": 700
+          }
+        },
+        "required": ["minF", "maxF"],
+        "additionalProperties": false
+      },
+      "CookingSessionStepWrite": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instructions": {
+            "type": "string",
+            "minLength": 1
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          }
+        },
+        "required": ["title", "instructions", "durationMinutes"],
+        "additionalProperties": false
+      },
+      "CookingSessionStep": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CookingSessionStepWrite"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": ["id"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CookingSessionPhase": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "technique": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transitionGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookingSessionStep"
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["title", "technique", "transitionGuidance", "id", "steps"],
+        "additionalProperties": false
+      },
+      "CookingSession": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cookingDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "plannedDomeRange": {
+            "$ref": "#/components/schemas/PlannedDomeRange"
+          },
+          "plannedFoodTargetF": {
+            "type": "integer",
+            "minimum": 32,
+            "maximum": 212
+          },
+          "setupGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deflectorGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "heatZoneGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ventGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prepNotes": {
+            "type": "string",
+            "minLength": 1
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookingSessionPhase"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "title",
+          "cookingDate",
+          "plannedDomeRange",
+          "setupGuidance",
+          "deflectorGuidance",
+          "heatZoneGuidance",
+          "ventGuidance",
+          "prepNotes",
+          "id",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "phases"
+        ],
+        "additionalProperties": false
+      },
+      "CookingSessionSuccess": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CookingSession"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "CookingSessionPhaseWrite": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "technique": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transitionGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookingSessionStepWrite"
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["title", "technique", "transitionGuidance", "steps"],
+        "additionalProperties": false
+      },
+      "CookingSessionWrite": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cookingDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "plannedDomeRange": {
+            "$ref": "#/components/schemas/PlannedDomeRange"
+          },
+          "plannedFoodTargetF": {
+            "type": "integer",
+            "minimum": 32,
+            "maximum": 212
+          },
+          "setupGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deflectorGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "heatZoneGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ventGuidance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prepNotes": {
+            "type": "string",
+            "minLength": 1
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookingSessionPhaseWrite"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "title",
+          "cookingDate",
+          "plannedDomeRange",
+          "setupGuidance",
+          "deflectorGuidance",
+          "heatZoneGuidance",
+          "ventGuidance",
+          "prepNotes",
+          "phases"
+        ],
+        "additionalProperties": false
+      },
+      "CookingSessionListSuccess": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookingSession"
+            }
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
       }
     },
     "parameters": {}
@@ -241,7 +515,7 @@
         "summary": "Check API health",
         "responses": {
           "200": {
-            "description": "Health status",
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
@@ -261,7 +535,267 @@
             }
           },
           "404": {
-            "description": "Route not found",
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "post": {
+        "operationId": "createCookingSession",
+        "summary": "Create a draft cooking session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookingSessionWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft cooking session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookingSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listCookingSessions",
+        "summary": "List draft cooking sessions",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookingSessionListSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}": {
+      "get": {
+        "operationId": "getCookingSession",
+        "summary": "Get a draft cooking session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookingSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateCookingSession",
+        "summary": "Replace a draft cooking session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookingSessionWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookingSessionSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCookingSession",
+        "summary": "Delete a draft cooking session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Draft cooking session deleted"
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
             "content": {
               "application/json": {
                 "schema": {

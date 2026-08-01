@@ -13,7 +13,7 @@ The backend currently exposes only health behavior and SQLite has no product-dom
 - Add repository and route coverage for complete nested CRUD round trips, order and reorder behavior, validation, rollback, resource-not-found behavior, and deletion.
 - Regenerate OpenAPI and the generator-owned frontend client, update relevant domain and architecture documentation, and verify with `scripts/precommit-run`.
 
-Implementation remains gated on pinning the exact public DTO field names/optional serialization and the exact Fahrenheit bounds and precision; the refinement evidence does not provide those values and they must not be invented.
+The executable contract uses `cookingDate`, `plannedDomeRange.minF`/`maxF`, optional-by-omission `plannedFoodTargetF`, distinct setup/deflector/heat-zone/vent guidance fields, ordered `phases`/`steps`, and integer Fahrenheit values. Dome targets are bounded from 150°F through 700°F and food targets from 32°F through 212°F, matching the repository's established planning limits.
 
 ## Impact
 

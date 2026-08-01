@@ -81,8 +81,9 @@ model {
 
     backend = container 'Bun API' {
       description '''
-        Bun TypeScript HTTP API. Currently exposes `/api/health`, initializes SQLite,
-        applies CORS when configured, and owns future domain and LLM boundaries.
+        Bun TypeScript HTTP API. Exposes contract-validated health and durable draft
+        cooking-session CRUD routes, initializes SQLite, applies CORS when configured,
+        and owns future live-cook and LLM boundaries.
       '''
 
       healthApi = component 'Health API' {
@@ -90,7 +91,7 @@ model {
       }
 
       sessionApi = component 'Session API' {
-        description 'Planned endpoints for cook plans, live sessions, current step state, and timeline adjustments.'
+        description 'Shipped create/get/list/full-replacement/delete endpoints for complete ordered cooking-day drafts; live state transitions remain planned.'
       }
 
       coachApi = component 'Coach API' {
@@ -112,9 +113,9 @@ model {
 
     sqlite = database 'SQLite database' {
       description '''
-        Local SQLite persistence configured by `DATABASE_PATH`. It contains runner-owned migration history
-        alongside `app_metadata`; planned product tables should keep sessions, logs, learning content, and
-        memory in one personal store.
+        Local SQLite persistence configured by `DATABASE_PATH`. It contains migration history,
+        `app_metadata`, and normalized ordered draft-session, phase, and step tables. Future logs,
+        learning content, and memory remain in the same personal store.
       '''
     }
   }

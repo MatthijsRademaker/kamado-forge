@@ -5,7 +5,7 @@ import { createTemporaryPersistence } from "./persistence/test-support";
 describe("API startup", () => {
   test("bootstraps persistence before exposing the configured health endpoint", async () => {
     const fixture = createTemporaryPersistence();
-    let fetchHandler: ((request: Request) => Response) | undefined;
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
 
     try {
       const api = startApi({
@@ -17,7 +17,7 @@ describe("API startup", () => {
         },
       });
 
-      const response = fetchHandler?.(new Request("http://api.test/api/health"));
+      const response = await fetchHandler?.(new Request("http://api.test/api/health"));
 
       expect(response).toBeDefined();
       expect(await response?.json()).toEqual({
@@ -30,9 +30,9 @@ describe("API startup", () => {
     }
   });
 
-  test("preserves successful OPTIONS preflight and configured CORS headers", () => {
+  test("preserves successful OPTIONS preflight and configured CORS headers", async () => {
     const fixture = createTemporaryPersistence();
-    let fetchHandler: ((request: Request) => Response) | undefined;
+    let fetchHandler: ((request: Request) => Response | Promise<Response>) | undefined;
 
     try {
       const api = startApi({
@@ -44,7 +44,7 @@ describe("API startup", () => {
         },
       });
 
-      const response = fetchHandler?.(
+      const response = await fetchHandler?.(
         new Request("http://api.test/api/health", {
           method: "OPTIONS",
           headers: { "Access-Control-Request-Method": "GET" },
@@ -54,7 +54,7 @@ describe("API startup", () => {
       expect(response?.status).toBe(204);
       expect(response?.headers.get("Access-Control-Allow-Origin")).toBe("https://app.example.test");
       expect(response?.headers.get("Access-Control-Allow-Headers")).toBe("content-type, authorization");
-      expect(response?.headers.get("Access-Control-Allow-Methods")).toBe("GET,POST,OPTIONS");
+      expect(response?.headers.get("Access-Control-Allow-Methods")).toBe("GET,POST,PUT,DELETE,OPTIONS");
       api.persistence.close();
     } finally {
       fixture.cleanup();

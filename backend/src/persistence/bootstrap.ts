@@ -12,6 +12,7 @@ export interface BootstrapPersistenceOptions {
 
 export { shippedMigrations, type Migration } from "./migrations";
 export type { PersistenceContext } from "./repository-context";
+export { createSessionRepository } from "./session-repository";
 
 export function bootstrapPersistence({
   databasePath,

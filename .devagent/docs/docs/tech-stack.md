@@ -38,8 +38,8 @@ The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vu
 | Runtime | Bun |
 | HTTP server | Thin `Bun.serve` startup adapter in `backend/src/api.ts` |
 | Persistence | `bun:sqlite` bootstrap with WAL, foreign-key enforcement, and numbered migrations at `DATABASE_PATH` |
-| Current schema | Runner-owned migration history alongside `app_metadata` |
-| Current endpoint | Contract-validated `GET /api/health` with status-only database health |
+| Current schema | Migration history, `app_metadata`, and normalized ordered cooking-session tables |
+| Current endpoints | Contract-validated health plus draft cooking-session create/get/list/replace/delete routes |
 | Type checking | `tsc -p backend/tsconfig.json --noEmit` |
 
 The backend is the correct future boundary for domain APIs, memory reads/writes, and LLM provider requests.
@@ -50,7 +50,7 @@ The backend is the correct future boundary for domain APIs, memory reads/writes,
 
 Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
 
-The standalone `SessionPlan` schema in `backend/src/contract.ts` is registered as an OpenAPI component without a session route. The local Plan and Today/Live fixtures import its generated type from `frontend/src/api/generated/types.gen.ts`; neither feature calls a session API or declares parallel session, phase, or step transport DTOs. See [Local Plan Page](./local-plan.md) and [Local Today and Live Cook](./local-live-cook.md) for their fixture and lifecycle rules.
+The standalone local `SessionPlan` schema in `backend/src/contract.ts` remains the fixture contract for Plan and Today/Live. The separate strict cooking-session aggregate in `backend/src/session-contract.ts` drives `/api/sessions`, OpenAPI operations, and generated transport models. The current frontend features import the local generated model but do not call the durable API or declare parallel transport DTOs. See [Draft Cooking-Session API](./cooking-session-api.md), [Local Plan Page](./local-plan.md), and [Local Today and Live Cook](./local-live-cook.md).
 
 Frontend state follows these ownership rules:
 
@@ -95,5 +95,6 @@ Before claiming implementation work is complete, run `scripts/precommit-run` unl
 
 - [Product Guardrails](./product-guardrails.md) — product boundaries and navigation model.
 - [Architecture Diagrams](./architecture.mdx) — visual source of truth generated from LikeC4.
+- [Draft Cooking-Session API](./cooking-session-api.md) — durable draft aggregate and persistence behavior.
 - [Local Plan Page](./local-plan.md) — generated contract, fixture selector, and local editor lifecycle.
 - [Local Today and Live Cook](./local-live-cook.md) — mounted Today/Live fixture lifecycle and controller.

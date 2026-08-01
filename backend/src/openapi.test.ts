@@ -53,13 +53,13 @@ describe("OpenAPI generation", () => {
     const document = buildOpenApiDocument();
 
     expect(document.openapi).toBe("3.0.3");
-    expect(document.info.version).toBe("1.0.0");
+    expect(document.info.version).toBe("2.0.0");
     expect(document.servers).toEqual([{ url: "/api" }]);
     expect(document.paths?.["/health"]?.get?.operationId).toBe("getHealth");
     expect(Object.keys(document.paths?.["/health"]?.get?.responses ?? {})).toEqual(["200", "400", "404", "405"]);
   });
 
-  test("publishes the session plan schema without adding a session endpoint", () => {
+  test("publishes the local plan model and every cooking-session CRUD operation", () => {
     const document = buildOpenApiDocument();
     const sessionPlan = document.components?.schemas?.SessionPlan;
 
@@ -78,6 +78,12 @@ describe("OpenAPI generation", () => {
         "prepNotes",
       ],
     });
-    expect(Object.keys(document.paths ?? {})).toEqual(["/health"]);
+    expect(Object.keys(document.paths ?? {})).toEqual(["/health", "/sessions", "/sessions/{sessionId}"]);
+    expect(document.paths?.["/sessions"]?.post?.operationId).toBe("createCookingSession");
+    expect(document.paths?.["/sessions"]?.post?.requestBody).toMatchObject({ required: true });
+    expect(document.paths?.["/sessions"]?.get?.operationId).toBe("listCookingSessions");
+    expect(document.paths?.["/sessions/{sessionId}"]?.get?.operationId).toBe("getCookingSession");
+    expect(document.paths?.["/sessions/{sessionId}"]?.put?.operationId).toBe("updateCookingSession");
+    expect(document.paths?.["/sessions/{sessionId}"]?.delete?.responses[204]).not.toHaveProperty("content");
   });
 });

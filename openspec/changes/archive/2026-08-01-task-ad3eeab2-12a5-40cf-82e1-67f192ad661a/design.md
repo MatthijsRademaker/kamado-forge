@@ -35,13 +35,13 @@ Create and PUT use the same complete replacement shape and do not accept server-
 
 The complete plan owns title and cooking date at session level. Manual planned targets are a session-level Fahrenheit dome minimum/maximum range and an optional scalar food target. Setup, deflector, heat-zone, vent, and prep guidance are session-level. Each ordered phase has a title, cooking technique, transition guidance, and an ordered non-empty step array. Each step has a title, instructions, and positive integral duration in minutes. A persisted draft contains at least one phase and each phase contains at least one step. Request array order is authoritative; persistence ordinals are never public.
 
-Exact canonical JSON field names and the serialization of the optional food target still require an explicit contract decision before implementation because refinement did not pin them.
+The write shape uses `title`, `cookingDate`, `plannedDomeRange: { minF, maxF }`, optional-by-omission `plannedFoodTargetF`, `setupGuidance`, `deflectorGuidance`, `heatZoneGuidance`, `ventGuidance`, `prepNotes`, and `phases`. Phases use `title`, `technique`, `transitionGuidance`, and `steps`; steps use `title`, `instructions`, and `durationMinutes`.
 
 ### Timing and temperature semantics
 
 `cookingDate` is a real calendar date in `YYYY-MM-DD` form and has no time-zone conversion. Step `durationMinutes` is the planning-time authority and is an integer from 1 through 1440. Phase/step offsets and aggregate totals are derived from ordered durations and are not persisted. The API does not invent overlap or chronology rejection.
 
-Dome and food values are planned/manual Fahrenheit guidance, never measured readings. Dome minimum may equal maximum but must not exceed it. The strict contract must pin exact inclusive Fahrenheit bounds and numeric precision for dome endpoints and the optional food target before migration or route implementation. Values outside those pinned limits are invalid.
+Dome and food values are planned/manual Fahrenheit guidance, never measured readings. Dome minimum may equal maximum but must not exceed it. Dome endpoints are integers from 150°F through 700°F inclusive. The optional food target is an integer from 32°F through 212°F inclusive and is omitted when absent. These limits retain the existing canonical local-plan temperature rules while adding the requested dome range.
 
 ### Normalized aggregate persistence
 
@@ -63,7 +63,7 @@ Document the durable single-owner draft boundary, ordered plan semantics, intege
 
 ## Conflict Resolution
 
-The reviewer required implementation to remain blocked until public semantics were pinned. The architect and lead developer consistently selected the existing unversioned API, full PUT replacement, draft-only lifecycle, normalized storage, server-owned metadata, and derived timing; those selections are adopted here. Recommendations also resolve list shape/order, aggregate field ownership, complete-draft structure, fresh nested IDs on PUT, and aggregate-only audit data. No validated evidence provides exact DTO field names, optional-food serialization, or temperature limits/precision, so those points remain explicit pre-implementation gaps rather than invented decisions.
+The existing unversioned API, full PUT replacement, draft-only lifecycle, normalized storage, server-owned metadata, and derived timing are retained. The public names and limits are pinned above using the established local-plan Fahrenheit bounds and direct names for the task's newly required range and guidance fields.
 
 ## Risks
 
@@ -72,7 +72,7 @@ The reviewer required implementation to remain blocked until public semantics we
 - SQLite foreign-key enforcement is connection-local; production and temporary test databases must use the configured bootstrap and verify cascades and orphan absence.
 - Expanding the synchronous health-only dispatcher can regress existing route, method, error-envelope, response-validation, or CORS behavior; retain existing tests while adding CRUD cases.
 - Hand-editing OpenAPI or client files can create drift; regenerate from the executable registry and use existing drift checks.
-- Implementing before the two remaining contract gaps are resolved would make migrations, tests, and generated clients ambiguous; task 1 is a hard gate.
+- The durable API contract intentionally differs from the fixture-oriented local `SessionPlan`; generated names and docs must keep those boundaries explicit until frontend integration is requested.
 
 ## Traceability
 
