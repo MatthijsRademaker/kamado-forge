@@ -92,6 +92,109 @@
         "required": ["error"],
         "additionalProperties": false
       },
+      "CoachResult": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["next_action"]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    }
+                  },
+                  "required": ["kind", "title", "rationale"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["caution"]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    }
+                  },
+                  "required": ["kind", "title", "rationale"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "maxItems": 4
+          }
+        },
+        "required": ["message", "suggestions"],
+        "additionalProperties": false
+      },
+      "CoachSuccess": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CoachResult"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "CoachChatMessage": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"]
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": ["role", "content"],
+        "additionalProperties": false
+      },
+      "CoachRequest": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoachChatMessage"
+            },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        },
+        "required": ["messages"],
+        "additionalProperties": false
+      },
       "PlannedDomeRange": {
         "type": "object",
         "properties": {
@@ -702,6 +805,74 @@
         }
       }
     },
+    "/coach": {
+      "post": {
+        "operationId": "askCoach",
+        "summary": "Ask the context-aware cooking coach",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Response 502",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Response 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sessions": {
       "post": {
         "operationId": "createCookingSession",
@@ -1041,47 +1212,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1091,47 +1222,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1141,47 +1232,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1191,47 +1242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1262,47 +1273,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1312,47 +1283,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1362,47 +1293,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1412,47 +1303,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1491,47 +1342,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1541,47 +1352,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1591,47 +1362,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1641,47 +1372,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1730,47 +1421,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1780,47 +1431,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1830,47 +1441,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1880,47 +1451,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1969,47 +1500,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2019,47 +1510,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2069,47 +1520,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2119,47 +1530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2208,47 +1579,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2258,47 +1589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2308,47 +1599,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2358,47 +1609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2447,47 +1658,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2497,47 +1668,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2547,47 +1678,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2597,47 +1688,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2686,47 +1737,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2736,47 +1747,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2786,47 +1757,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2836,47 +1767,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2925,47 +1816,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2975,47 +1826,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3025,47 +1836,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3075,47 +1846,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3164,47 +1895,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3214,47 +1905,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3264,47 +1915,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3314,47 +1925,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiError"
-                    },
-                    {
-                      "properties": {
-                        "error": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string"
-                            },
-                            "message": {
-                              "type": "string"
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "path": {
-                                    "type": "string"
-                                  },
-                                  "code": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": ["path", "code", "message"],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": ["code", "message", "issues"],
-                          "additionalProperties": false
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }

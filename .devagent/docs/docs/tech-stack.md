@@ -39,10 +39,10 @@ The mounted application entry is `frontend/src/main.ts` and `frontend/src/App.vu
 | HTTP server | Thin `Bun.serve` startup adapter in `backend/src/api.ts` |
 | Persistence | `bun:sqlite` bootstrap with WAL, foreign-key enforcement, and numbered migrations at `DATABASE_PATH` |
 | Current schema | Migration history, `app_metadata`, normalized planning tables, and live-cook drafts, snapshots, transitions, visits, and notes |
-| Current endpoints | Contract-validated health, planning `/api/sessions` routes, activation, and ID-addressed `/api/live-sessions` queries and commands |
+| Current endpoints | Contract-validated health, planning `/api/sessions`, ID-addressed `/api/live-sessions`, and non-streaming `POST /api/coach` routes |
 | Type checking | `tsc -p backend/tsconfig.json --noEmit` |
 
-The backend is the current boundary for durable session data and domain transitions, and the future boundary for memory and LLM provider requests.
+The backend owns durable session data, domain transitions, and the current LLM provider boundary. `backend/src/coach-service.ts` assembles read-only active-session context, while `backend/src/openai-coach-provider.ts` keeps OpenAI transport and credentials behind the vendor-neutral contract in `backend/src/coach-provider.ts`. Memory remains future work.
 
 ## Typed API and frontend state ownership
 
@@ -50,7 +50,7 @@ The backend is the current boundary for durable session data and domain transiti
 
 Generated artifacts are dependencies, not hand-editing surfaces. Change the backend registry, run `bun run generate:api`, and commit both generated trees. `bun run check:api` regenerates into temporary directories and reports drift without rewriting tracked files; `scripts/check` invokes it during normal verification.
 
-The strict cooking-session aggregate in `backend/src/session-contract.ts` drives planning and eligible-draft routes under `/api/sessions`. `backend/src/live-cook-contract.ts` joins activation to that aggregate and defines active, ID-addressed live/terminal detail, notes, and commands under `/api/live-sessions`. Plan, Today, and Live use the generated operations exclusively through `frontend/src/api/sessions.ts`; production components do not declare parallel transport DTOs or call `fetch` directly. See [Durable Cooking-Session API](./cooking-session-api.md), [Durable Plan Page](./local-plan.md), and [Today and Live Cook](./local-live-cook.md).
+The strict cooking-session aggregate in `backend/src/session-contract.ts` drives planning and eligible-draft routes under `/api/sessions`. `backend/src/live-cook-contract.ts` joins activation to that aggregate and defines active, ID-addressed live/terminal detail, notes, and commands under `/api/live-sessions`. `backend/src/coach-contract.ts` defines bounded chat and advisory responses for `/api/coach`; its operation is generated for future frontend use, but the Coach view remains a placeholder. See [Durable Cooking-Session API](./cooking-session-api.md), [Context-Aware Coach API](./coach-api.md), [Durable Plan Page](./local-plan.md), and [Today and Live Cook](./local-live-cook.md).
 
 Frontend state follows these ownership rules:
 
@@ -70,7 +70,7 @@ Frontend state follows these ownership rules:
 | --- | --- |
 | `likec4.config.json` | LikeC4 project identity. |
 | `spec.c4` | Element, relationship, deployment node, and tag vocabulary. |
-| `model.c4` | Product model: learner, SPA, API, SQLite, planned LLM boundary, and future components. |
+| `model.c4` | Product model: learner, SPA, API, SQLite, delivered coach/LLM boundary, and future components. |
 | `deployment.c4` | Current local development topology. |
 | `views.c4` | Rendered views embedded into the architecture docs. |
 
@@ -96,5 +96,6 @@ Before claiming implementation work is complete, run `scripts/precommit-run` unl
 - [Product Guardrails](./product-guardrails.md) — product boundaries and navigation model.
 - [Architecture Diagrams](./architecture.mdx) — visual source of truth generated from LikeC4.
 - [Cooking and Live-Cook APIs](./cooking-session-api.md) — durable draft aggregate and persistence behavior.
+- [Context-Aware Coach API](./coach-api.md) — read-only context, provider ownership, configuration, and safe failures.
 - [Local Plan Page](./local-plan.md) — generated contract, fixture selector, and local editor lifecycle.
 - [Local Today and Live Cook](./local-live-cook.md) — mounted Today/Live fixture lifecycle and controller.

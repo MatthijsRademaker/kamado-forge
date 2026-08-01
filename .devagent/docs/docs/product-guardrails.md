@@ -21,7 +21,7 @@ The responsive product shell uses exactly five authoritative areas:
 ## Architectural boundaries
 
 - The **Vue SPA** owns interaction design and local UI state.
-- The **Bun API** owns persistence, domain rules, and any future LLM provider calls.
+- The **Bun API** owns persistence, domain rules, and all LLM provider calls.
 - The **SQLite database** is the personal durable store.
 - The frontend should call only the project backend for product data; direct browser-to-LLM integration would bypass memory, prompt hygiene, and session context.
 
@@ -35,10 +35,11 @@ Current code ships the durable plan-to-cook slice inside the routed product shel
 - `frontend/src/views/LiveView.vue` renders backend-owned progress, timing, notes, and transitions for one session ID. Completed and cancelled detail remains read-only and reloadable at the same URL.
 - `frontend/src/api/sessions.ts` centralizes generated-client queries, keys, mutation reconciliation, and background refetches. Production Plan, Today, and Live code no longer imports selectable fixtures or a mounted session controller.
 - `backend/src/contract.ts`, `backend/src/session-contract.ts`, and `backend/src/live-cook-contract.ts` expose durable `/api/sessions` and `/api/live-sessions` routes backed by SQLite.
+- `backend/src/coach-contract.ts` and `backend/src/coach-service.ts` expose an advisory-only `/api/coach` foundation that reads authoritative active-session context and cannot mutate it; OpenAI configuration and credentials remain server-only.
 - `frontend/src/components/KamadoShowcase.vue` remains an internal gallery at standalone `/showcase`; Coach, Learn, and Logbook remain orientation-only placeholders.
 - `.devagent/architecture/` contains the source-of-truth LikeC4 model for product boundaries.
 
-Coach, Learn, Logbook, durable learning memory, and LLM integration remain planned. Plan, Today, and Live are executable durable product flows rather than fixture-only previews.
+The Coach UI, Learn, Logbook, and durable learning memory remain planned. The context-aware backend Coach API and OpenAI adapter are delivered, but no production frontend currently invokes the generated coach operation. Plan, Today, and Live remain executable durable product flows rather than fixture-only previews.
 
 ## Related pages
 
@@ -46,5 +47,6 @@ Coach, Learn, Logbook, durable learning memory, and LLM integration remain plann
 - [Architecture Diagrams](./architecture.mdx) — LikeC4 views for product boundaries and current flow.
 - [Tech Stack](./tech-stack.md) — repository layout, scripts, and current tooling.
 - [Durable Cooking-Session API](./cooking-session-api.md) — planning, activation, live commands, and terminal detail.
+- [Context-Aware Coach API](./coach-api.md) — bounded chat, authoritative context, and advisory-only provider orchestration.
 - [Durable Plan Page](./local-plan.md) — local editing and explicit persistence.
 - [Today and Live Cook](./local-live-cook.md) — active-first selection and ID-addressed execution.
