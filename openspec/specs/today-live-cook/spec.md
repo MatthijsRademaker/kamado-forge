@@ -3,9 +3,7 @@
 ## Purpose
 
 Define the deterministic frontend-only Today and Live cook walkthrough, including generated-type-coupled fixtures, mounted session interactions, outdoor guidance hierarchy, accessible terminal actions, and responsive verification.
-
 ## Requirements
-
 ### Requirement: Canonical product routes and deterministic fixtures
 
 The frontend MUST resolve `/` and `/today` to Today, `/live` to Live, and `/showcase` to the preserved internal component showcase. The Today and Live routes MUST support direct navigation and refresh under the existing development and built-preview serving model.
@@ -68,17 +66,24 @@ Starting a draft MUST activate the mounted local session and enter Live. Continu
 
 Live MUST present the complete current-action instruction and clearly label both dome and food values as planned targets with units. At a 320-by-568 CSS-pixel viewport, the complete action and both planned target readouts MUST be visible without vertical scrolling, and the page MUST have no page-level horizontal overflow.
 
-Live MUST present setup guidance and vent guidance as distinct readable instructions. It MUST also show elapsed time alongside planned duration, determinate step or session progress, and the next step. The view MUST NOT describe fixture targets as measured readings or imply probe connectivity.
+This above-fold composition MUST be satisfied by the current-step region together with the pinned context and composer regions. Where the composition cannot fit all required content at 320 by 568, the pinned context region's planned-target row MUST collapse before the current-action text is truncated, because the requirement is the *complete* action.
+
+Live MUST present setup guidance and vent guidance as distinct readable instructions; they MAY be presented in a labeled, reachable, subordinate region rather than at the same visual weight as the current step. Live MUST also show elapsed time alongside planned duration, the next step, and position within the cook. Position MUST be conveyed by the rendered timeline rather than by a determinate progress bar or completion percentage, and MUST remain available to assistive technology as text. The view MUST NOT describe targets as measured readings or imply probe connectivity.
 
 #### Scenario: A cook checks the first viewport outdoors
 
-- **WHEN** the active-running Live fixture is viewed at 320 by 568 CSS pixels without scrolling
+- **WHEN** the Live view is displayed at 320 by 568 CSS pixels without scrolling
 - **THEN** the complete current action and labeled planned dome and food target values and units are visible within the viewport with no page-level horizontal overflow
 
 #### Scenario: Supporting guidance is inspected
 
 - **WHEN** a user reads the active Live view
-- **THEN** setup guidance, vent guidance, elapsed and planned timing, determinate progress, and next-step content are distinct and understandable without sensor telemetry
+- **THEN** setup guidance, vent guidance, elapsed and planned timing, timeline position, and next-step content are distinct and understandable without sensor telemetry
+
+#### Scenario: The above-fold composition is constrained
+
+- **WHEN** the required above-fold content cannot all fit at 320 by 568 CSS pixels
+- **THEN** the pinned context region's planned-target row collapses and the complete current-action text remains untruncated
 
 ### Requirement: One local controller owns mounted session interactions
 
@@ -140,3 +145,4 @@ Automated frontend checks MUST cover every Today state, Live running and paused 
 
 - **WHEN** the implementation is prepared for completion
 - **THEN** deterministic frontend and browser checks cover the required fixture states and interactions and `scripts/precommit-run` completes successfully
+

@@ -130,8 +130,10 @@ test("persists the complete Plan-to-Live journey, recovers from a backend confli
   await page.reload();
   await expect(page.getByText("Clean smoke settled in.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Advance" }).click();
+  await page.getByTestId("live-composer").getByRole("button", { name: "Advance" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Stabilize the dome" })).toBeVisible();
+  await expect(page.getByTestId("live-timeline")).toContainText("Light the charcoal");
+  await page.getByRole("button", { name: "More cook actions" }).click();
   await page.getByRole("button", { name: "Finish cook" }).click();
   const finalStepPause = await page.request.post(`/api/live-sessions/${sessionId}/pause`, { data: {} });
   expect(finalStepPause.status()).toBe(200);
@@ -143,12 +145,11 @@ test("persists the complete Plan-to-Live journey, recovers from a backend confli
   await page.getByRole("button", { name: "Confirm finish" }).click();
   await expect(page).toHaveURL(liveUrl);
   await expect(page.getByText("completed cooking session · read-only durable detail")).toBeVisible();
-  await expect(page.getByTestId("session-progress")).toContainText("100%");
+  await expect(page.getByTestId("live-composer")).toHaveCount(0);
 
   await page.reload();
   await expect(page).toHaveURL(liveUrl);
   await expect(page.getByText("completed cooking session · read-only durable detail")).toBeVisible();
-  await expect(page.getByTestId("session-progress")).toContainText("100%");
   await expect(page.getByText("Clean smoke settled in.")).toBeVisible();
 
   await page.goto("/today");
@@ -206,7 +207,8 @@ test("keeps durable Live current action and key targets usable at 320px", async 
   expect(cancellation.status()).toBe(200);
   await page.reload();
   await expect(page.getByText("cancelled cooking session · read-only durable detail")).toBeVisible();
-  await expect(page.getByTestId("session-progress")).toContainText("50%");
+  await expect(page.getByTestId("live-composer")).toHaveCount(0);
+  await expect(page.locator('[data-entry="future-step"]')).toHaveCount(0);
 });
 
 function toSessionWrite(session: CookingSession): CookingSessionWrite {

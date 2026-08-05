@@ -177,68 +177,143 @@ does not finish, pause, or create another active session; returning through Toda
 ### Desktop layout
 
 ```text
-+----------------------------+------------------------------+-----------------------+
-| A. PRIMARY NAV             | B. SESSION PROGRESS + ACTION | C. TARGETS            |
-| persistent rail; switch    | Purpose: place and act now.  | Planned/manual guide. |
-| destination                | Step 2/6: Stabilize          | Dome 250F PLANNED     |
-| [Today]                    | 00:22 elapsed; due 00:45     | Food 203F PLANNED     |
-| [Plan]                     | Hold dome near target.       | Manual guidance       |
-| [Coach]                    | [PRIMARY: Set bottom vent to | Not hardware readings |
-| [Learn]                    | 1 finger open]               |                       |
-| [Logbook]                  | Next: Cook at 00:45          | SESSION: LIVE COOK    |
-+----------------------------+------------------------------+-----------------------+
-|                            | D. GUIDANCE + NEXT STEP      | E. COACH              |
-|                            | Fuel: lump charcoal          | [Ask Coach]           |
-|                            | Heat: deflector; indirect    |                       |
-|                            | Top vent: 1/4 open           |                       |
-|                            | Prompt: T2 dome stable       |                       |
-+----------------------------+------------------------------------------------------+
-|                            | F. SESSION CONTROLS (purpose: deliberate lifecycle)  |
-|                            | [Pause]  [Finish cook]                               |
-+----------------------------+------------------------------------------------------+
++---------------------------+----------------------------------------------------------+
+| A. PRIMARY NAV            | B. PINNED CONTEXT                                        |
+| persistent rail; switch   | only while E is off-view                                 |
+| destination               | ACTIVE  step 1/3                                         |
+| [Today]                   | 04:05 of 20:00 planned                                   |
+| [Plan]                    | Dome 250F PLANNED                                        |
+| [Coach]                   | Food 203F PLANNED                                        |
+| [Learn]                   | [PRIMARY: Advance ->]                                    |
+| [Logbook]                 |                                                          |
+|                           +----------------------------------------------------------+
+|                           | C. TIMELINE (the whole cook, one scroll)                 |
+|                           | PLAN  ACTUAL                                             |
+|                           | ----  ------                                             |
+|                           | D. [Before you light  v] setup, vent,                    |
+|                           |    deflector, and heat-zone guidance                     |
+|                           | == PHASE 1 - FIRE - indirect ==                          |
+|                           |    leave when: clean smoke                               |
+|                           | 00:00 15:03  o DONE Stabilize the fire                   |
+|                           |                 attempt 1 of 2                           |
+|                           |                 ran 08:12 of 20:00 planned;              |
+|                           |                 11:48 under plan                         |
+|                           |                 - note "settled at 240F"                 |
+|                           | 00:20 15:11  o DONE Cook over the fire                   |
+|                           |                 ran 02:05 of 30:00 planned;              |
+|                           |                 27:55 under plan                         |
+|                           |              ^ RETURNED to "Stabilize the fire"          |
+|                           | ==== E. NOW - unobstructed and dominant ====             |
+|                           | 00:00 15:13  * CURRENT ACTION - step 1/3                 |
+|                           |                 attempt 2 of 2                           |
+|                           |                 STABILIZE THE FIRE                       |
+|                           |                 Hold the dome near target.               |
+|                           |                 04:05 elapsed of 20:00 planned           |
+|                           |                 Dome 250F PLANNED                        |
+|                           |                 Food 203F PLANNED                        |
+|                           | ============================================             |
+|                           | 00:20 ~15:29 . PLANNED Cook over the fire                |
+|                           |                 30:00 planned                            |
+|                           | == PHASE 2 - SEAR - direct ==                            |
+|                           |    leave when: rested                                    |
+|                           | 00:50 ~15:59 . PLANNED Sear and rest                     |
+|                           |                 10:00 planned                            |
+|                           |       ~16:09   PROJECTED FINISH (approximate;            |
+|                           |                ignores the drift above)                  |
++---------------------------+----------------------------------------------------------+
+| F. PINNED ACTION (viewport bottom, never the end of region C)                        |
+| [note...] [Save note]  [Pause ||] [Back <-] [PRIMARY: Advance ->]                    |
+| [More ...] opens: Finish cook, Cancel cook, Ask Coach                                |
++--------------------------------------------------------------------------------------+
 ```
 
-Region B remains unobstructed until its immediate action is completed or deliberately
-changed. Region C always labels values as planned/manual guidance, never as live probe or
-controller readings. Region D names the next phase and transition prompt and retains the
-current fuel, heat-zone/deflector, vent, and fire-adjustment guidance.
+Region C is one scroll container holding completed history, the current step, and the
+remaining plan; the remaining plan is never behind a disclosure. **Timeline position is the
+progress indicator**: there is no determinate progress bar and no session-completion
+percentage anywhere in Live Cook. Position and elapsed-against-planned time are always
+present as text.
+
+Region E is the boundary between what has happened and what is planned, and it is the only
+dominant region — nothing competes with it. Past visits (`o`), the return marker (`^`), the
+current step (`*`), and planned steps (`.`) are distinguishable by shape and label, not by
+color alone. The `PLAN` and `ACTUAL` gutter reads planned cumulative offset against actual
+wall-clock time; a completed visit always states its actual duration, its planned duration,
+and the direction and size of the difference. Projected finish is marked approximate and is
+never presented as a commitment.
+
+On load the scroll position resolves to region E rather than to the top or the end of the
+container, and the container never anchors to its end — the end is the projected finish, not
+the cook's place. A confirmed advance or return animates the scroll to the new region E, and
+repositions without animation when reduced motion is requested.
+
+Region B appears only while region E is out of view, and it is the only place the pinned
+targets are repeated. Region F is pinned to the viewport bottom so `Advance` is reachable
+without scrolling the page. `Finish cook` and `Cancel cook` keep their named confirmation
+overlays behind `More`; `Ask Coach` opens the Coach overlay over the unchanged session.
+Region D stays labeled and reachable at every width, expanded while no step has finished and
+collapsed once one has; it never carries the weight of region E.
 
 ### Mobile layout
 
 ```text
 +---------------------------------------------+
-| A. SESSION STATUS (purpose: place in plan)  |
-| LIVE COOK: Step 2/6 - Stabilize             |
-| 00:22 elapsed; next Cook at 00:45           |
-+---------------------------------------------+
-| B. CURRENT STEP + ACTION (unobstructed)     |
-| Hold dome near target.                      |
-| [PRIMARY: Set bottom vent to 1 finger open] |
-+---------------------------------------------+
-| C. TARGETS (immediately visible)            |
+| A. PINNED CONTEXT (only while E is off-view)|
+| ACTIVE  step 1/3  04:05/20:00  [Advance ->] |
 | Dome 250F PLANNED; Food 203F PLANNED        |
-| Manual guidance; not hardware readings      |
 +---------------------------------------------+
-| D. NEXT STEP (purpose: prepare ahead)       |
-| Next: Cook; prompt: T2 dome stable          |
+| B. TIMELINE (primary structure, one scroll) |
+| D. [Before you light  v] setup, vent,       |
+|    deflector, heat-zone guidance            |
+| == PHASE 1 - FIRE - indirect ==             |
+|    leave when: clean smoke                  |
+|  o DONE Stabilize the fire   attempt 1 of 2 |
+|    started 15:03; ran 08:12 of 20:00; under |
+|    - note "settled at 240F"                 |
+|  o DONE Cook over the fire                  |
+|    started 15:11; ran 02:05 of 30:00; under |
+|  ^ RETURNED to "Stabilize the fire"         |
+| ============ E. NOW ======================= |
+|  * CURRENT ACTION - step 1/3 - attempt 2/2  |
+|    STABILIZE THE FIRE                       |
+|    Hold the dome near target.               |
+|    04:05 elapsed of 20:00 planned           |
+|    Dome 250F PLANNED    Food 203F PLANNED   |
+| =========================================== |
+|  . PLANNED Cook over the fire       ~15:29  |
+| == PHASE 2 - SEAR - direct ==               |
+|  . PLANNED Sear and rest            ~15:59  |
+|    ~16:09 PROJECTED FINISH (approximate)    |
 +---------------------------------------------+
-| E. SECONDARY DETAILS (labeled collapsibles) |
-| [Timeline and transition points v]          |
-| [Kamado setup, vents, and fire guidance v]  |
-+---------------------------------------------+
-| F. SESSION CONTROLS (purpose: lifecycle)    |
-| [Pause]  [Finish cook]  [Ask Coach]         |
+| F. PINNED ACTION (thumb zone)               |
+| [note...]                     [Save note]   |
+| [||] [<-] [  PRIMARY: ADVANCE ->  ]  [...]  |
 +---------------------------------------------+
 | G. PRIMARY NAV (persistent bottom bar)      |
 | [Today] [Plan] [Coach] [Learn] [Logbook]    |
 +---------------------------------------------+
 ```
 
-Region B and both Region C targets remain above the fold and unobscured by a secondary
-panel. Regions E and F open labeled action sheets or overlays: **Coach** opens a
-context-aware Coach overlay; **Pause** opens a pause-confirmation overlay; and **Finish
-cook** opens a finish-confirmation overlay. Closing or canceling an overlay returns to the
-same active step without losing session state.
+Region E and both region E targets are immediately visible without vertical scrolling at
+320 by 568, together with region F. Where that composition cannot fit, region A's target row
+collapses before the current action is truncated — the requirement is the *complete* action.
+
+Regions F and G occupy the same screen edge: F sits directly above G and the two never
+overlap, so `Advance` and the five fixed navigation labels are both reachable. Every control
+in F keeps a touch target of at least 44 by 44 CSS pixels. When the on-screen keyboard opens
+for the note field, F rises above the keyboard and region B scrolls beneath it; the note
+field and its save action stay visible and operable.
+
+Region B is never demoted to a collapsible section — the timeline is the page. Only region D
+collapses. `[...]` in region F opens `Finish cook`, `Cancel cook`, and `Ask Coach` as labeled
+overlays; closing or cancelling any of them returns to the same unchanged step.
+
+### Terminal record
+
+A `COMPLETED` or `CANCELLED` cook renders the same timeline at its own session route, with
+region F absent, no planned steps after region E, the final visit presented as region E, and
+a closing entry stating the terminal status and the total actual time against the total
+planned time. Persisted notes stay attached to the visit that owns them and are read-only:
+no control offers to edit or reattach them.
 
 ## Shared session contract
 

@@ -2,9 +2,10 @@
 import { computed, nextTick, ref } from "vue";
 import { AlertTriangle, ArrowUp, Flame, MessageCircle, RefreshCw, Sparkles, UserRound } from "lucide-vue-next";
 import { CoachApiRequestError, CoachTransportError, type CoachMutationError, useAskCoachMutation } from "@/api/coach";
-import type { CoachContext, CoachResult, LiveCookSession } from "@/api/generated/types.gen";
+import type { CoachContext, CoachResult } from "@/api/generated/types.gen";
 import { useActiveSessionQuery } from "@/api/sessions";
 import _LearningStatePanel from "@/components/panels/LearningStatePanel.vue";
+import { phaseTitleAtStep } from "@/features/live/timeline";
 import { Button as _Button } from "@/components/ui/button";
 import { Textarea as _Textarea } from "@/components/ui/textarea";
 
@@ -155,15 +156,6 @@ function _onComposerKeydown(event: KeyboardEvent): void {
   if (event.key !== "Enter" || (!event.ctrlKey && !event.metaKey)) return;
   event.preventDefault();
   void _submitQuestion();
-}
-
-function phaseTitleAtStep(session: LiveCookSession, stepOrdinal: number): string {
-  let firstStepOrdinal = 0;
-  for (const phase of session.plan.phases) {
-    if (stepOrdinal < firstStepOrdinal + phase.steps.length) return phase.title;
-    firstStepOrdinal += phase.steps.length;
-  }
-  throw new Error(`Current step ordinal is outside the displayed plan: ${stepOrdinal}`);
 }
 
 function _contextTitle(context: CoachContext): string {
@@ -430,4 +422,3 @@ function _contextTitle(context: CoachContext): string {
     </aside>
   </div>
 </template>
-

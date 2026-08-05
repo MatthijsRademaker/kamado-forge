@@ -3,6 +3,19 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 const styleSheet = readFileSync("frontend/src/style.css", "utf8");
 
+// Live Cook's layout lives in `features/live` components composed by the view,
+// so every Live assertion reads the view and its feature components together.
+function readLiveSource(): string {
+  return [
+    "frontend/src/views/LiveView.vue",
+    ...readdirSync("frontend/src/features/live")
+      .filter((fileName) => fileName.endsWith(".vue"))
+      .map((fileName) => `frontend/src/features/live/${fileName}`),
+  ]
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n");
+}
+
 describe("Kamado UI semantic theme", () => {
   test("exposes core, surface, text, border, accent, feedback, and focus roles", () => {
     const requiredTokens = [
@@ -120,7 +133,6 @@ describe("registry-derived UI primitives", () => {
       .join("\n");
     const productSource = [
       "frontend/src/components/KamadoShowcase.vue",
-      "frontend/src/views/LiveView.vue",
       "frontend/src/views/TodayView.vue",
       "frontend/src/features/plan/PlanPage.vue",
       "frontend/src/components/ProductAreaView.vue",
@@ -129,6 +141,7 @@ describe("registry-derived UI primitives", () => {
       "frontend/src/components/EmptyState.vue",
     ]
       .map((path) => readFileSync(path, "utf8"))
+      .concat(readLiveSource())
       .join("\n");
 
     expect(registrySource).not.toMatch(/\brounded(?:-(?:xs|sm|md|lg|xl|2xl|3xl|full))?(?![-\w])/);
@@ -146,7 +159,7 @@ describe("registry-derived UI primitives", () => {
       showcaseSource,
       areaSource,
       todaySource,
-      readFileSync("frontend/src/views/LiveView.vue", "utf8"),
+      readLiveSource(),
       readFileSync("frontend/src/features/plan/PlanPage.vue", "utf8"),
     ].join("\n");
 
@@ -206,7 +219,7 @@ describe("product atmosphere assignments", () => {
   test("declares budgets by reading context and keeps readouts flat", () => {
     const shellSource = readFileSync("frontend/src/components/ProductShell.vue", "utf8");
     const todaySource = readFileSync("frontend/src/views/TodayView.vue", "utf8");
-    const liveSource = readFileSync("frontend/src/views/LiveView.vue", "utf8");
+    const liveSource = readLiveSource();
     const planSource = readFileSync("frontend/src/features/plan/PlanPage.vue", "utf8");
     const areaSource = readFileSync("frontend/src/components/ProductAreaView.vue", "utf8");
     const emptySource = readFileSync("frontend/src/components/EmptyState.vue", "utf8");
@@ -223,7 +236,10 @@ describe("product atmosphere assignments", () => {
     expect(areaSource).toContain('atmosphere: "mid",');
     expect(planSource).not.toMatch(/<ProductAreaView[\s\S]*?\satmosphere=/);
     expect(liveSource).toContain('data-atmosphere="low"');
-    expect(liveSource).toContain('data-testid="live-glance" data-atmosphere="flat"');
+    // The display heading now sits in the timeline's now region, which keeps the
+    // `flat` budget that makes Live Cook's largest heading render solid.
+    expect(liveSource).toContain('data-testid="live-now"');
+    expect(liveSource).toContain('data-atmosphere="flat"');
     expect(temperatureSource).toContain('data-atmosphere="flat"');
     expect(emptySource).toContain('data-atmosphere="high"');
     expect(emptySource).toContain("atmosphere-effects");
