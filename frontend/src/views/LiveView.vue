@@ -186,10 +186,9 @@ function _formatDuration(seconds: number): string {
     <template #action><Button as-child class="min-h-11"><RouterLink :to="{ name: 'today' }">Return to Today</RouterLink></Button></template>
   </EmptyState>
 
-  <article v-else class="live-page -mx-4 -mt-6 grid min-w-0 gap-0 sm:-mx-6 sm:-mt-8 lg:-mx-8 lg:-mt-12 xl:-mx-12">
-    <section data-testid="live-glance" class="relative grid min-h-[27rem] content-start overflow-hidden border-b border-border-subtle bg-neutral-obsidian px-4 pt-5 pb-6 sm:px-8 lg:min-h-0 lg:px-12 lg:py-9">
-      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgb(228_81_26_/_0.18),transparent_42%)]" aria-hidden="true"></div>
-      <div class="relative mx-auto grid w-full max-w-6xl gap-4">
+  <article v-else data-atmosphere="low" class="live-page -mx-4 -mt-6 grid min-w-0 gap-0 sm:-mx-6 sm:-mt-8 lg:-mx-8 lg:-mt-12 xl:-mx-12">
+    <section data-testid="live-glance" data-atmosphere="flat" class="atmosphere-effects relative grid min-h-[27rem] content-start overflow-hidden border-b border-border-subtle bg-neutral-obsidian px-4 pt-5 pb-6 sm:px-8 lg:min-h-0 lg:px-12 lg:py-9">
+      <div class="atmosphere-content relative mx-auto grid w-full max-w-6xl gap-4">
         <div class="flex items-center justify-between gap-3">
           <p class="flex items-center gap-2 font-label text-caption tracking-[0.18em] text-accent uppercase"><Flame aria-hidden="true" class="size-4 fill-current" /> {{ _terminal ? 'Cook record' : 'Live cook' }}</p>
           <StatusIndicator label="Session" :value="session.status" :status="session.status === 'ACTIVE' ? 'success' : session.status === 'PAUSED' ? 'warning' : 'neutral'" />
@@ -197,7 +196,7 @@ function _formatDuration(seconds: number): string {
 
         <div class="grid gap-2">
           <p class="font-label text-caption tracking-[0.18em] text-neutral-mist uppercase">{{ _terminal ? 'Final state' : `Current action · ${_currentOrdinal + 1} of ${session.progress.totalSteps}` }}</p>
-          <h1 class="font-display text-[2.45rem] leading-[0.95] tracking-[0.01em] uppercase sm:text-display-title">{{ _terminal ? _plan.title : session.currentStep?.title }}</h1>
+          <h1 class="display-distress font-display text-[2.45rem] leading-[0.95] tracking-[0.01em] uppercase sm:text-display-title">{{ _terminal ? _plan.title : session.currentStep?.title }}</h1>
           <p data-testid="current-action" class="max-w-3xl break-words text-[0.9rem] leading-5 text-neutral-smoke sm:text-body">{{ _terminal ? `${session.status.toLowerCase()} cooking session · read-only durable detail` : session.currentStep?.instructions }}</p>
         </div>
 
@@ -227,7 +226,7 @@ function _formatDuration(seconds: number): string {
           <Button type="button" variant="outline" class="mt-3 min-h-11" @click="sessionQuery.refetch(true)">Retry refresh</Button>
         </div>
 
-        <section v-if="displayedExecution && _displayedStep" class="grid gap-4 rounded-roomy border border-border-subtle bg-surface p-5 shadow-inset">
+        <section v-if="displayedExecution && _displayedStep" data-atmosphere="flat" class="grid gap-4 rounded-default border border-border-subtle bg-surface p-5 shadow-inset">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="font-label text-caption tracking-[0.16em] text-accent uppercase">{{ _terminal ? 'Final timing' : 'Step timing' }}</p>
@@ -242,7 +241,7 @@ function _formatDuration(seconds: number): string {
           </div>
         </section>
 
-        <section class="grid gap-4 rounded-roomy border border-border-subtle bg-surface p-5">
+        <section class="grid gap-4 rounded-default border border-border-subtle bg-surface p-5">
           <div class="grid gap-4 sm:grid-cols-2">
             <div><p class="font-label text-label text-accent uppercase">Kamado setup</p><p class="mt-1 text-ui text-text-muted">{{ _plan.setupGuidance }}</p></div>
             <div><p class="font-label text-label text-accent uppercase">Vent guidance</p><p class="mt-1 text-ui text-text-muted">{{ _plan.ventGuidance }}</p></div>
@@ -255,7 +254,7 @@ function _formatDuration(seconds: number): string {
           </div>
         </section>
 
-        <section class="grid gap-3 rounded-roomy border border-border-subtle bg-surface p-5">
+        <section class="grid gap-3 rounded-default border border-border-subtle bg-surface p-5">
           <div>
             <p class="font-label text-label uppercase">Persisted notes</p>
             <p class="text-small text-text-muted">Notes are attached to the current execution step and survive reload.</p>
@@ -274,7 +273,7 @@ function _formatDuration(seconds: number): string {
       </div>
 
       <aside v-if="!_terminal" class="grid content-start gap-5">
-        <section class="grid gap-3 rounded-roomy border border-border-subtle bg-neutral-obsidian p-5">
+        <section class="grid gap-3 rounded-default border border-border-subtle bg-neutral-obsidian p-5">
           <p class="font-label text-caption tracking-[0.16em] text-text-muted uppercase">Move through the cook</p>
           <div class="grid grid-cols-2 gap-3">
             <Button variant="outline" size="lg" class="min-h-11" :disabled="_actionPending || _currentOrdinal <= 0" @click="_runAction('return')"><ArrowLeft aria-hidden="true" /> Back</Button>
@@ -282,7 +281,7 @@ function _formatDuration(seconds: number): string {
           </div>
         </section>
 
-        <section class="grid gap-3 rounded-roomy border border-border-subtle bg-surface p-5">
+        <section class="grid gap-3 rounded-default border border-border-subtle bg-surface p-5">
           <Dialog v-model:open="finishOpen">
             <DialogTrigger as-child><Button size="lg" class="min-h-11 w-full" :disabled="_actionPending || Boolean(session.nextStep)"><Check aria-hidden="true" /> Finish cook</Button></DialogTrigger>
             <DialogContent :show-close-button="false">

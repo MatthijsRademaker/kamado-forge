@@ -30,7 +30,7 @@ const _fillPercentage = computed(() => {
 </script>
 
 <template>
-  <section class="grid gap-3 rounded-default border border-border-subtle bg-surface-raised p-4">
+  <section data-atmosphere="flat" class="grid gap-3 rounded-default border border-border-subtle bg-surface-raised p-4">
     <div class="flex items-baseline justify-between gap-4">
       <span class="font-label text-label uppercase text-text-muted">{{ label }}</span>
       <output class="font-heading text-heading-lg text-text" :aria-label="label">

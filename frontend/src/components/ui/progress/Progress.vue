@@ -34,7 +34,7 @@ function _indicatorTransform(value: number | null | undefined, max: number | und
     v-bind="_delegatedProps"
     :class="
       _mergeClasses(
-        'bg-primary/20 relative h-2 w-full overflow-hidden rounded-full',
+        'bg-primary/20 relative h-2 w-full overflow-hidden rounded-pill',
         props.class,
       )
     "

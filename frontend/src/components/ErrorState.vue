@@ -12,7 +12,7 @@ withDefaults(
 
 <template>
   <section
-    class="grid place-items-center gap-4 rounded-roomy border border-feedback-danger bg-surface p-8 text-center shadow-inset"
+    class="grid place-items-center gap-4 rounded-default border border-feedback-danger bg-surface p-8 text-center shadow-inset"
     role="alert"
     v-bind="$attrs"
   >

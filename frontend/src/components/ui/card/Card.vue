@@ -13,7 +13,7 @@ const _mergeClasses = cn;
     data-slot="card"
     :class="
       _mergeClasses(
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-border py-6 shadow-sm',
+        'bg-card text-card-foreground flex flex-col gap-6 rounded-default border border-border py-6 shadow-sm',
         _props.class,
       )
     "

@@ -1,0 +1,108 @@
+{
+  "routes": {
+    "today-1x": {
+      "path": "/today",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "plan-1x": {
+      "path": "/plan",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "live-1x": {
+      "path": "/live/e791c4b9-1a72-46b9-a6c2-e4fe53bb366f",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "coach-1x": {
+      "path": "/coach",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "learn-1x": {
+      "path": "/learn",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "logbook-1x": {
+      "path": "/logbook",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "today-2x": {
+      "path": "/today",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "plan-2x": {
+      "path": "/plan",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "live-2x": {
+      "path": "/live/e791c4b9-1a72-46b9-a6c2-e4fe53bb366f",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "coach-2x": {
+      "path": "/coach",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "learn-2x": {
+      "path": "/learn",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    },
+    "logbook-2x": {
+      "path": "/logbook",
+      "rootBudget": "low",
+      "title": "LLM Native Vue Bun App"
+    }
+  },
+  "controls": {
+    "focused": 27,
+    "selectedTab": {
+      "background": "rgba(0, 0, 0, 0)",
+      "borderBottom": "rgb(228, 81, 26)",
+      "borderBottomWidth": "2px",
+      "color": "rgb(228, 81, 26)",
+      "radius": "4px"
+    },
+    "buttonRadius": "4px",
+    "cardRadius": "8px"
+  },
+  "narrow": {
+    "today": {
+      "overflow": 0
+    },
+    "plan": {
+      "overflow": 0
+    },
+    "live": {
+      "overflow": 0
+    },
+    "coach": {
+      "overflow": 0
+    },
+    "learn": {
+      "overflow": 0
+    },
+    "logbook": {
+      "overflow": 0
+    }
+  },
+  "live": {
+    "atmosphere": "flat",
+    "glowAlpha": "0",
+    "grainOpacity": "0",
+    "effectOpacity": "0"
+  },
+  "routeBudgets": {
+    "today": "mid",
+    "plan": "low",
+    "live": "low",
+    "learn": "mid"
+  }
+}

@@ -29,23 +29,23 @@ export default defineComponent({
         <RouterLink
           :to="{ name: item.routeName }"
           :aria-current="$route.name === item.routeName ? 'page' : undefined"
-          class="group relative flex min-h-12 items-center gap-3 overflow-hidden rounded-tight border border-transparent px-4 font-label text-label tracking-[0.08em] text-neutral-smoke uppercase transition duration-fast hover:border-border-subtle hover:bg-surface-raised hover:text-text"
-          active-class="border-border-subtle bg-surface-raised text-text shadow-inset"
+          class="group relative flex min-h-14 items-center gap-4 rounded-tight border border-transparent px-4 font-label text-label tracking-[0.08em] text-neutral-smoke uppercase transition duration-fast hover:bg-surface/70 hover:text-text"
+          active-class="nav-ember-active text-text"
           @click="$emit('navigate')"
         >
           <span
             v-if="$route.name === item.routeName"
             data-current-marker
             aria-hidden="true"
-            class="absolute inset-y-2 left-0 w-1 bg-accent"
+            class="absolute inset-y-0 left-0 w-[3px] rounded-compact bg-accent"
           />
           <component
             :is="icons[item.icon]"
             aria-hidden="true"
-            class="size-5 shrink-0 stroke-[1.5] group-hover:text-accent"
+            class="relative z-1 size-5 shrink-0 stroke-[1.5] group-hover:text-accent"
             :class="$route.name === item.routeName ? 'text-accent' : 'text-neutral-mist'"
           />
-          <span>{{ item.label }}</span>
+          <span class="relative z-1">{{ item.label }}</span>
         </RouterLink>
       </li>
     </ul>

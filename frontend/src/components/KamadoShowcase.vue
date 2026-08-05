@@ -1,6 +1,6 @@
 <script lang="ts">
-import { defineComponent, ref } from "vue";
 import { Flame, Gauge, Send } from "lucide-vue-next";
+import { defineComponent, ref } from "vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorState from "@/components/ErrorState.vue";
 import LoadingState from "@/components/LoadingState.vue";
@@ -92,6 +92,7 @@ export default defineComponent({
     const sheetSide = ref<"top" | "right" | "bottom" | "left">("right");
     const note = ref("");
     const pitName = ref("");
+    const effectControlActivated = ref(false);
 
     return {
       activeTab,
@@ -100,6 +101,7 @@ export default defineComponent({
       sheetSide,
       note,
       pitName,
+      effectControlActivated,
     };
   },
 });
@@ -111,17 +113,17 @@ export default defineComponent({
       <div class="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:px-8 lg:py-20">
         <div class="min-w-0">
           <p class="mb-4 flex items-center gap-2 font-label text-label uppercase tracking-widest text-accent">
-            <span class="size-2 rounded-pill bg-accent shadow-[0_0_18px_var(--color-accent)]" aria-hidden="true"></span>
+            <span data-atmosphere="high" class="atmosphere-effects size-2 rounded-pill bg-accent" aria-hidden="true"></span>
             Kamado Forge / Primitive Bench
           </p>
-          <h1 class="max-w-4xl font-display text-[clamp(3.5rem,12vw,8rem)] leading-none tracking-tight text-text">
+          <h1 class="display-distress max-w-4xl font-display text-[clamp(3.5rem,12vw,8rem)] leading-none tracking-tight text-text">
             HEAT WITH INTENT
           </h1>
           <p class="mt-6 max-w-2xl text-body text-text-muted">
             A responsive local reference for the charcoal-and-ember control language. These are reusable parts, not a product flow.
           </p>
         </div>
-        <div class="grid min-w-0 gap-3 rounded-roomy border border-border bg-surface p-4 shadow-elevated sm:grid-cols-2 lg:w-80 lg:grid-cols-1">
+        <div class="grid min-w-0 gap-3 rounded-default border border-border bg-surface p-4 shadow-elevated sm:grid-cols-2 lg:w-80 lg:grid-cols-1">
           <div>
             <p class="font-label text-small uppercase text-text-muted">Surface</p>
             <p class="font-heading text-heading-lg uppercase text-text">Charcoal / ember</p>
@@ -185,7 +187,7 @@ export default defineComponent({
               <Button variant="ghost" size="sm">Inspect</Button>
             </CardFooter>
           </Card>
-          <div class="grid content-start gap-3 rounded-roomy border border-border-subtle bg-surface p-6 shadow-inset">
+          <div class="grid content-start gap-3 rounded-default border border-border-subtle bg-surface p-6 shadow-inset">
             <p class="font-label text-label uppercase text-text">Badge variants</p>
             <div class="flex flex-wrap gap-3">
               <Badge variant="default">Primary</Badge>
@@ -195,20 +197,98 @@ export default defineComponent({
             </div>
           </div>
         </div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Surface depth recipes">
+          <div class="min-h-40 rounded-default border border-border-subtle bg-surface p-5 shadow-elevated">
+            <p class="font-label text-label uppercase text-text">Surface</p>
+            <p class="mt-2 text-small text-text-muted">Border · roomy radius · elevated shadow</p>
+          </div>
+          <div class="surface-elevated min-h-40 rounded-default border border-border-subtle p-5">
+            <p class="font-label text-label uppercase text-text">Elevated</p>
+            <p class="mt-2 text-small text-text-muted">Raised surface · inset highlight</p>
+          </div>
+          <div class="surface-inset min-h-40 rounded-default border border-border-subtle p-5">
+            <p class="font-label text-label uppercase text-text">Inset</p>
+            <p class="mt-2 text-small text-text-muted">Recessed gradient · inset shadow</p>
+          </div>
+          <div class="surface-outline min-h-40 rounded-default p-5">
+            <p class="font-label text-label uppercase text-text">Outline</p>
+            <p class="mt-2 text-small text-text-muted">Outlined depth · top-edge highlight</p>
+          </div>
+          <div class="surface-glass min-h-40 rounded-default border border-border-subtle p-5">
+            <p class="font-label text-label uppercase text-text">Glass</p>
+            <p class="mt-2 text-small text-text-muted">Translucent ash · isolated backdrop blur</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid gap-6" aria-labelledby="atmosphere-heading">
+        <div class="flex flex-wrap items-end justify-between gap-4 border-b border-border-subtle pb-4">
+          <div>
+            <p class="font-label text-small uppercase text-accent">03 / atmosphere</p>
+            <h2 id="atmosphere-heading" class="font-heading text-heading-xl uppercase text-text">Mood by reading context</h2>
+          </div>
+          <p class="max-w-md text-ui text-text-muted">Intensity inherits from container policy. Components never choose literal grain or glow values.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <article data-atmosphere="flat" class="min-h-52 rounded-default border border-border-subtle bg-surface p-5">
+            <p class="font-label text-small uppercase text-accent">Flat</p>
+            <h3 class="mt-3 font-heading text-heading-lg uppercase text-text">Uninterrupted signal</h3>
+            <p class="mt-2 text-ui text-text-muted">Admitted layers: none</p>
+          </article>
+          <article data-atmosphere="low" class="surface-elevated min-h-52 rounded-default border border-border-subtle p-5">
+            <p class="font-label text-small uppercase text-accent">Low</p>
+            <h3 class="mt-3 font-heading text-heading-lg uppercase text-text">Working depth</h3>
+            <p class="mt-2 text-ui text-text-muted">Top-edge highlight + vertical gradient</p>
+          </article>
+          <article data-atmosphere="mid" tabindex="0" aria-label="Mid atmosphere specimen" class="surface-elevated atmosphere-effects min-h-52 rounded-default border border-border-subtle p-5">
+            <div class="atmosphere-content" data-testid="atmosphere-mid-inherited">
+              <p class="font-label text-small uppercase text-accent">Mid</p>
+              <h3 class="mt-3 font-heading text-heading-lg uppercase text-text">Charcoal texture</h3>
+              <p class="mt-2 text-ui text-text-muted">Top-edge highlight + vertical gradient + grain</p>
+            </div>
+          </article>
+          <article data-atmosphere="high" tabindex="0" aria-label="High atmosphere specimen" class="surface-elevated atmosphere-effects min-h-52 rounded-default border border-border-subtle p-5">
+            <div class="atmosphere-content grid gap-3">
+              <div>
+                <p class="font-label text-small uppercase text-accent">High</p>
+                <h3 class="mt-3 font-heading text-heading-lg uppercase text-text">Ember bloom</h3>
+                <p class="mt-2 text-ui text-text-muted">Top-edge highlight + vertical gradient</p>
+                <p class="text-ui text-text-muted">Grain + ember glow</p>
+              </div>
+              <Button size="sm" variant="outline" @click="effectControlActivated = true">
+                {{ effectControlActivated ? "Interaction received" : "Test effect control" }}
+              </Button>
+            </div>
+          </article>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-2" aria-label="Effect content stacking comparison">
+          <article data-atmosphere="high" tabindex="0" aria-label="Incorrect effect stacking specimen" class="surface-elevated atmosphere-effects min-h-44 rounded-default border border-feedback-danger p-5">
+            <div>
+              <p class="font-label text-small uppercase text-feedback-danger">Incorrect — content beneath effect layer</p>
+              <p class="mt-3 text-ui text-text-muted">Missing atmosphere-content allows texture to composite over copy.</p>
+            </div>
+          </article>
+          <article data-atmosphere="high" tabindex="0" aria-label="Correct effect stacking specimen" class="surface-elevated atmosphere-effects min-h-44 rounded-default border border-feedback-success p-5">
+            <div class="atmosphere-content">
+              <p class="font-label text-small uppercase text-feedback-success">Correct — content above effect layer</p>
+              <p class="mt-3 text-ui text-text-muted">Explicit content stacking preserves untouched text rendering.</p>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section id="forms" class="grid gap-6" aria-labelledby="forms-heading">
         <div class="border-b border-border-subtle pb-4">
-          <p class="font-label text-small uppercase text-accent">03 / fields</p>
+          <p class="font-label text-small uppercase text-accent">04 / fields</p>
           <h2 id="forms-heading" class="font-heading text-heading-xl uppercase text-text">Native form semantics</h2>
         </div>
         <div class="grid gap-4 lg:grid-cols-2">
-          <div class="grid gap-2 rounded-roomy border border-border-subtle bg-surface p-5">
+          <div class="grid gap-2 rounded-default border border-border-subtle bg-surface p-5">
             <label class="font-label text-label uppercase text-text" for="showcase-pit-name">Reference label</label>
             <Input id="showcase-pit-name" v-model="pitName" aria-describedby="showcase-pit-name-help" placeholder="Name this sample" />
             <p id="showcase-pit-name-help" class="text-small text-text-muted">A label and description are supplied by the caller.</p>
           </div>
-          <div class="grid gap-2 rounded-roomy border border-border-subtle bg-surface p-5">
+          <div class="grid gap-2 rounded-default border border-border-subtle bg-surface p-5">
             <label class="font-label text-label uppercase text-text" for="showcase-note">Invalid-state example</label>
             <Textarea id="showcase-note" v-model="note" aria-describedby="showcase-note-help" aria-invalid="true" placeholder="Leave an illustrative note" />
             <p id="showcase-note-help" class="text-small text-feedback-danger">This sample demonstrates an invalid field relationship.</p>
@@ -222,7 +302,7 @@ export default defineComponent({
           <h2 id="feedback-heading" class="font-heading text-heading-xl uppercase text-text">Progress and states</h2>
         </div>
         <div class="grid gap-4 lg:grid-cols-2">
-          <div class="grid content-start gap-4 rounded-roomy border border-border-subtle bg-surface p-5">
+          <div class="grid content-start gap-4 rounded-default border border-border-subtle bg-surface p-5">
             <div class="flex items-baseline justify-between gap-4">
               <label class="font-label text-label uppercase text-text" for="showcase-progress">Determinate progress</label>
               <span class="text-ui text-text-muted">68%</span>
@@ -239,7 +319,7 @@ export default defineComponent({
             </div>
             <Progress id="showcase-indeterminate" :model-value="null" aria-label="Illustrative indeterminate progress" />
           </div>
-          <Tabs v-model="activeTab" class="rounded-roomy border border-border-subtle bg-surface p-5">
+          <Tabs v-model="activeTab" class="rounded-default border border-border-subtle bg-surface p-5">
             <TabsList aria-label="Illustrative fuel modes" class="w-full">
               <TabsTrigger value="embers">Embers</TabsTrigger>
               <TabsTrigger value="smoke">Smoke</TabsTrigger>

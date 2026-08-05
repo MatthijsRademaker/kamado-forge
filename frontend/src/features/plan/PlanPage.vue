@@ -9,6 +9,8 @@ import {
   useUpdateSessionMutation,
 } from "@/api/sessions";
 import _EmptyState from "@/components/EmptyState.vue";
+import _ProductAreaView from "@/components/ProductAreaView.vue";
+
 import _ErrorState from "@/components/ErrorState.vue";
 import _LoadingState from "@/components/LoadingState.vue";
 import { Button as _Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ defineOptions({
     EmptyState: _EmptyState,
     ErrorState: _ErrorState,
     LoadingState: _LoadingState,
+    ProductAreaView: _ProductAreaView,
     PlanEditor: _PlanEditor,
   },
 });
@@ -138,14 +141,19 @@ function correctiveMessage(error: SessionApiError): string {
 </script>
 
 <template>
-  <div class="plan-page">
-    <header class="plan-masthead">
-      <div>
-        <p class="plan-eyebrow">Durable cooking-day plan</p>
-        <h1 class="plan-title">{{ editor?.title || 'Plan the fire' }}</h1>
-      </div>
-      <p class="plan-local-note">Explicit saves · durable across reloads</p>
-    </header>
+  <div data-atmosphere="low" class="plan-page">
+    <!-- The banner is atmosphere, so it burns at the shared `mid` budget even
+         though the page it introduces is a `low` working surface. -->
+    <ProductAreaView
+      eyebrow="Durable cooking-day plan"
+      :heading="editor?.title || 'Plan the fire'"
+      heading-id="plan-heading"
+      heading-scale="record"
+      tagline="Set the fire before you light it."
+      image="/img/hero-plan.jpg"
+    >
+      <template #aside>Explicit saves · durable across reloads</template>
+    </ProductAreaView>
 
     <div class="plan-main">
       <LoadingState
@@ -173,7 +181,7 @@ function correctiveMessage(error: SessionApiError): string {
       <section v-else aria-label="Plan workspace">
         <div
           v-if="sessionsQuery.error.value || detailQuery.error.value"
-          class="mb-5 rounded-roomy border border-feedback-danger bg-surface p-5"
+          class="mb-5 rounded-default border border-feedback-danger bg-surface p-5"
           role="alert"
         >
           <p class="font-heading text-heading-lg uppercase">Saved plan refresh failed</p>
@@ -202,7 +210,7 @@ function correctiveMessage(error: SessionApiError): string {
           </div>
         </div>
 
-        <div v-if="saveError" class="mb-5 rounded-roomy border border-feedback-danger bg-surface p-5" role="alert">
+        <div v-if="saveError" class="mb-5 rounded-default border border-feedback-danger bg-surface p-5" role="alert">
           <p class="font-heading text-heading-lg uppercase">Plan not saved</p>
           <p class="text-ui text-text-muted">{{ _errorMessage }}</p>
           <ul v-if="_errorIssues.length" class="mt-3 list-disc pl-5 text-small text-feedback-danger">
@@ -218,28 +226,18 @@ function correctiveMessage(error: SessionApiError): string {
 
 <style scoped>
 .plan-page {
+  /* A grid rather than a block so the banner's negative margins bleed to the
+     viewport edges without collapsing into this element's own box. Nothing may
+     clip overflow here either — this box sits inside the shell's `<main>`
+     padding, so clipping would crop that bleed back to the text column. */
+  display: grid;
   min-width: 0;
-  overflow-x: clip;
-  background:
-    radial-gradient(circle at 78% 8%, rgb(228 81 26 / 10%), transparent 26rem),
-    linear-gradient(135deg, var(--color-neutral-obsidian), var(--color-core) 48%, #171411);
   color: var(--color-text);
 }
-.plan-masthead {
-  display: grid;
-  gap: 20px;
-  padding: 24px 16px 28px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  background-image: linear-gradient(110deg, rgb(0 0 0 / 72%), rgb(31 30 30 / 72%));
-}
-.plan-eyebrow { color: var(--color-accent); font-family: var(--font-label); font-size: var(--text-small); letter-spacing: .12em; text-transform: uppercase; }
-.plan-title { margin-top: 6px; overflow-wrap: anywhere; font-family: var(--font-display); font-size: clamp(2.5rem, 10vw, 5.5rem); font-weight: 400; line-height: .95; text-transform: uppercase; }
-.plan-local-note { align-self: end; color: var(--color-text-muted); font-size: var(--text-small); }
-.plan-main { width: min(100% - 32px, 1240px); margin-inline: auto; padding-block: 28px; }
+.plan-main { width: 100%; padding-block: 28px; }
 .plan-workspace-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; color: var(--color-text-muted); font-size: var(--text-small); }
 .plan-touch-action { min-width: 44px; min-height: 44px; }
 @media (min-width: 768px) {
-  .plan-masthead { grid-template-columns: minmax(0, 1fr) auto; align-items: end; padding: 36px max(32px, calc((100vw - 1240px) / 2)); }
   .plan-main { padding-block: 40px 72px; }
 }
 </style>

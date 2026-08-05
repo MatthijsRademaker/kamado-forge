@@ -90,6 +90,81 @@ describe("generic Kamado compositions", () => {
 describe("registry-derived UI primitives", () => {
   const primitiveDirectories = ["button", "card", "badge", "input", "textarea", "progress", "tabs", "dialog", "sheet"];
 
+  test("uses a neutral interaction surface instead of ember for hover and open states", () => {
+    expect(styleSheet).toContain("--color-interaction-surface: var(--color-neutral-pewter);");
+    expect(styleSheet).toContain("--color-interaction-surface-foreground: var(--color-neutral-frost);");
+
+    const interactiveSources = [
+      "frontend/src/components/ui/button/index.ts",
+      "frontend/src/components/ui/badge/index.ts",
+      "frontend/src/components/ui/dialog/DialogContent.vue",
+    ]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+
+    expect(interactiveSources).toContain("hover:bg-interaction-surface");
+    expect(interactiveSources).toContain("hover:text-interaction-surface-foreground");
+    expect(interactiveSources).toContain("data-[state=open]:bg-interaction-surface");
+    expect(interactiveSources).not.toMatch(/(?:hover:|data-\[state=open\]:)bg-accent/);
+  });
+
+  test("selects Forge radii by element class", () => {
+    const registrySource = primitiveDirectories
+      .flatMap((directory) => {
+        const componentDirectory = `frontend/src/components/ui/${directory}`;
+
+        return readdirSync(componentDirectory)
+          .filter((fileName) => fileName.endsWith(".ts") || fileName.endsWith(".vue"))
+          .map((fileName) => readFileSync(`${componentDirectory}/${fileName}`, "utf8"));
+      })
+      .join("\n");
+    const productSource = [
+      "frontend/src/components/KamadoShowcase.vue",
+      "frontend/src/views/LiveView.vue",
+      "frontend/src/views/TodayView.vue",
+      "frontend/src/features/plan/PlanPage.vue",
+      "frontend/src/components/ProductAreaView.vue",
+      "frontend/src/components/LoadingState.vue",
+      "frontend/src/components/ErrorState.vue",
+      "frontend/src/components/EmptyState.vue",
+    ]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+
+    expect(registrySource).not.toMatch(/\brounded(?:-(?:xs|sm|md|lg|xl|2xl|3xl|full))?(?![-\w])/);
+    expect(productSource).not.toContain("rounded-roomy");
+  });
+
+  test("shares structural ember treatments without call-site glow literals", () => {
+    const tabsSource = readFileSync("frontend/src/components/ui/tabs/TabsTrigger.vue", "utf8");
+    const todaySource = readFileSync("frontend/src/views/TodayView.vue", "utf8");
+    const areaSource = readFileSync("frontend/src/components/ProductAreaView.vue", "utf8");
+    const shellSource = readFileSync("frontend/src/components/ProductShell.vue", "utf8");
+    const showcaseSource = readFileSync("frontend/src/components/KamadoShowcase.vue", "utf8");
+    const glowSources = [
+      shellSource,
+      showcaseSource,
+      areaSource,
+      todaySource,
+      readFileSync("frontend/src/views/LiveView.vue", "utf8"),
+      readFileSync("frontend/src/features/plan/PlanPage.vue", "utf8"),
+    ].join("\n");
+
+    expect(styleSheet).toContain("@utility focal-card-rail {");
+    expect(styleSheet).toContain("@utility section-hairline {");
+    expect(todaySource).toContain("focal-card-rail");
+    expect(todaySource).not.toContain('class="absolute inset-y-0 left-0 w-1 bg-accent"');
+    expect(areaSource).toContain("section-hairline");
+    expect(areaSource).not.toContain('class="my-7 h-px w-20 bg-accent"');
+    expect(tabsSource).toContain("data-[state=active]:border-b-accent");
+    expect(tabsSource).toContain("data-[state=active]:text-accent");
+    expect(tabsSource).not.toContain("data-[state=active]:bg-background");
+    expect(tabsSource).not.toContain("data-[state=active]:shadow-sm");
+    expect(shellSource).toContain("atmosphere-effects");
+    expect(showcaseSource).toContain("atmosphere-effects");
+    expect(glowSources).not.toMatch(/shadow-\[0_0|radial-gradient[^\n]*(?:228|color-(?:accent|ember))/);
+  });
+
   test("publishes every primitive from the UI boundary", () => {
     for (const directory of primitiveDirectories) {
       expect(existsSync(`frontend/src/components/ui/${directory}/index.ts`)).toBe(true);
@@ -124,6 +199,39 @@ describe("registry-derived UI primitives", () => {
 
     expect(overlaySource).toContain('from "lucide-vue-next"');
     expect(overlaySource).not.toContain('from "@lucide/vue"');
+  });
+});
+
+describe("product atmosphere assignments", () => {
+  test("declares budgets by reading context and keeps readouts flat", () => {
+    const shellSource = readFileSync("frontend/src/components/ProductShell.vue", "utf8");
+    const todaySource = readFileSync("frontend/src/views/TodayView.vue", "utf8");
+    const liveSource = readFileSync("frontend/src/views/LiveView.vue", "utf8");
+    const planSource = readFileSync("frontend/src/features/plan/PlanPage.vue", "utf8");
+    const areaSource = readFileSync("frontend/src/components/ProductAreaView.vue", "utf8");
+    const emptySource = readFileSync("frontend/src/components/EmptyState.vue", "utf8");
+    const loadingSource = readFileSync("frontend/src/components/LoadingState.vue", "utf8");
+    const errorSource = readFileSync("frontend/src/components/ErrorState.vue", "utf8");
+    const temperatureSource = readFileSync("frontend/src/components/TemperatureDisplay.vue", "utf8");
+
+    expect(shellSource).toContain('data-atmosphere="low"');
+    expect(todaySource).toContain('data-atmosphere="mid"');
+    expect(planSource).toContain('data-atmosphere="low"');
+    // The banner burns at `mid` wherever it appears, including on top of a page
+    // that is otherwise `low`, and takes an override for a caller that needs it.
+    expect(areaSource).toContain(':data-atmosphere="atmosphere"');
+    expect(areaSource).toContain('atmosphere: "mid",');
+    expect(planSource).not.toMatch(/<ProductAreaView[\s\S]*?\satmosphere=/);
+    expect(liveSource).toContain('data-atmosphere="low"');
+    expect(liveSource).toContain('data-testid="live-glance" data-atmosphere="flat"');
+    expect(temperatureSource).toContain('data-atmosphere="flat"');
+    expect(emptySource).toContain('data-atmosphere="high"');
+    expect(emptySource).toContain("atmosphere-effects");
+    expect(emptySource).toContain("atmosphere-content");
+    expect(loadingSource).not.toContain("data-atmosphere");
+    expect(errorSource).not.toContain("data-atmosphere");
+    expect(temperatureSource).not.toContain("atmosphere-effects");
+    expect(liveSource).not.toMatch(/data-atmosphere="(?:mid|high)"/);
   });
 });
 

@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowUp, Flame, MessageCircle, RefreshCw, Sparkles, User
 import { CoachApiRequestError, CoachTransportError, type CoachMutationError, useAskCoachMutation } from "@/api/coach";
 import type { CoachContext, CoachResult, LiveCookSession } from "@/api/generated/types.gen";
 import { useActiveSessionQuery } from "@/api/sessions";
+import _LearningStatePanel from "@/components/panels/LearningStatePanel.vue";
 import { Button as _Button } from "@/components/ui/button";
 import { Textarea as _Textarea } from "@/components/ui/textarea";
 
@@ -62,6 +63,7 @@ defineOptions({
     ArrowUp,
     Button: _Button,
     Flame,
+    LearningStatePanel: _LearningStatePanel,
     MessageCircle,
     RefreshCw,
     Sparkles,
@@ -170,11 +172,11 @@ function _contextTitle(context: CoachContext): string {
 </script>
 
 <template>
-  <div class="mx-auto grid min-w-0 max-w-6xl gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+  <div class="mx-auto grid min-w-0 max-w-6xl gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
     <section class="grid min-w-0 gap-6">
       <header class="grid gap-3 border-b border-border-subtle pb-5">
         <div class="flex min-w-0 items-center gap-3">
-          <span class="grid size-11 shrink-0 place-items-center rounded-full border border-accent/50 bg-accent/10 text-accent shadow-inset">
+          <span class="grid size-11 shrink-0 place-items-center rounded-pill border border-accent/50 bg-accent/10 text-accent shadow-inset">
             <MessageCircle aria-hidden="true" class="size-5" />
           </span>
           <div class="min-w-0">
@@ -189,7 +191,7 @@ function _contextTitle(context: CoachContext): string {
 
       <section
         aria-label="Current cook context"
-        class="min-w-0 overflow-hidden rounded-roomy border border-border-subtle bg-surface shadow-inset"
+        class="min-w-0 overflow-hidden rounded-default border border-border-subtle bg-surface shadow-inset"
       >
         <div class="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3 sm:px-5">
           <div class="flex min-w-0 items-center gap-2">
@@ -258,13 +260,13 @@ function _contextTitle(context: CoachContext): string {
         aria-live="polite"
         class="grid min-w-0 gap-4"
         role="log"
-        :class="turns.length === 0 ? 'min-h-28 place-items-center rounded-roomy border border-dashed border-border-subtle p-6' : ''"
+        :class="turns.length === 0 ? 'min-h-28 place-items-center rounded-default border border-dashed border-border-subtle p-6' : ''"
       >
         <li v-if="turns.length === 0" class="text-center text-ui text-text-muted">
           Your transcript begins with the next question and clears when this page reloads.
         </li>
         <li v-for="turn in turns" :key="turn.id" class="grid min-w-0 gap-3">
-          <article data-speaker="user" class="ml-auto grid min-w-0 max-w-[92%] gap-2 rounded-roomy border border-accent/35 bg-accent/10 p-4 sm:max-w-[80%]">
+          <article data-speaker="user" class="ml-auto grid min-w-0 max-w-[92%] gap-2 rounded-default border border-accent/35 bg-accent/10 p-4 sm:max-w-[80%]">
             <p class="flex items-center gap-2 font-label text-label text-accent uppercase">
               <UserRound aria-hidden="true" class="size-4" /> You
             </p>
@@ -274,7 +276,7 @@ function _contextTitle(context: CoachContext): string {
           <article
             v-if="turn.status !== 'failed'"
             data-speaker="coach"
-            class="grid min-w-0 gap-4 rounded-roomy border border-border-subtle bg-surface p-4 shadow-inset sm:p-5"
+            class="grid min-w-0 gap-4 rounded-default border border-border-subtle bg-surface p-4 shadow-inset sm:p-5"
           >
             <p class="flex items-center gap-2 font-label text-label text-accent uppercase">
               <Flame aria-hidden="true" class="size-4" /> Coach
@@ -358,7 +360,7 @@ function _contextTitle(context: CoachContext): string {
             </template>
           </article>
 
-          <section v-else-if="turn.failure" class="grid min-w-0 gap-3 rounded-roomy border border-feedback-danger/70 bg-surface p-4" role="alert">
+          <section v-else-if="turn.failure" class="grid min-w-0 gap-3 rounded-default border border-feedback-danger/70 bg-surface p-4" role="alert">
             <p class="min-w-0 break-words text-ui text-feedback-danger [overflow-wrap:anywhere]">{{ turn.failure.message }}</p>
             <Button
               v-if="turn.failure.retryable"
@@ -373,7 +375,7 @@ function _contextTitle(context: CoachContext): string {
         </li>
       </ol>
 
-      <section class="sticky bottom-3 z-10 grid min-w-0 gap-3 rounded-roomy border border-accent/60 bg-neutral-obsidian/95 p-3 shadow-elevated backdrop-blur sm:p-4" aria-labelledby="composer-heading">
+      <section class="sticky bottom-3 z-10 grid min-w-0 gap-3 rounded-default border border-accent/60 bg-neutral-obsidian/95 p-3 shadow-elevated backdrop-blur sm:p-4" aria-labelledby="composer-heading">
         <div class="flex items-center justify-between gap-3">
           <h2 id="composer-heading" class="font-label text-label tracking-[0.08em] uppercase">Ask Coach</h2>
           <p class="hidden text-caption text-text-muted sm:block">Enter for a new line · Ctrl/⌘ + Enter to send</p>
@@ -406,17 +408,26 @@ function _contextTitle(context: CoachContext): string {
       </section>
     </section>
 
-    <aside class="grid min-w-0 gap-4 rounded-roomy border border-border-subtle bg-[radial-gradient(circle_at_top,rgb(228_81_26_/_0.12),transparent_56%)] p-5 xl:sticky xl:top-28" aria-label="Coach boundaries">
-      <Flame aria-hidden="true" class="size-7 text-accent" />
-      <div class="grid gap-2">
-        <h2 class="font-heading text-heading-lg uppercase">Advisory, never autonomous</h2>
-        <p class="text-ui text-text-muted">Coach can explain the next move, but it cannot change steps, notes, timing, or cook status.</p>
-      </div>
-      <ul class="grid gap-2 border-t border-border-subtle pt-4 text-small text-text-muted">
-        <li>One fresh context read per attempt</li>
-        <li>No notes or full session DTO sent</li>
-        <li>No durable conversation history</li>
-      </ul>
+    <aside class="grid min-w-0 gap-4 xl:sticky xl:top-28" aria-label="Coach context">
+      <LearningStatePanel />
+
+      <section
+        data-atmosphere="mid"
+        class="atmosphere-effects grid min-w-0 gap-4 rounded-default border border-border-subtle bg-surface p-5"
+        aria-label="Coach boundaries"
+      >
+        <Flame aria-hidden="true" class="atmosphere-content size-7 fill-accent stroke-accent" />
+        <div class="atmosphere-content grid gap-2">
+          <h2 class="font-heading text-heading-lg tracking-[0.04em] uppercase">Advisory, never autonomous</h2>
+          <p class="text-ui text-text-muted">Coach can explain the next move, but it cannot change steps, notes, timing, or cook status.</p>
+        </div>
+        <ul class="atmosphere-content grid gap-2 border-t border-border-subtle pt-4 text-small text-text-muted">
+          <li>One fresh context read per attempt</li>
+          <li>No notes or full session DTO sent</li>
+          <li>No durable conversation history</li>
+        </ul>
+      </section>
     </aside>
   </div>
 </template>
+

@@ -1,0 +1,3 @@
+interaction-surface background: rgb(45, 45, 45)
+interaction-surface foreground: rgb(245, 245, 245)
+WCAG contrast ratio: 12.63:1

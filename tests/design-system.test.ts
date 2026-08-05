@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 function readFrontendPackage(): { dependencies: Record<string, string> } {
   try {
@@ -91,6 +91,107 @@ describe("Kamado Forge design foundation", () => {
       expect(styleSheet).toContain(token);
     }
   });
+
+  test("defines inherited atmosphere budgets with fail-flat defaults", () => {
+    for (const token of [
+      "--atmosphere-flat-grain-opacity: 0;",
+      "--atmosphere-flat-glow-alpha: 0;",
+      "--atmosphere-flat-glow-radius: 0px;",
+      "--atmosphere-low-grain-opacity: 0;",
+      "--atmosphere-mid-grain-opacity:",
+      "--atmosphere-high-grain-opacity:",
+      "--atmosphere-high-glow-alpha:",
+      "--atmosphere-high-glow-radius:",
+    ]) {
+      expect(styleSheet).toContain(token);
+    }
+
+    expect(styleSheet).toContain(":root,\n[data-atmosphere]");
+    expect(styleSheet).toContain('[data-atmosphere="low"]');
+    expect(styleSheet).toContain('[data-atmosphere="mid"]');
+    expect(styleSheet).toContain('[data-atmosphere="high"]');
+  });
+
+  test("builds layered surface recipes without replacing depth tokens", () => {
+    const builtCss = buildFrontendCss();
+
+    for (const utility of ["surface-elevated", "surface-inset", "surface-outline", "surface-glass"]) {
+      expect(builtCss).toContain(`.${utility}{`);
+    }
+
+    expect(styleSheet).toContain("box-shadow: var(--shadow-elevated), var(--shadow-inset);");
+    expect(styleSheet).toContain("box-shadow: var(--shadow-inset);");
+    expect(styleSheet).toContain("box-shadow: var(--shadow-outline), var(--shadow-inset);");
+    expect(styleSheet).toContain("backdrop-filter: blur(16px);");
+  }, 15_000);
+
+  test("builds one non-interactive grain and ember-glow effect layer", () => {
+    const builtCss = buildFrontendCss();
+
+    expect(builtCss).toContain(".atmosphere-effects{");
+    expect(builtCss).toContain(".atmosphere-content{");
+    expect(styleSheet).toContain("<feTurbulence");
+    expect(styleSheet).toContain("baseFrequency='.08'");
+    expect(styleSheet).toContain("numOctaves='2'");
+    expect(styleSheet).toContain("180px 180px");
+    expect(styleSheet).toContain("radial-gradient(");
+    expect(styleSheet).toContain("var(--color-accent)");
+    expect(styleSheet).toContain("var(--atmosphere-glow-alpha)");
+    expect(styleSheet).toContain("var(--atmosphere-glow-radius)");
+    expect(styleSheet).toContain("isolation: isolate;");
+    expect(styleSheet).toContain("pointer-events: none;");
+    expect(styleSheet).toContain("z-index: 0;");
+    expect(styleSheet).toContain("z-index: 1;");
+  }, 15_000);
+
+  test("builds the smolder field on the atmosphere budget and cancels it under reduced motion", () => {
+    const builtCss = buildFrontendCss();
+
+    for (const layer of [
+      "smolder-field",
+      "smolder-coalbed",
+      "smolder-flare",
+      "smolder-haze",
+      "smolder-sparks",
+      "smolder-sparks-near",
+      "smolder-sparks-far",
+      "smolder-emberline",
+    ]) {
+      expect(builtCss).toContain(`.${layer}{`);
+    }
+
+    for (const keyframes of [
+      "smolder-breathe",
+      "smolder-flicker",
+      "smolder-drift",
+      "smolder-rise",
+      "smolder-emberline-pulse",
+    ]) {
+      expect(builtCss).toContain(`@keyframes ${keyframes}`);
+    }
+
+    expect(styleSheet).toContain("--atmosphere-flat-smolder-opacity: 0;");
+    expect(styleSheet).toContain("--atmosphere-low-smolder-opacity: 0;");
+    expect(styleSheet).toContain("--atmosphere-mid-smolder-opacity:");
+    expect(styleSheet).toContain("--atmosphere-high-smolder-opacity:");
+    expect(styleSheet).toContain("opacity: var(--atmosphere-smolder-opacity, 0);");
+
+    // Every frame must move transform and opacity only. Animating geometry or
+    // background position instead would repaint the whole hero each frame.
+    const smolderFrames = builtCss.match(/@keyframes smolder-[a-z-]+\{(?:[^{}]|\{[^{}]*\})*\}/g) ?? [];
+    expect(smolderFrames).toHaveLength(5);
+    for (const frames of smolderFrames) {
+      for (const [, property] of frames.matchAll(/([a-z-]+):/g)) {
+        expect(property).toMatch(/^(?:opacity|transform)$/);
+      }
+    }
+
+    const reducedMotionBlocks =
+      builtCss.match(/@media \(prefers-reduced-motion:reduce\)\{(?:[^{}]|\{[^{}]*\})*\}/g)?.join("\n") ?? "";
+    expect(reducedMotionBlocks).toContain(".smolder-coalbed");
+    expect(reducedMotionBlocks).toContain(".smolder-emberline");
+    expect(reducedMotionBlocks).toContain("animation:none");
+  }, 15_000);
 
   test("generates a duration-fast utility from its motion token", () => {
     const builtCss = buildFrontendCss();

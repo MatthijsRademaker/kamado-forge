@@ -3,7 +3,7 @@
 @import "@fontsource/inter/400.css";
 @import "tailwindcss";
 
-@source inline("duration-fast duration-normal duration-slow");
+@source inline("duration-fast duration-normal duration-slow surface-elevated surface-inset surface-outline surface-glass atmosphere-effects atmosphere-content focal-card-rail section-hairline display-distress ember-particles photo-slot photo-scrim photo-scrim-left nav-ember-active sidebar-photo-fade smolder-field smolder-coalbed smolder-flare smolder-haze smolder-sparks smolder-sparks-near smolder-sparks-far smolder-emberline");
 
 @theme {
   --font-display: "Anton", Impact, sans-serif;
@@ -45,6 +45,8 @@
   --color-border-strong: #a0a0a0;
   --color-accent: #e4511a;
   --color-accent-foreground: #101011;
+  --color-interaction-surface: var(--color-neutral-pewter);
+  --color-interaction-surface-foreground: var(--color-neutral-frost);
   --color-feedback-success: #2ba558;
   --color-feedback-warning: #ecb016;
   --color-feedback-danger: #f0311d;
@@ -113,10 +115,504 @@
   --shadow-inset: inset 0 1px 0 rgb(245 245 245 / 0.08), inset 0 -1px 0 rgb(0 0 0 / 0.35);
   --shadow-outline: 0 0 0 1px rgb(245 245 245 / 0.16);
 
+  --atmosphere-flat-grain-opacity: 0;
+  --atmosphere-flat-glow-alpha: 0;
+  --atmosphere-flat-glow-radius: 0px;
+  --atmosphere-low-grain-opacity: 0;
+  --atmosphere-low-glow-alpha: 0;
+  --atmosphere-low-glow-radius: 0px;
+  --atmosphere-mid-grain-opacity: 0.12;
+  --atmosphere-mid-glow-alpha: 0;
+  --atmosphere-mid-glow-radius: 0px;
+  --atmosphere-high-grain-opacity: 0.16;
+  --atmosphere-high-glow-alpha: 0.42;
+  --atmosphere-high-glow-radius: 560px;
+
+  /* Ember sparks are atmosphere, so they follow the same budget as grain and
+     glow: absent from flat readouts and dense working UI. */
+  --atmosphere-flat-particle-opacity: 0;
+  --atmosphere-low-particle-opacity: 0;
+  --atmosphere-mid-particle-opacity: 0.55;
+  --atmosphere-high-particle-opacity: 0.7;
+
+  /* Smolder is the live coal bed under a hero: breathing bloom, drifting smoke,
+     rising sparks. It costs animation frames rather than just paint, so it
+     follows the same budget as the static effects and stays off flat and low. */
+  --atmosphere-flat-smolder-opacity: 0;
+  --atmosphere-low-smolder-opacity: 0;
+  --atmosphere-mid-smolder-opacity: 0.78;
+  --atmosphere-high-smolder-opacity: 1;
+
+  /* Display distress: `wash` is the alpha of the solid frost layer painted back
+     over the erosion texture. 1 washes the texture out entirely, so `flat` and
+     `low` regions render clean type and only `mid`/`high` erode. */
+  --display-distress-flat-wash: 1;
+  --display-distress-low-wash: 1;
+  --display-distress-mid-wash: 0.46;
+  --display-distress-high-wash: 0.3;
+
   --ease-forge: cubic-bezier(0.4, 0, 0.2, 1);
   --transition-duration-fast: 150ms;
   --transition-duration-normal: 300ms;
   --transition-duration-slow: 500ms;
+}
+
+:root,
+[data-atmosphere] {
+  --atmosphere-grain-opacity: var(--atmosphere-flat-grain-opacity);
+  --atmosphere-glow-alpha: var(--atmosphere-flat-glow-alpha);
+  --atmosphere-glow-radius: var(--atmosphere-flat-glow-radius);
+  --atmosphere-particle-opacity: var(--atmosphere-flat-particle-opacity);
+  --atmosphere-smolder-opacity: var(--atmosphere-flat-smolder-opacity);
+  --display-distress-wash: var(--display-distress-flat-wash);
+}
+
+[data-atmosphere="low"] {
+  --atmosphere-grain-opacity: var(--atmosphere-low-grain-opacity);
+  --atmosphere-glow-alpha: var(--atmosphere-low-glow-alpha);
+  --atmosphere-glow-radius: var(--atmosphere-low-glow-radius);
+  --atmosphere-particle-opacity: var(--atmosphere-low-particle-opacity);
+  --atmosphere-smolder-opacity: var(--atmosphere-low-smolder-opacity);
+  --display-distress-wash: var(--display-distress-low-wash);
+}
+
+[data-atmosphere="mid"] {
+  --atmosphere-grain-opacity: var(--atmosphere-mid-grain-opacity);
+  --atmosphere-glow-alpha: var(--atmosphere-mid-glow-alpha);
+  --atmosphere-glow-radius: var(--atmosphere-mid-glow-radius);
+  --atmosphere-particle-opacity: var(--atmosphere-mid-particle-opacity);
+  --atmosphere-smolder-opacity: var(--atmosphere-mid-smolder-opacity);
+  --display-distress-wash: var(--display-distress-mid-wash);
+}
+
+[data-atmosphere="high"] {
+  --atmosphere-grain-opacity: var(--atmosphere-high-grain-opacity);
+  --atmosphere-glow-alpha: var(--atmosphere-high-glow-alpha);
+  --atmosphere-glow-radius: var(--atmosphere-high-glow-radius);
+  --atmosphere-particle-opacity: var(--atmosphere-high-particle-opacity);
+  --atmosphere-smolder-opacity: var(--atmosphere-high-smolder-opacity);
+  --display-distress-wash: var(--display-distress-high-wash);
+}
+
+@utility surface-elevated {
+  background-color: var(--color-surface-raised);
+  background-image: linear-gradient(180deg, rgb(245 245 245 / 0.055), transparent 48%);
+  box-shadow: var(--shadow-elevated), var(--shadow-inset);
+}
+
+@utility surface-inset {
+  background-color: var(--color-surface);
+  background-image: linear-gradient(180deg, rgb(0 0 0 / 0.2), transparent 42%);
+  box-shadow: var(--shadow-inset);
+}
+
+@utility surface-outline {
+  background-color: var(--color-char);
+  background-image: linear-gradient(180deg, rgb(245 245 245 / 0.035), transparent 50%);
+  box-shadow: var(--shadow-outline), var(--shadow-inset);
+}
+
+@utility surface-glass {
+  background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  background-image: linear-gradient(180deg, rgb(245 245 245 / 0.08), rgb(245 245 245 / 0.015));
+  box-shadow: var(--shadow-inset), var(--shadow-outline);
+  backdrop-filter: blur(16px);
+}
+
+@utility focal-card-rail {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: var(--spacing-1);
+    border-radius: var(--radius-compact);
+    background-color: var(--color-accent);
+    pointer-events: none;
+    content: "";
+  }
+}
+
+@utility section-hairline {
+  width: calc(var(--spacing-4) * 5);
+  height: 1px;
+  border-radius: var(--radius-compact);
+  background-color: var(--color-accent);
+}
+
+@utility atmosphere-effects {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      radial-gradient(
+        circle var(--atmosphere-glow-radius) at var(--atmosphere-glow-x, 78%) var(--atmosphere-glow-y, 18%),
+        rgb(from var(--color-accent) r g b / var(--atmosphere-glow-alpha)),
+        transparent 72%
+      ),
+      url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><filter id='noise'><feTurbulence type='fractalNoise' baseFrequency='.08' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23noise)' opacity='.9'/></svg>");
+    background-position:
+      var(--atmosphere-glow-x, 78%) var(--atmosphere-glow-y, 18%),
+      0 0;
+    background-repeat: no-repeat, repeat;
+    background-size:
+      var(--atmosphere-glow-radius) var(--atmosphere-glow-radius),
+      180px 180px;
+    mix-blend-mode: soft-light;
+    opacity: var(--atmosphere-grain-opacity);
+    pointer-events: none;
+    content: "";
+  }
+}
+
+@utility atmosphere-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Letterpress erosion for Anton display glyphs, matching the bitten headline
+   edges in designs/design-system.png and designs/fire-management.png.
+   The heading stays real selectable text — no image, SVG <text>, or duplicated
+   pseudo-element copy — so screen readers and find-in-page are unaffected.
+   Solid `color` is declared outside every guard, so any failure to paint the
+   texture lands on solid frost type rather than transparent type. */
+@utility display-distress {
+  color: var(--color-text);
+
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    /* Below 40rem the display clamps compute small enough that erosion removes
+       strokes instead of texturing them, so narrow viewports stay clean. */
+    @media (min-width: 40rem) {
+      background-image:
+        linear-gradient(
+          rgb(from var(--color-text) r g b / var(--display-distress-wash, 1)),
+          rgb(from var(--color-text) r g b / var(--display-distress-wash, 1))
+        ),
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'><filter id='erode'><feTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='11' stitchTiles='stitch'/><feComponentTransfer><feFuncA type='discrete' tableValues='0 0 0 0 0 1 1'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23erode)'/></svg>"),
+        linear-gradient(var(--color-text), var(--color-text));
+      background-position: 0 0;
+      background-repeat: repeat;
+      background-size:
+        auto,
+        140px 140px,
+        auto;
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+  }
+
+  /* A transparent-color headline vanishing in these modes is the most likely
+     undetected failure, so each forces solid type back on. */
+  @media (forced-colors: active), (prefers-contrast: more), print {
+    background-image: none;
+    color: var(--color-text);
+  }
+}
+
+/* The drifting spark field behind the hero imagery in designs/learn-books.png
+   and designs/fire-management.png. Pure CSS — no raster asset. */
+@utility ember-particles {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'><g fill='%23f1620f'><circle cx='36' cy='58' r='1.6' opacity='.9'/><circle cx='104' cy='22' r='1' opacity='.55'/><circle cx='168' cy='96' r='2.1' opacity='.75'/><circle cx='232' cy='40' r='1.2' opacity='.5'/><circle cx='292' cy='120' r='1.7' opacity='.85'/><circle cx='356' cy='64' r='1' opacity='.45'/><circle cx='402' cy='150' r='1.5' opacity='.7'/><circle cx='58' cy='168' r='1.3' opacity='.6'/><circle cx='128' cy='224' r='2' opacity='.8'/><circle cx='196' cy='182' r='1' opacity='.4'/><circle cx='264' cy='250' r='1.6' opacity='.7'/><circle cx='330' cy='206' r='1.1' opacity='.5'/><circle cx='386' cy='288' r='1.8' opacity='.75'/><circle cx='24' cy='300' r='1.4' opacity='.6'/><circle cx='92' cy='356' r='1' opacity='.42'/><circle cx='160' cy='312' r='1.9' opacity='.78'/><circle cx='228' cy='382' r='1.2' opacity='.52'/><circle cx='300' cy='340' r='1.5' opacity='.68'/><circle cx='368' cy='398' r='1' opacity='.44'/></g></svg>");
+    background-repeat: repeat;
+    background-size: 420px 420px;
+    opacity: var(--atmosphere-particle-opacity, 0);
+    pointer-events: none;
+    content: "";
+  }
+}
+
+/* Smoldering hero fire. Five stacked layers read as one bed of coals sitting
+   just under the headline: a breathing bloom, a hotter flare that catches air on
+   its own rhythm, drifting smoke, sparks rising and dying out, and the hot rim
+   on the bottom edge. Everything animates transform and opacity only, so the
+   whole field composites without repainting the hero, and every layer has a
+   resting look that stands on its own when the animation never runs.
+
+   The periods are mutually prime (13s / 9.4s / 34s / 7.6s) so the composition
+   takes minutes to visibly repeat, which is what separates a fire from a pulse. */
+@utility smolder-field {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  opacity: var(--atmosphere-smolder-opacity, 0);
+  pointer-events: none;
+}
+
+/* The bed itself: a wide, low bloom anchored under the display type. */
+@utility smolder-coalbed {
+  position: absolute;
+  inset-inline: -8%;
+  bottom: -28%;
+  height: 104%;
+  background-image:
+    radial-gradient(ellipse 54% 92% at 24% 100%, rgb(from var(--color-smoke) r g b / 0.55), transparent 70%),
+    radial-gradient(ellipse 88% 78% at 56% 108%, rgb(from var(--color-ember) r g b / 0.45), transparent 74%);
+  opacity: 0.82;
+  mix-blend-mode: screen;
+  animation: smolder-breathe 13s var(--ease-forge) infinite alternate;
+}
+
+/* A single hot spot inside the bed, flickering as if air moved over it. */
+@utility smolder-flare {
+  position: absolute;
+  bottom: -14%;
+  left: 4%;
+  width: 48%;
+  height: 62%;
+  background-image: radial-gradient(
+    ellipse 46% 56% at 40% 88%,
+    rgb(from var(--color-fire) r g b / 0.52),
+    rgb(from var(--color-ember) r g b / 0.2) 42%,
+    transparent 70%
+  );
+  opacity: 0.65;
+  mix-blend-mode: screen;
+  animation: smolder-flicker 9.4s var(--ease-forge) infinite;
+}
+
+/* Smoke passing over the coals, slow enough to notice only on a second look. */
+@utility smolder-haze {
+  position: absolute;
+  inset: -18% -12% -12%;
+  background-image:
+    radial-gradient(ellipse 44% 38% at 30% 76%, rgb(from var(--color-neutral-smoke) r g b / 0.05), transparent 66%),
+    radial-gradient(ellipse 36% 30% at 62% 58%, rgb(from var(--color-neutral-mist) r g b / 0.04), transparent 70%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  animation: smolder-drift 34s linear infinite alternate;
+}
+
+/* Spark chimney. The mask lives on this static wrapper rather than on the
+   moving tiles, so sparks fade out at a fixed height — they die as they rise
+   instead of carrying their own fade upward with them. */
+@utility smolder-sparks {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to top, rgb(0 0 0 / 1) 2%, rgb(0 0 0 / 0.6) 34%, rgb(0 0 0 / 0.2) 62%, transparent 84%);
+}
+
+/* Both spark layers translate by exactly one tile, so the loop is seamless, and
+   extend a tile past the bottom edge so nothing is ever revealed underneath. */
+@utility smolder-sparks-near {
+  position: absolute;
+  inset: 0 0 -420px;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'><g fill='%23f1620f'><circle cx='46' cy='72' r='1.9' opacity='.85'/><circle cx='152' cy='28' r='1.3' opacity='.6'/><circle cx='238' cy='114' r='2.2' opacity='.9'/><circle cx='330' cy='52' r='1.5' opacity='.55'/><circle cx='396' cy='168' r='1.8' opacity='.75'/><circle cx='88' cy='196' r='2' opacity='.8'/><circle cx='196' cy='238' r='1.4' opacity='.5'/><circle cx='286' cy='202' r='1.7' opacity='.72'/><circle cx='372' cy='286' r='2.1' opacity='.88'/><circle cx='36' cy='318' r='1.6' opacity='.65'/><circle cx='132' cy='364' r='2.3' opacity='.92'/><circle cx='224' cy='330' r='1.2' opacity='.48'/><circle cx='308' cy='392' r='1.9' opacity='.78'/></g></svg>");
+  background-repeat: repeat;
+  background-size: 420px 420px;
+  opacity: 0.9;
+  animation: smolder-rise 19s linear infinite;
+  --smolder-rise-offset: -420px;
+}
+
+@utility smolder-sparks-far {
+  position: absolute;
+  inset: 0 0 -260px;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'><g fill='%23e4511a'><circle cx='24' cy='40' r='1' opacity='.5'/><circle cx='96' cy='14' r='.8' opacity='.35'/><circle cx='168' cy='66' r='1.1' opacity='.45'/><circle cx='232' cy='30' r='.9' opacity='.3'/><circle cx='58' cy='128' r='1' opacity='.42'/><circle cx='140' cy='158' r='.8' opacity='.3'/><circle cx='210' cy='120' r='1.2' opacity='.48'/><circle cx='30' cy='214' r='.9' opacity='.34'/><circle cx='118' cy='236' r='1.1' opacity='.44'/><circle cx='196' cy='198' r='.8' opacity='.28'/></g></svg>");
+  background-repeat: repeat;
+  background-size: 260px 260px;
+  opacity: 0.7;
+  animation: smolder-rise 31s linear infinite;
+  --smolder-rise-offset: -260px;
+}
+
+/* The hot rim where the hero meets the page — the coals sitting right below. */
+@utility smolder-emberline {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgb(from var(--color-ember) r g b / 0.55) 16%,
+    rgb(from var(--color-smoke) r g b / 0.9) 42%,
+    rgb(from var(--color-ember) r g b / 0.5) 74%,
+    transparent
+  );
+  box-shadow: 0 0 14px rgb(from var(--color-smoke) r g b / 0.4);
+  opacity: 0.7;
+  animation: smolder-emberline-pulse 7.6s var(--ease-forge) infinite alternate;
+}
+
+@keyframes smolder-breathe {
+  0% {
+    opacity: 0.58;
+    transform: translate3d(0, 1%, 0) scale(1);
+  }
+
+  36% {
+    opacity: 0.9;
+    transform: translate3d(0, -1%, 0) scale(1.05);
+  }
+
+  63% {
+    opacity: 0.72;
+    transform: translate3d(0, 0, 0) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, -2.5%, 0) scale(1.08);
+  }
+}
+
+@keyframes smolder-flicker {
+  0%,
+  100% {
+    opacity: 0.34;
+    transform: scale(0.94);
+  }
+
+  17% {
+    opacity: 0.78;
+    transform: scale(1.05);
+  }
+
+  29% {
+    opacity: 0.46;
+    transform: scale(0.99);
+  }
+
+  44% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  58% {
+    opacity: 0.6;
+    transform: scale(1.01);
+  }
+
+  73% {
+    opacity: 0.88;
+    transform: scale(1.06);
+  }
+
+  86% {
+    opacity: 0.42;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes smolder-drift {
+  0% {
+    opacity: 0.5;
+    transform: translate3d(-3%, 2%, 0) scale(1.04);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: translate3d(4%, -3%, 0) scale(1.14);
+  }
+
+  100% {
+    opacity: 0.62;
+    transform: translate3d(-2%, -1%, 0) scale(1.07);
+  }
+}
+
+@keyframes smolder-rise {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, var(--smolder-rise-offset, -420px), 0);
+  }
+}
+
+@keyframes smolder-emberline-pulse {
+  0% {
+    opacity: 0.45;
+  }
+
+  100% {
+    opacity: 0.95;
+  }
+}
+
+/* Photographic slot. The charcoal gradient reads as a deliberate dark panel
+   while the photograph is absent, so an unsupplied asset degrades to texture
+   rather than to a broken-image box. */
+@utility photo-slot {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-neutral-obsidian);
+  background-image:
+    radial-gradient(circle 60% at 68% 28%, rgb(from var(--color-accent) r g b / 0.22), transparent 70%),
+    linear-gradient(150deg, var(--color-neutral-slate), var(--color-neutral-obsidian) 62%);
+}
+
+/* Bottom-up scrim so display type stays legible over a photograph. */
+@utility photo-scrim {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to top,
+    var(--color-canvas) 4%,
+    rgb(from var(--color-canvas) r g b / 0.82) 38%,
+    rgb(from var(--color-canvas) r g b / 0.15) 78%
+  );
+  pointer-events: none;
+}
+
+/* Left-to-right scrim for heroes that carry the photograph on the right, as in
+   designs/learn-books.png and designs/fire-management.png. */
+@utility photo-scrim-left {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to right,
+    var(--color-canvas) 6%,
+    rgb(from var(--color-canvas) r g b / 0.9) 34%,
+    rgb(from var(--color-canvas) r g b / 0.35) 68%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Sidebar photograph dissolving upward into the rail, the signature atmosphere
+   move in designs/kamado-learn-chat-page.png. */
+@utility sidebar-photo-fade {
+  mask-image: linear-gradient(to top, rgb(0 0 0 / 0.85), transparent 88%);
+}
+
+/* Active navigation row: warm wash plus the ember bloom bleeding off the
+   trailing edge in designs/kamado-learn-chat-page.png. */
+@utility nav-ember-active {
+  background-image: linear-gradient(90deg, rgb(from var(--color-accent) r g b / 0.14), transparent 82%);
+
+  &::after {
+    position: absolute;
+    z-index: 0;
+    inset-block: -30%;
+    right: calc(var(--spacing-2) * -1);
+    width: var(--spacing-8);
+    background-image: radial-gradient(
+      ellipse at right center,
+      rgb(from var(--color-accent) r g b / 0.55),
+      transparent 72%
+    );
+    pointer-events: none;
+    content: "";
+  }
 }
 
 body {
@@ -148,5 +644,17 @@ body {
     scroll-behavior: auto !important;
     transition-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Every smolder layer rests at a lit state of its own, so cutting the
+     animation outright leaves a still bed of coals under the hero rather than
+     an empty band or a layer frozen mid-fade. */
+  .smolder-coalbed,
+  .smolder-flare,
+  .smolder-haze,
+  .smolder-sparks-near,
+  .smolder-sparks-far,
+  .smolder-emberline {
+    animation: none;
   }
 }
